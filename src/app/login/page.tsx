@@ -90,12 +90,11 @@ export default function LoginPage() {
           <Image
             src="/dre-logo.png"
             alt="DreHomes"
-            width={120}
-            height={120}
+            width={180}
+            height={180}
             className="mx-auto mb-4"
             priority
           />
-          <h1 className="text-4xl font-bold text-[#0A1628] tracking-tight">ByDre</h1>
           <p className="text-[#D4AF37] font-medium mt-1">DreHomes Project Workspace</p>
         </div>
         <Suspense fallback={<Card className="rounded-2xl shadow-lg border border-border/50 h-64 animate-pulse bg-muted/30" />}>

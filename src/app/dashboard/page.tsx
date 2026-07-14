@@ -140,6 +140,17 @@ export default function DashboardPage() {
               )}
             </CardContent>
           </Card>
+
+          {boards.length === 0 && (
+            <Card className="rounded-2xl border-dashed border-border/60 col-span-1 md:col-span-3 bg-white">
+              <CardContent className="p-6 text-center">
+                <p className="text-sm text-muted-foreground">
+                  No boards found. Make sure you ran the Supabase seed script
+                  (<code>supabase/seed.sql</code>) after creating the test user.
+                </p>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
