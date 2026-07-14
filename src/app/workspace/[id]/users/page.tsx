@@ -7,6 +7,7 @@ import { AppShell } from "@/components/app-shell"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { PasswordInput } from "@/components/ui/password-input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -176,7 +177,7 @@ export default function UsersPage() {
                 <div className="space-y-4 py-2">
                   <div className="space-y-2"><Label>Full name</Label><Input value={fullName} onChange={(e) => setFullName(e.target.value)} /></div>
                   <div className="space-y-2"><Label>Email</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
-                  <div className="space-y-2"><Label>Temporary password</Label><Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} /></div>
+                  <div className="space-y-2"><Label>Temporary password</Label><PasswordInput value={password} onChange={(e) => setPassword(e.target.value)} /></div>
                   <div className="space-y-2"><Label>Role</Label><Select value={role} onValueChange={(value: "admin" | "member") => setRole(value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="member">Member</SelectItem><SelectItem value="admin">Admin</SelectItem></SelectContent></Select></div>
                 </div>
                 <DialogFooter><Button onClick={createUser} disabled={saving} className="bg-[#0A1628]">{saving ? "Creating..." : "Create user"}</Button></DialogFooter>

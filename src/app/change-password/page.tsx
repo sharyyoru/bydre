@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
+import { PasswordInput } from "@/components/ui/password-input"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 
@@ -31,5 +31,5 @@ export default function ChangePasswordPage() {
     router.refresh()
   }
 
-  return <main className="min-h-screen grid place-items-center bg-dre-surface p-6"><Card className="w-full max-w-md"><CardHeader><CardTitle>Set your password</CardTitle></CardHeader><CardContent className="space-y-4"><p className="text-sm text-muted-foreground">You must set a new password before accessing the workspace.</p><div className="space-y-2"><Label>New password</Label><Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} /></div><div className="space-y-2"><Label>Confirm password</Label><Input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} /></div><Button onClick={save} disabled={saving} className="w-full bg-[#0A1628]">{saving ? "Updating..." : "Continue"}</Button></CardContent></Card></main>
+  return <main className="min-h-screen grid place-items-center bg-dre-surface p-6"><Card className="w-full max-w-md"><CardHeader><CardTitle>Set your password</CardTitle></CardHeader><CardContent className="space-y-4"><p className="text-sm text-muted-foreground">You must set a new password before accessing the workspace.</p><div className="space-y-2"><Label>New password</Label><PasswordInput value={password} onChange={(e) => setPassword(e.target.value)} /></div><div className="space-y-2"><Label>Confirm password</Label><PasswordInput value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} /></div><Button onClick={save} disabled={saving} className="w-full bg-[#0A1628]">{saving ? "Updating..." : "Continue"}</Button></CardContent></Card></main>
 }
