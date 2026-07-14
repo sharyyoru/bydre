@@ -41,7 +41,7 @@ AS $$
   );
 $$;
 
-CREATE OR REPLACE FUNCTION public.is_workspace_member(p_workspace_id uuid, p_user_id uuid DEFAULT auth.uid())
+CREATE OR REPLACE FUNCTION public.is_workspace_member(workspace_id uuid, user_id uuid)
 RETURNS boolean
 LANGUAGE sql
 SECURITY DEFINER
@@ -50,9 +50,9 @@ STABLE
 AS $$
   SELECT EXISTS (
     SELECT 1
-    FROM public.workspace_members
-    WHERE workspace_id = p_workspace_id
-      AND user_id = p_user_id
+    FROM public.workspace_members wm
+    WHERE wm.workspace_id = $1
+      AND wm.user_id = $2
   );
 $$;
 
