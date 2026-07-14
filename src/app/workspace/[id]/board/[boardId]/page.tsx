@@ -26,5 +26,5 @@ export default async function BoardPage({
 
   if (!board) notFound();
 
-  return <BoardView workspaceId={ws.id} board={board as any} />;
+  return <BoardView workspaceId={ws.id} board={board as any} />
 }

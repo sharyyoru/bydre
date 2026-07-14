@@ -3,76 +3,53 @@
 import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
-import { format } from "date-fns"
 import { createClient } from "@/lib/supabase/client"
 import { AppShell } from "@/components/app-shell"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Calendar } from "@/components/ui/calendar"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { toast } from "sonner"
-import { Plus, Calendar as CalendarIcon, MessageSquare } from "lucide-react"
+import { Plus, Calendar as CalendarIcon } from "lucide-react"
+import {
+  ColumnDefinition,
+  BoardItem,
+  BoardGroup,
+  Profile,
+} from "@/lib/board/columns"
+import { CellEditor } from "./columns/cell-editor"
 import { ItemDetailDrawer } from "./item-detail-drawer"
-
-type Group = { id: string; name: string; color: string; position: number }
-type Status = { id: string; name: string; color: string }
-type Profile = { id: string; email: string; full_name: string | null }
-type Assignee = { user_id: string; profiles: Profile }
-type Item = {
-  id: string
-  title: string
-  description: string | null
-  status_id: string | null
-  priority: "low" | "medium" | "high" | "urgent"
-  start_date: string | null
-  due_date: string | null
-  group_id: string
-  created_by: string
-  comments_count: number
-  assignees: Assignee[]
-}
 
 type Board = {
   id: string
   name: string
   type: "shoots" | "content" | "tasks"
   workspace_id: string
+  default_view: string
 }
 
 export function BoardView({ workspaceId, board }: { workspaceId: string; board: Board }) {
   const params = useParams()
-  const [groups, setGroups] = useState<Group[]>([])
-  const [statuses, setStatuses] = useState<Status[]>([])
-  const [items, setItems] = useState<Record<string, Item[]>>({})
+  const [groups, setGroups] = useState<BoardGroup[]>([])
+  const [columns, setColumns] = useState<ColumnDefinition[]>([])
+  const [items, setItems] = useState<Record<string, BoardItem[]>>({})
   const [members, setMembers] = useState<Profile[]>([])
   const [newGroupName, setNewGroupName] = useState("")
-  const [selectedItem, setSelectedItem] = useState<Item | null>(null)
+  const [selectedItem, setSelectedItem] = useState<BoardItem | null>(null)
 
   const fetchAll = useCallback(async () => {
     const supabase = createClient()
 
-    const [{ data: g }, { data: s }, { data: m }] = await Promise.all([
+    const [{ data: g }, { data: c }, { data: m }] = await Promise.all([
       supabase
         .from("groups")
-        .select("id, name, color, position")
+        .select("id, name, color, position, archived_at")
         .eq("board_id", board.id)
+        .is("archived_at", null)
         .order("position", { ascending: true }),
       supabase
-        .from("statuses")
-        .select("id, name, color")
+        .from("columns")
+        .select("id, board_id, name, type, position, settings, is_required, archived_at, created_at")
         .eq("board_id", board.id)
+        .is("archived_at", null)
         .order("position", { ascending: true }),
       supabase
         .from("workspace_members")
@@ -80,8 +57,10 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
         .eq("workspace_id", workspaceId),
     ])
 
-    setGroups((g as Group[]) || [])
-    setStatuses((s as Status[]) || [])
+    const typedGroups = (g as BoardGroup[]) || []
+    const typedColumns = (c as ColumnDefinition[]) || []
+    setGroups(typedGroups)
+    setColumns(typedColumns)
     setMembers(
       ((m || []) as any[]).map((row: any) => ({
         id: row.user_id,
@@ -90,26 +69,35 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
       }))
     )
 
-    if (g && g.length > 0) {
+    if (typedGroups.length > 0) {
       const { data: i } = await supabase
         .from("items")
         .select(
-          "*, item_assignees(user_id, profiles(id, email, full_name)), comments(count)"
+          "*, item_assignees(user_id, profiles(id, email, full_name)), comments(count), item_values(id, column_id, value)"
         )
         .eq("board_id", board.id)
-        .order("created_at", { ascending: true })
+        .is("archived_at", null)
+        .order("position", { ascending: true })
 
-      const typedItems = ((i || []) as any[]).map((item: any) => ({
-        ...item,
-        assignees: (item.item_assignees || []).map((a: any) => ({
-          user_id: a.user_id,
-          profiles: a.profiles,
-        })),
-        comments_count: item.comments?.[0]?.count || 0,
-      })) as Item[]
+      const typedItems = ((i || []) as any[]).map((item: any) => {
+        const values: Record<string, any> = {}
+        for (const v of item.item_values || []) {
+          values[v.column_id] = v.value
+        }
+        return {
+          ...item,
+          values,
+          assignees: (item.item_assignees || []).map((a: any) => ({
+            user_id: a.user_id,
+            profiles: a.profiles,
+          })),
+          comments_count: item.comments?.[0]?.count || 0,
+          sub_items: [],
+        } as BoardItem
+      })
 
-      const byGroup: Record<string, Item[]> = {}
-      for (const group of g as Group[]) {
+      const byGroup: Record<string, BoardItem[]> = {}
+      for (const group of typedGroups) {
         byGroup[group.id] = typedItems.filter((it) => it.group_id === group.id)
       }
       setItems(byGroup)
@@ -127,6 +115,11 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "items", filter: `board_id=eq.${board.id}` },
+        () => fetchAll()
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "item_values" },
         () => fetchAll()
       )
       .subscribe()
@@ -167,6 +160,7 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
         type: board.type.replace(/s$/, "").replace("content", "content") as any,
         priority: "medium",
         created_by: user?.id,
+        position: 0,
       })
       .select()
       .single()
@@ -175,21 +169,27 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
       toast.error("Failed to add item")
       return
     }
-    setSelectedItem(data as Item)
+    setSelectedItem(data as BoardItem)
     fetchAll()
   }
 
-  const updateItem = async (
-    itemId: string,
-    updates: Partial<Item>
-  ) => {
+  const updateItemValue = async (itemId: string, columnId: string, value: any) => {
     const supabase = createClient()
     const { error } = await supabase
-      .from("items")
-      .update(updates as any)
-      .eq("id", itemId)
+      .from("item_values")
+      .upsert({ item_id: itemId, column_id: columnId, value }, { onConflict: "item_id, column_id" })
     if (error) {
-      toast.error("Failed to update item")
+      toast.error("Failed to update value")
+      return
+    }
+    fetchAll()
+  }
+
+  const updateItemTitle = async (itemId: string, title: string) => {
+    const supabase = createClient()
+    const { error } = await supabase.from("items").update({ title }).eq("id", itemId)
+    if (error) {
+      toast.error("Failed to update title")
       return
     }
     fetchAll()
@@ -206,20 +206,15 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
     fetchAll()
   }
 
-  const priorityColor = (p: string) => {
-    switch (p) {
-      case "low":
-        return "bg-slate-100 text-slate-700"
-      case "medium":
-        return "bg-blue-100 text-blue-700"
-      case "high":
-        return "bg-[#D4AF37]/10 text-[#D4AF37]"
-      case "urgent":
-        return "bg-red-100 text-red-700"
-      default:
-        return "bg-muted text-muted-foreground"
+  const handleCellChange = (item: BoardItem, column: ColumnDefinition, value: any) => {
+    if (column.type === "people") {
+      updateAssignees(item.id, value || [])
+    } else {
+      updateItemValue(item.id, column.id, value)
     }
   }
+
+  const visibleColumns = columns.filter((c) => c.archived_at === null)
 
   return (
     <AppShell>
@@ -277,11 +272,11 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
                   <thead className="bg-muted/30 text-muted-foreground">
                     <tr>
                       <th className="text-left px-4 py-2 font-medium w-1/3">Item</th>
-                      <th className="text-left px-4 py-2 font-medium">Status</th>
-                      <th className="text-left px-4 py-2 font-medium">Priority</th>
-                      <th className="text-left px-4 py-2 font-medium">Assignees</th>
-                      <th className="text-left px-4 py-2 font-medium">Due date</th>
-                      <th className="text-left px-4 py-2 font-medium"></th>
+                      {visibleColumns.map((column) => (
+                        <th key={column.id} className="text-left px-4 py-2 font-medium whitespace-nowrap">
+                          {column.name}
+                        </th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
@@ -292,105 +287,34 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
                         onClick={() => setSelectedItem(item)}
                       >
                         <td className="px-4 py-3 font-medium text-[#0A1628]">
-                          {item.title}
+                          <Input
+                            value={item.title}
+                            onChange={(e) => updateItemTitle(item.id, e.target.value)}
+                            onBlur={() => updateItemTitle(item.id, item.title)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="h-7 border-transparent bg-transparent px-0 hover:bg-white focus:bg-white focus:border-border"
+                          />
                         </td>
-                        <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                          <Select
-                            value={item.status_id || undefined}
-                            onValueChange={(value) =>
-                              updateItem(item.id, { status_id: value || null })
-                            }
+                        {visibleColumns.map((column) => (
+                          <td
+                            key={column.id}
+                            className="px-4 py-3"
+                            onClick={(e) => e.stopPropagation()}
                           >
-                            <SelectTrigger className="w-36 h-8">
-                              <SelectValue placeholder="Select" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {statuses.map((s) => (
-                                <SelectItem key={s.id} value={s.id}>
-                                  <span
-                                    className="inline-block w-2 h-2 rounded-full mr-2"
-                                    style={{ backgroundColor: s.color }}
-                                  />
-                                  {s.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </td>
-                        <td className="px-4 py-3">
-                          <Badge
-                            variant="outline"
-                            className={`capitalize ${priorityColor(item.priority)} border-0`}
-                          >
-                            {item.priority}
-                          </Badge>
-                        </td>
-                        <td className="px-4 py-3">
-                          <Select
-                            value={item.assignees?.[0]?.user_id || "none"}
-                            onValueChange={(value) => {
-                              const ids = value === "none" ? [] : [value]
-                              updateAssignees(item.id, ids)
-                            }}
-                          >
-                            <SelectTrigger className="w-40 h-8" onClick={(e) => e.stopPropagation()}>
-                              <SelectValue placeholder="Assignee" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="none">Unassigned</SelectItem>
-                              {members.map((m) => (
-                                <SelectItem key={m.id} value={m.id}>
-                                  {m.full_name || m.email}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </td>
-                        <td className="px-4 py-3">
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="text-muted-foreground"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <CalendarIcon className="h-4 w-4 mr-2" />
-                                {item.due_date
-                                  ? format(new Date(item.due_date), "MMM d")
-                                  : "Set date"}
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                              <Calendar
-                                mode="single"
-                                selected={item.due_date ? new Date(item.due_date) : undefined}
-                                onSelect={(date) =>
-                                  updateItem(item.id, {
-                                    due_date: date
-                                      ? format(date, "yyyy-MM-dd")
-                                      : null,
-                                  })
-                                }
-                                initialFocus
-                              />
-                            </PopoverContent>
-                          </Popover>
-                        </td>
-                        <td className="px-4 py-3">
-                          {item.comments_count > 0 && (
-                            <div className="flex items-center text-muted-foreground text-xs">
-                              <MessageSquare className="h-3.5 w-3.5 mr-1" />
-                              {item.comments_count}
-                            </div>
-                          )}
-                        </td>
+                            <CellEditor
+                              column={column}
+                              item={item}
+                              members={members}
+                              onChange={(value) => handleCellChange(item, column, value)}
+                            />
+                          </td>
+                        ))}
                       </tr>
                     ))}
                     {(items[group.id] || []).length === 0 && (
                       <tr>
                         <td
-                          colSpan={6}
+                          colSpan={visibleColumns.length + 1}
                           className="px-4 py-6 text-center text-sm text-muted-foreground"
                         >
                           No items yet. Click Add item to create one.
@@ -416,7 +340,8 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
       {selectedItem && (
         <ItemDetailDrawer
           item={selectedItem}
-          statuses={statuses}
+          columns={columns}
+          members={members}
           open={!!selectedItem}
           onOpenChange={(open: boolean) => {
             if (!open) {
