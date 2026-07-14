@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import Image from "next/image"
 import Link from "next/link"
 import { useParams, usePathname } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
@@ -75,9 +76,13 @@ export function Sidebar() {
   return (
     <aside className="hidden lg:flex flex-col w-64 h-screen bg-[#0A1628] text-white border-r border-white/10 fixed left-0 top-0 z-40">
       <div className="p-5 flex items-center gap-3">
-        <div className="w-9 h-9 rounded-lg bg-[#D4AF37] flex items-center justify-center text-[#0A1628] font-bold text-lg">
-          DRE
-        </div>
+        <Image
+          src="/dre-logo.png"
+          alt="DreHomes"
+          width={40}
+          height={40}
+          className="rounded-lg bg-white"
+        />
         <div>
           <h2 className="font-bold text-lg leading-tight">ByDre</h2>
           <p className="text-xs text-white/60">{workspaceName}</p>

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, Suspense } from "react"
+import Image from "next/image"
 import { useRouter, useSearchParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
@@ -86,6 +87,14 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-dre-surface p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
+          <Image
+            src="/dre-logo.png"
+            alt="DreHomes"
+            width={120}
+            height={120}
+            className="mx-auto mb-4"
+            priority
+          />
           <h1 className="text-4xl font-bold text-[#0A1628] tracking-tight">ByDre</h1>
           <p className="text-[#D4AF37] font-medium mt-1">DreHomes Project Workspace</p>
         </div>
