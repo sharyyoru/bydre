@@ -13,8 +13,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Input } from "@/components/ui/input"
-import { Bell, LogOut, Search, User } from "lucide-react"
+import { SearchDialog } from "./search-dialog"
+import { Bell, LogOut, User } from "lucide-react"
 
 export function TopBar() {
   const router = useRouter()
@@ -79,13 +79,7 @@ export function TopBar() {
 
   return (
     <header className="h-16 bg-white border-b border-border flex items-center justify-between px-6 fixed top-0 left-0 lg:left-64 right-0 z-30">
-      <div className="flex items-center gap-3 flex-1 max-w-md">
-        <Search className="h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search boards, items, people..."
-          className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 px-0"
-        />
-      </div>
+      <SearchDialog />
 
       <div className="flex items-center gap-4">
         <Link href="/dashboard">
