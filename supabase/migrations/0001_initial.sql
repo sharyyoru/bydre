@@ -140,6 +140,41 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- Policies are dropped before recreation so this migration can safely rerun.
+DO $$
+DECLARE
+  policy_record record;
+BEGIN
+  FOR policy_record IN
+    SELECT * FROM (VALUES
+      ('profiles', 'Profiles readable by workspace members'),
+      ('profiles', 'Profiles updatable by owner or admins'),
+      ('workspaces', 'Workspaces readable by members'),
+      ('workspaces', 'Workspaces updatable by admins'),
+      ('workspace_members', 'Workspace members readable by members'),
+      ('workspace_members', 'Workspace members manageable by admins'),
+      ('boards', 'Boards readable by workspace members'),
+      ('boards', 'Boards manageable by workspace members'),
+      ('groups', 'Groups readable by board workspace members'),
+      ('groups', 'Groups manageable by workspace members'),
+      ('statuses', 'Statuses readable by board workspace members'),
+      ('statuses', 'Statuses manageable by workspace members'),
+      ('items', 'Items readable by board workspace members'),
+      ('items', 'Items manageable by workspace members'),
+      ('item_assignees', 'Item assignees readable by board workspace members'),
+      ('item_assignees', 'Item assignees manageable by workspace members'),
+      ('comments', 'Comments readable by board workspace members'),
+      ('comments', 'Comments manageable by workspace members'),
+      ('mentions', 'Mentions readable by involved users'),
+      ('mentions', 'Mentions manageable by workspace members'),
+      ('notifications', 'Notifications readable by owner'),
+      ('notifications', 'Notifications updatable by owner')
+    ) AS policies(table_name, policy_name)
+  LOOP
+    EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', policy_record.policy_name, policy_record.table_name);
+  END LOOP;
+END $$;
+
 -- Profiles policies
 CREATE POLICY "Profiles readable by workspace members"
   ON public.profiles FOR SELECT
@@ -401,6 +436,20 @@ CREATE TRIGGER on_comment_created
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_comment();
 
 -- Realtime
-ALTER PUBLICATION supabase_realtime ADD TABLE public.items;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.comments;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
+DO $$
+BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.items;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.comments;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;

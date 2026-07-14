@@ -227,6 +227,46 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- Policies are dropped before recreation so this migration can safely rerun.
+DO $$
+DECLARE
+  policy_record record;
+BEGIN
+  FOR policy_record IN
+    SELECT * FROM (VALUES
+      ('columns', 'columns_select'),
+      ('columns', 'columns_manage'),
+      ('item_values', 'item_values_select'),
+      ('item_values', 'item_values_modify'),
+      ('files', 'files_select'),
+      ('files', 'files_upload'),
+      ('item_files', 'item_files_select'),
+      ('item_files', 'item_files_modify'),
+      ('comment_files', 'comment_files_select'),
+      ('comment_files', 'comment_files_modify'),
+      ('board_views', 'board_views_select'),
+      ('board_views', 'board_views_modify'),
+      ('templates', 'templates_select'),
+      ('templates', 'templates_modify'),
+      ('board_filters', 'board_filters_select'),
+      ('board_filters', 'board_filters_modify'),
+      ('automations', 'automations_select'),
+      ('automations', 'automations_modify'),
+      ('automation_logs', 'automation_logs_select'),
+      ('archived_items', 'archived_items_select'),
+      ('archived_items', 'archived_items_modify'),
+      ('archived_boards', 'archived_boards_select'),
+      ('archived_boards', 'archived_boards_modify')
+    ) AS policies(table_name, policy_name)
+  LOOP
+    EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', policy_record.policy_name, policy_record.table_name);
+  END LOOP;
+END $$;
+
+DROP POLICY IF EXISTS "attachments_select" ON storage.objects;
+DROP POLICY IF EXISTS "attachments_insert" ON storage.objects;
+DROP POLICY IF EXISTS "attachments_delete" ON storage.objects;
+
 -- columns: visible to workspace members of the board's workspace
 CREATE POLICY "columns_select" ON public.columns
   FOR SELECT USING (
