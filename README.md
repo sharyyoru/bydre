@@ -1,36 +1,45 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ByDre
 
-## Getting Started
+A branded, Monday.com-style project management workspace for DreHomes, built with Next.js 14, Supabase, Tailwind CSS, and shadcn/ui.
 
-First, run the development server:
+## Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- Branded login screen with seeded test user
+- Workspace dashboard with board overview and notifications
+- Monday-style board view with groups, items, status, priority, assignees, and due dates
+- Calendar view for deadlines
+- Item detail drawer with comments and `@user` mentions
+- Realtime updates via Supabase Realtime
+- Navy/gold DreHomes branding
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Test credentials
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- Email: `wilson@drehomes.com`
+- Password: `wilsontest`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Setup
 
-## Learn More
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-To learn more about Next.js, take a look at the following resources:
+2. Create `.env.local` from `.env.example` and fill in your Supabase keys and app URL.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+3. Run the Supabase migration in `supabase/migrations/0001_initial.sql` (via the Supabase SQL editor or CLI).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+4. Seed the test user:
+   ```bash
+   npm run seed:user
+   ```
 
-## Deploy on Vercel
+5. Seed the workspace and boards by running the contents of `supabase/seed.sql` in the Supabase SQL editor after the test user exists.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+6. Run the development server:
+   ```bash
+   npm run dev
+   ```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Deployment
+
+Connect the GitHub repository to Vercel and set the environment variables from `.env.example`. Ensure the Supabase schema and seeds are applied in production.
