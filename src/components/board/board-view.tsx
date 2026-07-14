@@ -2,7 +2,7 @@
 
 import { Fragment, useCallback, useEffect, useState } from "react"
 import Link from "next/link"
-import { useParams } from "next/navigation"
+import { useParams, useSearchParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { AppShell } from "@/components/app-shell"
 import { Button } from "@/components/ui/button"
@@ -40,6 +40,8 @@ type Board = {
 
 export function BoardView({ workspaceId, board }: { workspaceId: string; board: Board }) {
   const params = useParams()
+  const searchParams = useSearchParams()
+  const requestedItemId = searchParams.get("item")
   const [groups, setGroups] = useState<BoardGroup[]>([])
   const [columns, setColumns] = useState<ColumnDefinition[]>([])
   const [items, setItems] = useState<Record<string, BoardItem[]>>({})
@@ -144,8 +146,12 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
         byGroup[group.id] = allItems.filter((it) => it.group_id === group.id && !it.parent_id)
       }
       setItems(byGroup)
+      if (requestedItemId) {
+        const requestedItem = [...allItems, ...subItems].find((item) => item.id === requestedItemId)
+        if (requestedItem) setSelectedItem(requestedItem)
+      }
     }
-  }, [board.id, workspaceId])
+  }, [board.id, requestedItemId, workspaceId])
 
   useEffect(() => {
     fetchAll()
