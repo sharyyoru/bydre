@@ -349,10 +349,10 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
               </div>
 
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="w-full min-w-[960px] text-sm">
                   <thead className="bg-muted/30 text-muted-foreground">
                     <tr>
-                      <th className="text-left px-4 py-2 font-medium w-1/3">Item</th>
+                      <th className="min-w-[260px] w-[30%] text-left px-4 py-2 font-medium">Item</th>
                       {visibleColumns.map((column) => (
                         <th key={column.id} className="text-left px-4 py-2 font-medium whitespace-nowrap">
                           {column.name}
@@ -369,7 +369,7 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
                           className="border-t border-border/40 hover:bg-muted/20 cursor-pointer"
                           onClick={() => setSelectedItem(item)}
                         >
-                          <td className="px-4 py-3 font-medium text-[#0A1628]">
+                          <td className="min-w-[260px] px-4 py-3 font-medium text-[#0A1628]">
                             <Input
                               key={`${item.id}-${item.title}`}
                               defaultValue={item.title}
@@ -377,7 +377,7 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
                                 if (e.target.value !== item.title) updateItemTitle(item.id, e.target.value)
                               }}
                               onClick={(e) => e.stopPropagation()}
-                              className="h-7 border-transparent bg-transparent px-0 hover:bg-white focus:bg-white focus:border-border"
+                              className="h-7 w-full min-w-0 border-transparent bg-transparent px-0 hover:bg-white focus:bg-white focus:border-border"
                             />
                           </td>
                           {visibleColumns.map((column) => (
@@ -402,7 +402,7 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
                             className="border-t border-dashed border-border/30 hover:bg-muted/20 cursor-pointer bg-muted/10"
                             onClick={() => setSelectedItem(sub)}
                           >
-                            <td className="px-4 py-2 pl-10 font-medium text-[#0A1628]">
+                            <td className="min-w-[260px] px-4 py-2 pl-10 font-medium text-[#0A1628]">
                               <Input
                                 key={`${sub.id}-${sub.title}`}
                                 defaultValue={sub.title}
@@ -410,7 +410,7 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
                                   if (e.target.value !== sub.title) updateItemTitle(sub.id, e.target.value)
                                 }}
                                 onClick={(e) => e.stopPropagation()}
-                                className="h-7 border-transparent bg-transparent px-0 hover:bg-white focus:bg-white focus:border-border"
+                                className="h-7 w-full min-w-0 border-transparent bg-transparent px-0 hover:bg-white focus:bg-white focus:border-border"
                               />
                             </td>
                             {visibleColumns.map((column) => (
