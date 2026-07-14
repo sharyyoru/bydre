@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/popover"
 import { Bell } from "lucide-react"
 
-type Notification = { id: string; message: string; read: boolean; created_at: string; board_id: string | null; item_id: string | null }
+type Notification = { id: string; message: string; read: boolean; created_at: string; board_id: string | null; item_id: string | null; source_id: string; type: string }
 
 export function NotificationMenu() {
   const [items, setItems] = useState<Notification[]>([])
@@ -20,10 +20,18 @@ export function NotificationMenu() {
   const load = useCallback(async () => {
     const supabase = createClient()
     const [{ data: notifications }, { data: workspace }] = await Promise.all([
-      supabase.from("notifications").select("id, message, read, created_at, board_id, item_id").order("created_at", { ascending: false }).limit(10),
+      supabase.from("notifications").select("id, message, read, created_at, board_id, item_id, source_id, type").order("created_at", { ascending: false }).limit(10),
       supabase.from("workspaces").select("slug").limit(1).maybeSingle(),
     ])
-    setItems((notifications as Notification[]) || [])
+    const notificationList = (notifications as Notification[]) || []
+    const unresolvedMentions = notificationList.filter((item) => !item.item_id && item.type === "mention").map((item) => item.source_id)
+    if (unresolvedMentions.length) {
+      const { data: comments } = await supabase.from("comments").select("id,item_id,items(board_id)").in("id", unresolvedMentions)
+      const targets = Object.fromEntries(((comments || []) as any[]).map((comment) => [comment.id, { item_id: comment.item_id, board_id: comment.items?.board_id || null }]))
+      setItems(notificationList.map((item) => targets[item.source_id] ? { ...item, ...targets[item.source_id] } : item))
+    } else {
+      setItems(notificationList)
+    }
     if (workspace) setWorkspaceSlug(workspace.slug)
   }, [])
 
