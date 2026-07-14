@@ -8,7 +8,7 @@ import { AppShell } from "@/components/app-shell"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
-import { Plus, Calendar as CalendarIcon, LayoutGrid, Table as TableIcon, History, Trash2 } from "lucide-react"
+import { Plus, Calendar as CalendarIcon, Eye, LayoutGrid, Table as TableIcon, History, Trash2 } from "lucide-react"
 import {
   ColumnDefinition,
   BoardItem,
@@ -28,6 +28,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 type Board = {
   id: string
@@ -390,12 +391,16 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
                               className="px-4 py-3"
                               onClick={(e) => e.stopPropagation()}
                             >
-                              <CellEditor
-                                column={column}
-                                item={item}
-                                members={members}
-                                onChange={(value) => handleCellChange(item, column, value)}
-                              />
+                              {isNotesColumn(column) ? (
+                                <NotesPreview value={item.values?.[column.id]} onOpen={() => setSelectedItem(item)} />
+                              ) : (
+                                <CellEditor
+                                  column={column}
+                                  item={item}
+                                  members={members}
+                                  onChange={(value) => handleCellChange(item, column, value)}
+                                />
+                              )}
                             </td>
                           ))}
                           <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}><Button variant="outline" size="sm" onClick={() => setSelectedItem(item)}>View</Button></td>
@@ -423,12 +428,16 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
                                 className="px-4 py-2"
                                 onClick={(e) => e.stopPropagation()}
                               >
-                                <CellEditor
-                                  column={column}
-                                  item={sub}
-                                  members={members}
-                                  onChange={(value) => handleCellChange(sub, column, value)}
-                                />
+                                {isNotesColumn(column) ? (
+                                  <NotesPreview value={sub.values?.[column.id]} onOpen={() => setSelectedItem(sub)} />
+                                ) : (
+                                  <CellEditor
+                                    column={column}
+                                    item={sub}
+                                    members={members}
+                                    onChange={(value) => handleCellChange(sub, column, value)}
+                                  />
+                                )}
                               </td>
                             ))}
                             <td className="px-4 py-2" onClick={(e) => e.stopPropagation()}><Button variant="outline" size="sm" onClick={() => setSelectedItem(sub)}>View</Button></td>
@@ -490,5 +499,24 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
         />
       )}
     </AppShell>
+  )
+}
+
+function isNotesColumn(column: ColumnDefinition) {
+  return column.type === "text" && column.name.trim().toLowerCase() === "notes"
+}
+
+function NotesPreview({ value, onOpen }: { value: unknown; onOpen: () => void }) {
+  const note = typeof value === "string" ? value.trim() : ""
+  if (!note) return <Button variant="ghost" size="sm" onClick={onOpen}>Add note</Button>
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button variant="ghost" size="icon" onClick={onOpen} aria-label="View note"><Eye className="h-4 w-4" /></Button>
+        </TooltipTrigger>
+        <TooltipContent className="max-w-sm whitespace-pre-wrap">{note}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   )
 }
