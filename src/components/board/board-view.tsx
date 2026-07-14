@@ -19,6 +19,7 @@ import { CellEditor } from "./columns/cell-editor"
 import { ColumnDefinitionDialog } from "./columns/column-definition-dialog"
 import { ItemDetailDrawer } from "./item-detail-drawer"
 import { KanbanView } from "./views/kanban-view"
+import { AutomationBuilder } from "../automations/automation-builder"
 
 type Board = {
   id: string
@@ -278,6 +279,7 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
               </Link>
             </div>
             <div className="flex items-center gap-2">
+              <AutomationBuilder boardId={board.id} onChange={fetchAll} />
               <ColumnDefinitionDialog
                 boardId={board.id}
                 existingColumnCount={visibleColumns.length}
