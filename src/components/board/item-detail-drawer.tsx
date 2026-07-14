@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { toast } from "sonner"
 import { Plus } from "lucide-react"
+import { Mention, MentionsInput } from "react-mentions"
 import {
   ColumnDefinition,
   BoardItem,
@@ -38,12 +39,14 @@ export function ItemDetailDrawer({
   members,
   open,
   onOpenChange,
+  onItemChanged,
 }: {
   item: BoardItem
   columns: ColumnDefinition[]
   members: Profile[]
   open: boolean
   onOpenChange: (open: boolean) => void
+  onItemChanged?: () => void
 }) {
   const [localItem, setLocalItem] = useState<BoardItem>(item)
   const [comments, setComments] = useState<Comment[]>([])
@@ -113,17 +116,32 @@ export function ItemDetailDrawer({
     const { error } = await supabase
       .from("item_values")
       .upsert({ item_id: item.id, column_id: columnId, value }, { onConflict: "item_id, column_id" })
-    if (error) toast.error("Failed to update value")
+    if (error) {
+      toast.error("Failed to update value")
+      return
+    }
+    setLocalItem((current) => ({
+      ...current,
+      values: { ...current.values, [columnId]: value },
+    }))
+    onItemChanged?.()
   }
 
   const updateAssignees = async (userIds: string[]) => {
     const supabase = createClient()
-    await supabase.from("item_assignees").delete().eq("item_id", item.id)
-    if (userIds.length > 0) {
-      await supabase
-        .from("item_assignees")
-        .insert(userIds.map((user_id) => ({ item_id: item.id, user_id })))
+    const { error: deleteError } = await supabase.from("item_assignees").delete().eq("item_id", item.id)
+    const { error: insertError } = userIds.length > 0
+      ? await supabase.from("item_assignees").insert(userIds.map((user_id) => ({ item_id: item.id, user_id })))
+      : { error: null }
+    if (deleteError || insertError) {
+      toast.error("Failed to update assignees")
+      return
     }
+    setLocalItem((current) => ({
+      ...current,
+      assignees: members.filter((member) => userIds.includes(member.id)).map((member) => ({ user_id: member.id, profiles: member })),
+    }))
+    onItemChanged?.()
   }
 
   const handleCellChange = (column: ColumnDefinition, value: any) => {
@@ -152,17 +170,11 @@ export function ItemDetailDrawer({
   }
 
   const renderComment = (text: string) => {
-    const mentionRegex = /@([^\s]+)/g
-    const parts = text.split(mentionRegex)
-    return parts.map((part, i) =>
-      i % 2 === 1 ? (
-        <span key={i} className="text-[#D4AF37] font-medium">
-          @{part}
-        </span>
-      ) : (
-        <span key={i}>{part}</span>
-      )
-    )
+    const parts = text.split(/(@\[[^\]]+\]\([^\)]+\))/g)
+    return parts.map((part, index) => {
+      const match = part.match(/^@\[([^\]]+)\]\([^\)]+\)$/)
+      return match ? <span key={index} className="rounded bg-[#D4AF37]/20 px-1 font-medium text-[#0A1628]">@{match[1]}</span> : <span key={index}>{part}</span>
+    })
   }
 
   const visibleColumns = columns.filter((c) => c.archived_at === null)
@@ -222,7 +234,7 @@ export function ItemDetailDrawer({
                 onClick={async () => {
                   const supabase = createClient()
                   const { data: user } = await supabase.auth.getUser()
-                  const { error } = await supabase.from("items").insert({
+                  const { data, error } = await supabase.from("items").insert({
                     board_id: item.board_id,
                     group_id: item.group_id,
                     parent_id: item.id,
@@ -231,13 +243,27 @@ export function ItemDetailDrawer({
                     priority: "medium",
                     created_by: user.user?.id,
                     position: 0,
-                  })
-                  if (error) toast.error("Failed to add sub-item")
-                  else toast.success("Sub-item added")
+                  }).select().single()
+                  if (error || !data) toast.error("Failed to add sub-item")
+                  else {
+                    setLocalItem((current) => ({ ...current, sub_items: [...(current.sub_items || []), { ...data, values: {}, assignees: [], sub_items: [], comments_count: 0 }] }))
+                    onItemChanged?.()
+                    toast.success("Sub-item added")
+                  }
                 }}
               >
                 <Plus className="h-4 w-4 mr-1" /> Add sub-item
               </Button>
+            </div>
+          )}
+
+          {!localItem.parent_id && localItem.sub_items?.length > 0 && (
+            <div className="space-y-2">
+              {localItem.sub_items.map((subItem) => (
+                <div key={subItem.id} className="rounded-lg border border-border/60 px-3 py-2 text-sm">
+                  {subItem.title}
+                </div>
+              ))}
             </div>
           )}
 
@@ -272,12 +298,26 @@ export function ItemDetailDrawer({
             </div>
 
             <div className="space-y-2">
-              <Textarea
-                placeholder="Write a comment... Use @email to mention someone"
+              <MentionsInput
                 value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                className="min-h-[80px]"
-              />
+                onChange={(_, value) => setCommentText(value)}
+                placeholder="Write a comment... Type @ to mention a teammate"
+                className="mentions-input"
+                style={{
+                  control: { minHeight: 80, fontSize: 14 },
+                  highlighter: { padding: 12, border: "1px solid transparent" },
+                  input: { padding: 12, border: "1px solid hsl(var(--border))", borderRadius: 8, outline: "none" },
+                  suggestions: { list: { backgroundColor: "white", border: "1px solid hsl(var(--border))", borderRadius: 8, boxShadow: "0 8px 20px rgba(0,0,0,.12)", overflow: "hidden" }, item: { padding: "8px 12px", borderBottom: "1px solid hsl(var(--border))" } },
+                }}
+              >
+                <Mention
+                  trigger="@"
+                  data={members.map((member) => ({ id: member.id, display: member.full_name || member.email }))}
+                  markup="@[__display__](__id__)"
+                  displayTransform={(_, display) => `@${display}`}
+                  style={{ backgroundColor: "rgba(212,175,55,.25)", color: "#0A1628", fontWeight: 600 }}
+                />
+              </MentionsInput>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">
                   Mention with @wilson@drehomes.com

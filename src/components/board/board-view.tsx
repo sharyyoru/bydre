@@ -461,6 +461,7 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
               fetchAll()
             }
           }}
+          onItemChanged={fetchAll}
         />
       )}
     </AppShell>
