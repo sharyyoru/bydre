@@ -109,5 +109,6 @@ BEGIN
     (board_tasks, 'Table', 'table', 0, '{}'),
     (board_tasks, 'Calendar', 'calendar', 1, '{"date_column":"Due Date"}'),
     (board_tasks, 'Kanban', 'kanban', 2, '{"group_by":"Status"}'),
-    (board_tasks, 'Workload', 'workload', 3, '{"people_column":"Owner"}');
+    (board_tasks, 'Workload', 'workload', 3, '{"people_column":"Owner"}')
+  ON CONFLICT (board_id, type) DO NOTHING;
 END $$;

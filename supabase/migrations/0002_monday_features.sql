@@ -111,7 +111,8 @@ CREATE TABLE IF NOT EXISTS public.board_views (
   config jsonb NOT NULL DEFAULT '{}',
   position int NOT NULL DEFAULT 0,
   created_by uuid REFERENCES public.profiles(id) ON DELETE SET NULL,
-  created_at timestamptz DEFAULT now()
+  created_at timestamptz DEFAULT now(),
+  UNIQUE(board_id, type)
 );
 
 CREATE INDEX IF NOT EXISTS idx_board_views_board_id ON public.board_views(board_id);
