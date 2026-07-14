@@ -8,11 +8,10 @@ export default async function CalendarPage({
   params: { id: string; boardId: string };
 }) {
   const supabase = createClient();
-  const { data: workspace } = await supabase
-    .from("workspaces")
-    .select("*")
-    .or(`id.eq.${params.id},slug.eq.${params.id}`)
-    .single();
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(params.id);
+  const { data: workspace } = isUuid
+    ? await supabase.from("workspaces").select("*").eq("id", params.id).single()
+    : await supabase.from("workspaces").select("*").eq("slug", params.id).single();
 
   const ws = workspace as { id: string; name: string } | null;
   if (!ws) notFound();

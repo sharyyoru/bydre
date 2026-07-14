@@ -32,11 +32,14 @@ export function BoardRouteClient({
   useEffect(() => {
     const loadBoard = async () => {
       const supabase = createClient()
-      const { data: workspaceData, error: workspaceError } = await supabase
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(workspaceIdentifier)
+      const workspaceQuery = supabase
         .from("workspaces")
         .select("id")
-        .or(`id.eq.${workspaceIdentifier},slug.eq.${workspaceIdentifier}`)
-        .maybeSingle()
+
+      const { data: workspaceData, error: workspaceError } = isUuid
+        ? await workspaceQuery.eq("id", workspaceIdentifier).maybeSingle()
+        : await workspaceQuery.eq("slug", workspaceIdentifier).maybeSingle()
 
       if (workspaceError || !workspaceData) {
         setError(true)
