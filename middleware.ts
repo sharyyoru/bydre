@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 
-const PUBLIC_ROUTES = ["/login", "/auth/callback", "/_next", "/api"];
+const PUBLIC_ROUTES = ["/login", "/auth/callback", "/change-password", "/_next", "/api"]; 
 
 export async function middleware(request: NextRequest) {
   const { response, user } = await updateSession(request);
@@ -13,6 +13,10 @@ export async function middleware(request: NextRequest) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("redirectedFrom", pathname);
     return NextResponse.redirect(loginUrl);
+  }
+
+  if (user?.user_metadata?.must_change_password && pathname !== "/change-password") {
+    return NextResponse.redirect(new URL("/change-password", request.url));
   }
 
   if (user && pathname === "/login") {

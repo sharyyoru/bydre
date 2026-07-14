@@ -20,6 +20,15 @@ import { ColumnDefinitionDialog } from "./columns/column-definition-dialog"
 import { ItemDetailDrawer } from "./item-detail-drawer"
 import { KanbanView } from "./views/kanban-view"
 import { AutomationBuilder } from "../automations/automation-builder"
+import { ActivityLog } from "../activity/activity-log"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { History } from "lucide-react"
 
 type Board = {
   id: string
@@ -279,6 +288,10 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
               </Link>
             </div>
             <div className="flex items-center gap-2">
+              <Dialog>
+                <DialogTrigger asChild><Button variant="outline" size="sm"><History className="h-4 w-4 mr-2" />Activity</Button></DialogTrigger>
+                <DialogContent className="sm:max-w-2xl"><DialogHeader><DialogTitle>Board activity</DialogTitle></DialogHeader><ActivityLog boardId={board.id} /></DialogContent>
+              </Dialog>
               <AutomationBuilder boardId={board.id} onChange={fetchAll} />
               <ColumnDefinitionDialog
                 boardId={board.id}

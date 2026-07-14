@@ -14,6 +14,7 @@ import {
   FileText,
   CheckSquare,
   Plus,
+  Users,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -102,6 +103,18 @@ export function Sidebar({ mobile }: { mobile?: boolean }) {
             >
               <LayoutDashboard className="h-4 w-4" />
               Dashboard
+            </Button>
+          </Link>
+
+          <Link href={`/workspace/${workspaceId || "drehomes"}/users`}>
+            <Button
+              variant="ghost"
+              className={`w-full justify-start gap-3 text-white/80 hover:bg-white/10 hover:text-white ${
+                pathname.includes("/users") ? "bg-white/10 text-white" : ""
+              }`}
+            >
+              <Users className="h-4 w-4" />
+              Users
             </Button>
           </Link>
 

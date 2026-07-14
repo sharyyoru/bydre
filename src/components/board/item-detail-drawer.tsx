@@ -22,6 +22,7 @@ import {
   Profile,
 } from "@/lib/board/columns"
 import { CellEditor } from "./columns/cell-editor"
+import { ActivityLog } from "../activity/activity-log"
 
 type Comment = {
   id: string
@@ -291,6 +292,11 @@ export function ItemDetailDrawer({
                 </Button>
               </div>
             </div>
+          </div>
+
+          <div className="border rounded-xl p-4">
+            <h4 className="font-semibold text-[#0A1628] mb-4">Activity</h4>
+            <ActivityLog itemId={item.id} />
           </div>
         </div>
       </SheetContent>
