@@ -16,14 +16,26 @@ async function main() {
   const email = "wilson@drehomes.com";
   const password = "wilsontest";
 
-  const { data: existing } = await supabase
-    .from("profiles")
-    .select("id")
-    .eq("email", email)
-    .single();
+  const { data: users, error: listError } = await supabase.auth.admin.listUsers();
+  if (listError) {
+    console.error("Error listing users:", listError);
+    process.exit(1);
+  }
+
+  const existing = users.users.find((u) => u.email === email);
 
   if (existing) {
-    console.log("Test user already exists");
+    const { error } = await supabase.auth.admin.updateUserById(existing.id, {
+      password,
+      email_confirm: true,
+    });
+
+    if (error) {
+      console.error("Error updating test user password:", error);
+      process.exit(1);
+    }
+
+    console.log("Updated test user password:", email);
     return;
   }
 
