@@ -36,7 +36,7 @@ const boardIcon = (type: string) => {
   }
 }
 
-export function Sidebar() {
+export function Sidebar({ mobile }: { mobile?: boolean }) {
   const pathname = usePathname()
   const params = useParams()
   const workspaceId = params.id as string | undefined
@@ -74,7 +74,9 @@ export function Sidebar() {
   }, [])
 
   return (
-    <aside className="hidden lg:flex flex-col w-64 h-screen bg-[#0A1628] text-white border-r border-white/10 fixed left-0 top-0 z-40">
+    <aside className={`flex-col w-64 h-screen bg-[#0A1628] text-white border-r border-white/10 z-40 ${
+      mobile ? "flex" : "hidden lg:flex fixed left-0 top-0"
+    }`}>
       <div className="p-5 flex flex-col items-center text-center">
         <Image
           src="/dre-logo.png"
