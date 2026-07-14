@@ -100,15 +100,13 @@ export function CellRenderer({
     }
 
     case "dropdown": {
-      const option = getDropdownOption(column, value)
-      if (!option) return <span className="text-muted-foreground">—</span>
+      const selected = Array.isArray(value) ? value : value ? [value] : []
+      const options = selected.map((id) => getDropdownOption(column, id)).filter(Boolean)
+      if (options.length === 0) return <span className="text-muted-foreground">—</span>
       return (
-        <Badge
-          style={{ backgroundColor: option.color, color: getContrastColor(option.color) }}
-          className="border-0"
-        >
-          {option.name}
-        </Badge>
+        <div className="flex flex-wrap gap-1">
+          {options.map((option) => option && <Badge key={option.id} style={{ backgroundColor: option.color, color: getContrastColor(option.color) }} className="border-0">{option.name}</Badge>)}
+        </div>
       )
     }
 

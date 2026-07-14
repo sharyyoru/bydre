@@ -137,7 +137,9 @@ export function CellEditor({
       return <DeferredNumberInput value={value} onCommit={onChange} className="h-8 w-28" step="0.01" />
 
     case "dropdown":
-      return (
+      return column.settings?.multi_select ? (
+        <MultiSelectDropdown column={column} value={value} onChange={onChange} />
+      ) : (
         <Select value={value || ""} onValueChange={(v) => onChange(v || null)}>
           <SelectTrigger className="w-36 h-8">
             <SelectValue placeholder="Select" />
@@ -232,6 +234,15 @@ function DeferredTextInput({ value, onCommit }: { value: unknown; onCommit: (val
   const [draft, setDraft] = useState(value ? String(value) : "")
   useEffect(() => setDraft(value ? String(value) : ""), [value])
   return <Input type="text" value={draft} onChange={(event) => setDraft(event.target.value)} onBlur={() => onCommit(draft || null)} className="h-8 w-full" />
+}
+
+function MultiSelectDropdown({ column, value, onChange }: { column: ColumnDefinition; value: unknown; onChange: (value: string[]) => void }) {
+  const selected = Array.isArray(value) ? value : value ? [String(value)] : []
+  const options = column.settings?.options || []
+  return <div className="flex max-w-[220px] flex-wrap gap-1">{options.map((option: any) => {
+    const active = selected.includes(option.id)
+    return <Badge key={option.id} variant={active ? "default" : "outline"} className="cursor-pointer" style={active ? { backgroundColor: option.color, color: getContrastColor(option.color) } : undefined} onClick={() => onChange(active ? selected.filter((id) => id !== option.id) : [...selected, option.id])}>{option.name}</Badge>
+  })}</div>
 }
 
 function UrlInput({ value, onCommit }: { value: unknown; onCommit: (value: string | null) => void }) {
