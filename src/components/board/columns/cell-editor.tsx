@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { format } from "date-fns"
 import {
   ColumnDefinition,
@@ -125,41 +126,13 @@ export function CellEditor({
     case "email":
     case "phone":
     case "url":
-      return (
-        <Input
-          type="text"
-          value={value || ""}
-          onChange={(e) => onChange(e.target.value || null)}
-          className="h-8 w-full"
-        />
-      )
+      return <DeferredTextInput value={value} onCommit={onChange} />
 
     case "number":
-      return (
-        <Input
-          type="number"
-          value={value ?? ""}
-          onChange={(e) => {
-            const v = e.target.value === "" ? null : Number(e.target.value)
-            onChange(v)
-          }}
-          className="h-8 w-24"
-        />
-      )
+      return <DeferredNumberInput value={value} onCommit={onChange} className="h-8 w-24" />
 
     case "currency":
-      return (
-        <Input
-          type="number"
-          step={0.01}
-          value={value ?? ""}
-          onChange={(e) => {
-            const v = e.target.value === "" ? null : Number(e.target.value)
-            onChange(v)
-          }}
-          className="h-8 w-28"
-        />
-      )
+      return <DeferredNumberInput value={value} onCommit={onChange} className="h-8 w-28" step="0.01" />
 
     case "dropdown":
       return (
@@ -251,6 +224,19 @@ export function CellEditor({
     default:
       return <span className="text-sm text-muted-foreground">{value || "—"}</span>
   }
+}
+
+function DeferredTextInput({ value, onCommit }: { value: unknown; onCommit: (value: string | null) => void }) {
+  const [draft, setDraft] = useState(value ? String(value) : "")
+  useEffect(() => setDraft(value ? String(value) : ""), [value])
+  return <Input type="text" value={draft} onChange={(event) => setDraft(event.target.value)} onBlur={() => onCommit(draft || null)} className="h-8 w-full" />
+}
+
+function DeferredNumberInput({ value, onCommit, className, step }: { value: unknown; onCommit: (value: number | null) => void; className: string; step?: string }) {
+  const normalizedValue = value === null || value === undefined ? "" : String(value)
+  const [draft, setDraft] = useState(normalizedValue)
+  useEffect(() => setDraft(normalizedValue), [normalizedValue])
+  return <Input type="number" step={step} value={draft} onChange={(event) => setDraft(event.target.value)} onBlur={() => onCommit(draft === "" ? null : Number(draft))} className={className} />
 }
 
 function getContrastColor(hexColor: string) {

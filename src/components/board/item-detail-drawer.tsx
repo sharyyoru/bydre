@@ -52,6 +52,7 @@ export function ItemDetailDrawer({
   const [comments, setComments] = useState<Comment[]>([])
   const [commentText, setCommentText] = useState("")
   const [loading, setLoading] = useState(false)
+  const [savingDetails, setSavingDetails] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -101,14 +102,20 @@ export function ItemDetailDrawer({
     }
   }, [item.id])
 
-  const updateField = async (field: keyof BoardItem, value: any) => {
+  const saveDetails = async () => {
+    setSavingDetails(true)
     const supabase = createClient()
-    setLocalItem((prev) => ({ ...prev, [field]: value } as BoardItem))
     const { error } = await supabase
       .from("items")
-      .update({ [field]: value } as any)
+      .update({ title: localItem.title, description: localItem.description })
       .eq("id", item.id)
-    if (error) toast.error("Failed to update")
+    setSavingDetails(false)
+    if (error) {
+      toast.error("Failed to save item details")
+      return
+    }
+    toast.success("Item details saved")
+    onItemChanged?.()
   }
 
   const updateItemValue = async (columnId: string, value: any) => {
@@ -212,7 +219,6 @@ export function ItemDetailDrawer({
             <Input
               value={localItem.title}
               onChange={(e) => setLocalItem((p) => ({ ...p, title: e.target.value }))}
-              onBlur={() => updateField("title", localItem.title)}
             />
           </div>
 
@@ -221,9 +227,12 @@ export function ItemDetailDrawer({
             <Textarea
               value={localItem.description || ""}
               onChange={(e) => setLocalItem((p) => ({ ...p, description: e.target.value }))}
-              onBlur={() => updateField("description", localItem.description)}
               placeholder="Add a description..."
             />
+          </div>
+
+          <div className="flex justify-end">
+            <Button onClick={saveDetails} disabled={savingDetails} className="bg-[#0A1628]">{savingDetails ? "Saving..." : "Save changes"}</Button>
           </div>
 
           <div className="space-y-3">

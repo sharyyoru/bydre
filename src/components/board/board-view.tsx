@@ -360,6 +360,7 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
                           {column.name}
                         </th>
                       ))}
+                      <th className="px-4 py-2" aria-label="View details" />
                     </tr>
                   </thead>
                   <tbody>
@@ -372,9 +373,11 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
                         >
                           <td className="px-4 py-3 font-medium text-[#0A1628]">
                             <Input
-                              value={item.title}
-                              onChange={(e) => updateItemTitle(item.id, e.target.value)}
-                              onBlur={() => updateItemTitle(item.id, item.title)}
+                              key={`${item.id}-${item.title}`}
+                              defaultValue={item.title}
+                              onBlur={(e) => {
+                                if (e.target.value !== item.title) updateItemTitle(item.id, e.target.value)
+                              }}
                               onClick={(e) => e.stopPropagation()}
                               className="h-7 border-transparent bg-transparent px-0 hover:bg-white focus:bg-white focus:border-border"
                             />
@@ -393,6 +396,7 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
                               />
                             </td>
                           ))}
+                          <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}><Button variant="outline" size="sm" onClick={() => setSelectedItem(item)}>View</Button></td>
                         </tr>
                         {item.sub_items?.map((sub) => (
                           <tr
@@ -402,9 +406,11 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
                           >
                             <td className="px-4 py-2 pl-10 font-medium text-[#0A1628]">
                               <Input
-                                value={sub.title}
-                                onChange={(e) => updateItemTitle(sub.id, e.target.value)}
-                                onBlur={() => updateItemTitle(sub.id, sub.title)}
+                                key={`${sub.id}-${sub.title}`}
+                                defaultValue={sub.title}
+                                onBlur={(e) => {
+                                  if (e.target.value !== sub.title) updateItemTitle(sub.id, e.target.value)
+                                }}
                                 onClick={(e) => e.stopPropagation()}
                                 className="h-7 border-transparent bg-transparent px-0 hover:bg-white focus:bg-white focus:border-border"
                               />
@@ -423,6 +429,7 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
                                 />
                               </td>
                             ))}
+                            <td className="px-4 py-2" onClick={(e) => e.stopPropagation()}><Button variant="outline" size="sm" onClick={() => setSelectedItem(sub)}>View</Button></td>
                           </tr>
                         ))}
                       </Fragment>
@@ -430,7 +437,7 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
                     {(items[group.id] || []).length === 0 && (
                       <tr>
                         <td
-                          colSpan={visibleColumns.length + 1}
+                          colSpan={visibleColumns.length + 2}
                           className="px-4 py-6 text-center text-sm text-muted-foreground"
                         >
                           No items yet. Click Add item to create one.
