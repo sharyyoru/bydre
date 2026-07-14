@@ -9,35 +9,61 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Calendar as CalendarIcon, ArrowLeft } from "lucide-react"
 import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isSameMonth } from "date-fns"
+import { ColumnDefinition } from "@/lib/board/columns"
 
 type Item = {
   id: string
   title: string
-  due_date: string | null
+  values: Record<string, any>
   priority: "low" | "medium" | "high" | "urgent"
   status_id: string | null
 }
 
-type Board = { id: string; name: string; type: "shoots" | "content" | "tasks" }
+type Board = { id: string; name: string; type: "shoots" | "content" | "tasks"; default_view: string }
 
 export function CalendarView({ workspaceId, board }: { workspaceId: string; board: Board }) {
   const [items, setItems] = useState<Item[]>([])
+  const [columns, setColumns] = useState<ColumnDefinition[]>([])
   const [currentMonth, setCurrentMonth] = useState(new Date())
 
   useEffect(() => {
     const supabase = createClient()
-    const fetchItems = async () => {
+    const fetchData = async () => {
+      const { data: colData } = await supabase
+        .from("columns")
+        .select("*")
+        .eq("board_id", board.id)
+        .is("archived_at", null)
+        .order("position", { ascending: true })
+
+      const typedColumns = (colData as ColumnDefinition[]) || []
+      setColumns(typedColumns)
+
+      const dateColumn = typedColumns.find((c) => c.type === "date")
+      if (!dateColumn) return
+
       const { data } = await supabase
         .from("items")
-        .select("id, title, due_date, priority, status_id")
+        .select("id, title, priority, status_id, item_values(column_id, value)")
         .eq("board_id", board.id)
-        .not("due_date", "is", null)
+        .is("archived_at", null)
 
-      setItems((data as Item[]) || [])
+      const typedItems = ((data || []) as any[]).map((item: any) => {
+        const values: Record<string, any> = {}
+        for (const v of item.item_values || []) {
+          values[v.column_id] = v.value
+        }
+        return { ...item, values }
+      }) as Item[]
+
+      setItems(typedItems.filter((it) => it.values?.[dateColumn.id]))
     }
 
-    fetchItems()
+    fetchData()
   }, [board.id])
+
+  const dateColumn = columns.find((c) => c.type === "date")
+  const dateColumnId = dateColumn?.id
 
   const days = eachDayOfInterval({
     start: startOfMonth(currentMonth),
@@ -45,7 +71,9 @@ export function CalendarView({ workspaceId, board }: { workspaceId: string; boar
   })
 
   const itemsForDay = (day: Date) =>
-    items.filter((item) => item.due_date && isSameDay(parseISO(item.due_date), day))
+    dateColumnId
+      ? items.filter((item) => item.values?.[dateColumnId] && isSameDay(parseISO(item.values[dateColumnId]), day))
+      : []
 
   const priorityColor = (p: string) => {
     switch (p) {
@@ -165,7 +193,11 @@ export function CalendarView({ workspaceId, board }: { workspaceId: string; boar
             {items.length === 0 && (
               <div className="text-center py-12 text-muted-foreground">
                 <CalendarIcon className="h-8 w-8 mx-auto mb-3 opacity-50" />
-                <p>No items with due dates yet.</p>
+                <p>
+                  {dateColumn
+                    ? `No items with ${dateColumn.name} set yet.`
+                    : "No date column configured for this board."}
+                </p>
               </div>
             )}
           </CardContent>

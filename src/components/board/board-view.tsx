@@ -8,7 +8,7 @@ import { AppShell } from "@/components/app-shell"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
-import { Plus, Calendar as CalendarIcon } from "lucide-react"
+import { Plus, Calendar as CalendarIcon, LayoutGrid, Table as TableIcon } from "lucide-react"
 import {
   ColumnDefinition,
   BoardItem,
@@ -17,6 +17,7 @@ import {
 } from "@/lib/board/columns"
 import { CellEditor } from "./columns/cell-editor"
 import { ItemDetailDrawer } from "./item-detail-drawer"
+import { KanbanView } from "./views/kanban-view"
 
 type Board = {
   id: string
@@ -34,6 +35,7 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
   const [members, setMembers] = useState<Profile[]>([])
   const [newGroupName, setNewGroupName] = useState("")
   const [selectedItem, setSelectedItem] = useState<BoardItem | null>(null)
+  const [activeView, setActiveView] = useState("table")
 
   const fetchAll = useCallback(async () => {
     const supabase = createClient()
@@ -219,18 +221,35 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
   return (
     <AppShell>
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-[#0A1628]">{board.name}</h1>
             <p className="text-sm text-muted-foreground capitalize">{board.type} board</p>
           </div>
-          <div className="flex items-center gap-3">
-            <Link href={`/workspace/${params.id}/calendar/${board.id}`}>
-              <Button variant="outline" size="sm">
-                <CalendarIcon className="h-4 w-4 mr-2" />
-                Calendar
+          <div className="flex items-center gap-2">
+            <div className="flex bg-muted rounded-lg p-1 mr-2">
+              <Button
+                variant={activeView === "table" ? "secondary" : "ghost"}
+                size="sm"
+                className="h-8"
+                onClick={() => setActiveView("table")}
+              >
+                <TableIcon className="h-4 w-4 mr-1" /> Table
               </Button>
-            </Link>
+              <Button
+                variant={activeView === "kanban" ? "secondary" : "ghost"}
+                size="sm"
+                className="h-8"
+                onClick={() => setActiveView("kanban")}
+              >
+                <LayoutGrid className="h-4 w-4 mr-1" /> Kanban
+              </Button>
+              <Link href={`/workspace/${params.id}/calendar/${board.id}`}>
+                <Button variant="ghost" size="sm" className="h-8">
+                  <CalendarIcon className="h-4 w-4 mr-1" /> Calendar
+                </Button>
+              </Link>
+            </div>
             <div className="flex items-center gap-2">
               <Input
                 placeholder="New group"
@@ -245,7 +264,8 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
           </div>
         </div>
 
-        <div className="space-y-6">
+        {activeView === "table" && (
+          <div className="space-y-6">
           {groups.map((group) => (
             <div key={group.id} className="bg-white rounded-2xl border border-border/60 shadow-sm overflow-hidden">
               <div
@@ -335,6 +355,18 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
             </div>
           )}
         </div>
+        )}
+
+        {activeView === "kanban" && (
+          <KanbanView
+            columns={columns}
+            items={items}
+            members={members}
+            onItemClick={setSelectedItem}
+            onStatusChange={(itemId: string, columnId: string, value: string) => updateItemValue(itemId, columnId, value)}
+            onAssigneesChange={updateAssignees}
+          />
+        )}
       </div>
 
       {selectedItem && (
