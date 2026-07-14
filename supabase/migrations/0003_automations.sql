@@ -6,9 +6,7 @@ RETURNS trigger AS $$
 DECLARE
   col public.columns%ROWTYPE;
   status_name text;
-  status_color text;
   item_title text;
-  board_id uuid;
   item_board_id uuid;
   ws_id uuid;
   member_rec record;
@@ -31,21 +29,22 @@ BEGIN
   -- Find status name from the column settings options
   SELECT opt.value->>'name' INTO status_name
   FROM jsonb_array_elements(col.settings->'options') AS opt
-  WHERE opt.value->>'id' = NEW.value::text
+  WHERE opt.value->>'id' = (NEW.value #>> '{}')
   LIMIT 1;
 
   IF status_name = 'Done' THEN
     FOR member_rec IN
       SELECT user_id FROM public.workspace_members WHERE workspace_id = ws_id
     LOOP
-      INSERT INTO public.notifications (user_id, message, read, source_type)
+      INSERT INTO public.notifications (user_id, type, source_id, message, read, source_type)
       VALUES (
         member_rec.user_id,
+        'assignment',
+        NEW.item_id,
         'Item "' || item_title || '" was marked as Done',
         false,
         'automation'
-      )
-      ON CONFLICT DO NOTHING;
+      );
     END LOOP;
   END IF;
 
@@ -64,4 +63,8 @@ INSERT INTO public.automations (board_id, name, trigger, conditions, actions, is
 SELECT b.id, 'Notify when done', 'status_changed', '[{"column_type":"status","status_name":"Done"}]'::jsonb, '[{"type":"notify","message":"Item marked as Done"}]'::jsonb, true
 FROM public.boards b
 WHERE b.archived_at IS NULL
-ON CONFLICT DO NOTHING;
+  AND NOT EXISTS (
+    SELECT 1
+    FROM public.automations a
+    WHERE a.board_id = b.id AND a.name = 'Notify when done'
+  );

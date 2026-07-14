@@ -554,50 +554,63 @@ CREATE OR REPLACE FUNCTION public.create_default_columns(board_uuid uuid)
 RETURNS void AS $$
 DECLARE
   col_status uuid;
-  col_priority uuid;
-  col_owner uuid;
-  col_due_date uuid;
-  col_start_date uuid;
-  col_notes uuid;
-  col_progress uuid;
 BEGIN
-  INSERT INTO public.columns (board_id, name, type, position, settings) VALUES
-    (board_uuid, 'Status', 'status', 0, '{"color_mapping": {}}'),
-    (board_uuid, 'Priority', 'priority', 1, '{}'),
-    (board_uuid, 'Owner', 'people', 2, '{"max": 5}'),
-    (board_uuid, 'Start Date', 'date', 3, '{"include_time": false}'),
-    (board_uuid, 'Due Date', 'date', 4, '{"include_time": false}'),
-    (board_uuid, 'Notes', 'text', 5, '{}'),
-    (board_uuid, 'Progress', 'progress', 6, '{"source": "subitems"}')
-  RETURNING id INTO col_status;
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.columns
+    WHERE board_id = board_uuid AND archived_at IS NULL
+  ) THEN
+    INSERT INTO public.columns (board_id, name, type, position, settings) VALUES
+      (board_uuid, 'Status', 'status', 0, '{"color_mapping": {}}'),
+      (board_uuid, 'Priority', 'priority', 1, '{}'),
+      (board_uuid, 'Owner', 'people', 2, '{"max": 5}'),
+      (board_uuid, 'Start Date', 'date', 3, '{"include_time": false}'),
+      (board_uuid, 'Due Date', 'date', 4, '{"include_time": false}'),
+      (board_uuid, 'Notes', 'text', 5, '{}'),
+      (board_uuid, 'Progress', 'progress', 6, '{"source": "subitems"}');
+  END IF;
 
-  -- Default statuses for the Status column (reuse old statuses table where possible)
-  INSERT INTO public.statuses (board_id, name, color, position) VALUES
-    (board_uuid, 'To Do', '#6B7280', 0),
-    (board_uuid, 'In Progress', '#3B82F6', 1),
-    (board_uuid, 'Done', '#10B981', 2);
+  INSERT INTO public.statuses (board_id, name, color, position)
+  SELECT board_uuid, defaults.name, defaults.color, defaults.position
+  FROM (VALUES
+    ('To Do', '#6B7280', 0),
+    ('In Progress', '#3B82F6', 1),
+    ('Done', '#10B981', 2)
+  ) AS defaults(name, color, position)
+  WHERE NOT EXISTS (
+    SELECT 1
+    FROM public.statuses
+    WHERE board_id = board_uuid AND statuses.name = defaults.name
+  );
 
-  -- Update column settings with status options
+  SELECT id INTO col_status
+  FROM public.columns
+  WHERE board_id = board_uuid
+    AND name = 'Status'
+    AND type = 'status'
+    AND archived_at IS NULL
+  ORDER BY created_at DESC
+  LIMIT 1;
+
   UPDATE public.columns
   SET settings = jsonb_build_object(
     'options', (
       SELECT jsonb_agg(jsonb_build_object('id', id, 'name', name, 'color', color, 'position', position) ORDER BY position)
-      FROM public.statuses WHERE board_id = board_uuid
+      FROM public.statuses
+      WHERE board_id = board_uuid
     )
   )
   WHERE id = col_status;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Backfill default columns for existing boards that don't have any
+-- Backfill default columns for existing boards, including partial previous runs.
 DO $$
 DECLARE
   b_id uuid;
 BEGIN
   FOR b_id IN SELECT id FROM public.boards WHERE archived_at IS NULL
   LOOP
-    IF NOT EXISTS (SELECT 1 FROM public.columns WHERE board_id = b_id AND archived_at IS NULL) THEN
-      PERFORM public.create_default_columns(b_id);
-    END IF;
+    PERFORM public.create_default_columns(b_id);
   END LOOP;
 END $$;
