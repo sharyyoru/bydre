@@ -14,12 +14,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { SearchDialog } from "./search-dialog"
-import { Bell, LogOut, User } from "lucide-react"
+import { NotificationMenu } from "./notification-menu"
+import { LogOut, User } from "lucide-react"
 
 export function TopBar() {
   const router = useRouter()
   const [user, setUser] = useState<{ email?: string; full_name?: string } | null>(null)
-  const [unreadCount, setUnreadCount] = useState(0)
 
   useEffect(() => {
     const supabase = createClient()
@@ -35,32 +35,7 @@ export function TopBar() {
       }
     }
 
-    const fetchNotifications = async () => {
-      const { count, error } = await supabase
-        .from("notifications")
-        .select("*", { count: "exact", head: true })
-        .eq("read", false)
-
-      if (!error && count !== null) {
-        setUnreadCount(count)
-      }
-    }
-
     fetchUser()
-    fetchNotifications()
-
-    const channel = supabase
-      .channel("notifications")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "notifications" },
-        () => setUnreadCount((c) => c + 1)
-      )
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
   }, [])
 
   const handleLogout = async () => {
@@ -82,16 +57,7 @@ export function TopBar() {
       <SearchDialog />
 
       <div className="flex items-center gap-4">
-        <Link href="/dashboard">
-          <Button variant="ghost" size="icon" className="relative">
-            <Bell className="h-5 w-5 text-[#0A1628]" />
-            {unreadCount > 0 && (
-              <span className="absolute top-1 right-1 h-4 w-4 rounded-full bg-[#D4AF37] text-[10px] font-bold text-[#0A1628] flex items-center justify-center">
-                {unreadCount > 9 ? "9+" : unreadCount}
-              </span>
-            )}
-          </Button>
-        </Link>
+        <NotificationMenu />
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

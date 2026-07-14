@@ -100,11 +100,13 @@ function KanbanCard({
   const statusColumn = columns.find((c) => c.type === "status")
   const priorityColumn = columns.find((c) => c.type === "priority")
   const peopleColumn = columns.find((c) => c.type === "people")
+  const approvalColumn = columns.find((c) => c.name === "Approval")
   const dateColumn = columns.find((c) => c.name === "Due Date")
   const priorityValue = priorityColumn ? item.values?.[priorityColumn.id] : item.priority
   const priority = getPriorityOption(priorityValue || "medium")
   const assignees = item.assignees
   const dueDate = dateColumn ? item.values?.[dateColumn.id] : item.due_date
+  const approval = approvalColumn?.settings?.options?.find((option: any) => option.id === item.values?.[approvalColumn.id])
 
   return (
     <div
@@ -113,9 +115,10 @@ function KanbanCard({
     >
       <div className="flex items-start justify-between gap-2">
         <h4 className="font-medium text-sm text-[#0A1628]">{item.title}</h4>
-        {priority && (
-          <Badge className={`border-0 text-xs ${priorityClass(priority.id)}`}>{priority.name}</Badge>
-        )}
+        <div className="flex flex-wrap justify-end gap-1">
+          {approval && <Badge className="border-0 text-xs" style={{ backgroundColor: approval.color }}>{approval.name}</Badge>}
+          {priority && <Badge className={`border-0 text-xs ${priorityClass(priority.id)}`}>{priority.name}</Badge>}
+        </div>
       </div>
 
       {statusColumn && (

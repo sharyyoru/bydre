@@ -131,13 +131,11 @@ export default function DashboardPage() {
               <CardTitle className="text-lg mt-3">Calendar view</CardTitle>
             </CardHeader>
             <CardContent>
-              {boards[0] && (
-                <Link href={`/workspace/${workspaceSlug}/calendar/${boards[0].id}`}>
-                  <Button variant="ghost" className="p-0 h-auto text-[#D4AF37] hover:text-[#D4AF37]/80 font-medium">
-                    View deadlines <ArrowRight className="ml-1 h-4 w-4" />
-                  </Button>
-                </Link>
-              )}
+              <Link href={`/workspace/${workspaceSlug}/calendar`}>
+                <Button variant="ghost" className="p-0 h-auto text-[#D4AF37] hover:text-[#D4AF37]/80 font-medium">
+                  View all calendars <ArrowRight className="ml-1 h-4 w-4" />
+                </Button>
+              </Link>
             </CardContent>
           </Card>
 

@@ -2,13 +2,13 @@
 
 import { Fragment, useCallback, useEffect, useState } from "react"
 import Link from "next/link"
-import { useParams, useSearchParams } from "next/navigation"
+import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { AppShell } from "@/components/app-shell"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
-import { Plus, Calendar as CalendarIcon, Eye, LayoutGrid, Table as TableIcon, History, Trash2 } from "lucide-react"
+import { Plus, Calendar as CalendarIcon, ChevronDown, ChevronRight, Eye, LayoutGrid, Table as TableIcon, History, Trash2 } from "lucide-react"
 import {
   ColumnDefinition,
   BoardItem,
@@ -40,6 +40,8 @@ type Board = {
 
 export function BoardView({ workspaceId, board }: { workspaceId: string; board: Board }) {
   const params = useParams()
+  const pathname = usePathname()
+  const router = useRouter()
   const searchParams = useSearchParams()
   const requestedItemId = searchParams.get("item")
   const [groups, setGroups] = useState<BoardGroup[]>([])
@@ -50,6 +52,8 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
   const [newGroupName, setNewGroupName] = useState("")
   const [selectedItem, setSelectedItem] = useState<BoardItem | null>(null)
   const [activeView, setActiveView] = useState("table")
+  const [collapsedGroups, setCollapsedGroups] = useState<string[]>([])
+  const [visibleGroupIds, setVisibleGroupIds] = useState<string[]>([]) 
 
   const fetchAll = useCallback(async () => {
     const supabase = createClient()
@@ -148,7 +152,13 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
       setItems(byGroup)
       if (requestedItemId) {
         const requestedItem = [...allItems, ...subItems].find((item) => item.id === requestedItemId)
-        if (requestedItem) setSelectedItem(requestedItem)
+        if (requestedItem) {
+          setSelectedItem(requestedItem)
+        } else {
+          const nextParams = new URLSearchParams(searchParams.toString())
+          nextParams.delete("item")
+          router.replace(nextParams.size ? `${pathname}?${nextParams}` : pathname)
+        }
       }
     }
   }, [board.id, requestedItemId, workspaceId])
@@ -276,6 +286,8 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
   }
 
   const visibleColumns = columns.filter((c) => c.archived_at === null)
+  const displayedGroups = visibleGroupIds.length ? groups.filter((group) => visibleGroupIds.includes(group.id)) : groups
+  const toggleGroup = (groupId: string) => setCollapsedGroups((current) => current.includes(groupId) ? current.filter((id) => id !== groupId) : [...current, groupId])
 
   return (
     <AppShell>
@@ -310,6 +322,7 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
               </Link>
             </div>
             <div className="flex items-center gap-2">
+              <select value={visibleGroupIds[0] || "all"} onChange={(event) => setVisibleGroupIds(event.target.value === "all" ? [] : [event.target.value])} className="h-9 rounded-md border bg-background px-2 text-sm"><option value="all">All groups</option>{groups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}</select>
               <Dialog>
                 <DialogTrigger asChild><Button variant="outline" size="sm"><History className="h-4 w-4 mr-2" />Activity</Button></DialogTrigger>
                 <DialogContent className="sm:max-w-2xl"><DialogHeader><DialogTitle>Board activity</DialogTitle></DialogHeader><ActivityLog boardId={board.id} /></DialogContent>
@@ -335,12 +348,13 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
 
         {activeView === "table" && (
           <div className="space-y-6">
-          {groups.map((group) => (
+          {displayedGroups.map((group) => (
             <div key={group.id} className="bg-white rounded-2xl border border-border/60 shadow-sm overflow-hidden">
               <div
                 className="px-4 py-3 flex items-center gap-3 border-b border-border/60"
                 style={{ borderLeftWidth: 4, borderLeftColor: group.color }}
               >
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => toggleGroup(group.id)}>{collapsedGroups.includes(group.id) ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}</Button>
                 <h3 className="font-semibold text-[#0A1628]">{group.name}</h3>
                 <span className="text-xs text-muted-foreground">
                   {items[group.id]?.length || 0} items
@@ -359,7 +373,7 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
                 </Button>}
               </div>
 
-              <div className="overflow-x-auto">
+              {!collapsedGroups.includes(group.id) && <div className="overflow-x-auto">
                 <table className="w-full min-w-[960px] text-sm">
                   <thead className="bg-muted/30 text-muted-foreground">
                     <tr>
@@ -463,7 +477,7 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
                     )}
                   </tbody>
                 </table>
-              </div>
+              </div>}
             </div>
           ))}
 
@@ -498,6 +512,9 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
           onOpenChange={(open: boolean) => {
             if (!open) {
               setSelectedItem(null)
+              const nextParams = new URLSearchParams(searchParams.toString())
+              nextParams.delete("item")
+              router.replace(nextParams.size ? `${pathname}?${nextParams}` : pathname)
               fetchAll()
             }
           }}
