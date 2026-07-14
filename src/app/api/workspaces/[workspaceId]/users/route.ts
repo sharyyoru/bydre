@@ -3,10 +3,12 @@ import { createClient as createServerClient } from "@/lib/supabase/server"
 import { createClient as createAdminClient } from "@supabase/supabase-js"
 
 function adminClient() {
-  return createAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url || !serviceRoleKey || serviceRoleKey === "your_service_role_key") {
+    throw new Error("Server configuration is missing SUPABASE_SERVICE_ROLE_KEY")
+  }
+  return createAdminClient(url, serviceRoleKey)
 }
 
 async function authorize(workspaceId: string) {
@@ -28,7 +30,16 @@ async function authorize(workspaceId: string) {
     return { error: NextResponse.json({ error: "Admin access is required" }, { status: 403 }) }
   }
 
-  return { user, admin: adminClient() }
+  try {
+    return { user, admin: adminClient() }
+  } catch (error) {
+    return {
+      error: NextResponse.json(
+        { error: error instanceof Error ? error.message : "Server configuration error" },
+        { status: 500 }
+      ),
+    }
+  }
 }
 
 export async function POST(request: NextRequest, { params }: { params: { workspaceId: string } }) {
