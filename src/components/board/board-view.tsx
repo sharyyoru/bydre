@@ -43,6 +43,7 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
   const [columns, setColumns] = useState<ColumnDefinition[]>([])
   const [items, setItems] = useState<Record<string, BoardItem[]>>({})
   const [members, setMembers] = useState<Profile[]>([])
+  const [isAdmin, setIsAdmin] = useState(false)
   const [newGroupName, setNewGroupName] = useState("")
   const [selectedItem, setSelectedItem] = useState<BoardItem | null>(null)
   const [activeView, setActiveView] = useState("table")
@@ -50,7 +51,7 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
   const fetchAll = useCallback(async () => {
     const supabase = createClient()
 
-    const [{ data: g }, { data: c }, { data: m }] = await Promise.all([
+    const [{ data: g }, { data: c }, { data: m }, { data: auth }] = await Promise.all([
       supabase
         .from("groups")
         .select("id, name, color, position, archived_at")
@@ -65,8 +66,9 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
         .order("position", { ascending: true }),
       supabase
         .from("workspace_members")
-        .select("user_id, profiles(id, email, full_name)")
+        .select("user_id, role, profiles(id, email, full_name)")
         .eq("workspace_id", workspaceId),
+      supabase.auth.getUser(),
     ])
 
     const typedGroups = (g as BoardGroup[]) || []
@@ -80,6 +82,8 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
         full_name: row.profiles?.full_name || null,
       }))
     )
+    const currentMember = ((m || []) as any[]).find((row: any) => row.user_id === auth.user?.id)
+    setIsAdmin(currentMember?.role === "admin")
 
     if (typedGroups.length > 0) {
       const { data: i } = await supabase
@@ -343,9 +347,9 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
                   <Plus className="h-4 w-4 mr-1" />
                   Add item
                 </Button>
-                <Button variant="ghost" size="sm" onClick={() => deleteGroup(group)} className="text-destructive hover:text-destructive">
+                {isAdmin && <Button variant="ghost" size="sm" onClick={() => deleteGroup(group)} className="text-destructive hover:text-destructive">
                   <Trash2 className="h-4 w-4 mr-1" />Delete group
-                </Button>
+                </Button>}
               </div>
 
               <div className="overflow-x-auto">
