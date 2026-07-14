@@ -286,9 +286,23 @@ export function ItemDetailDrawer({
           {!localItem.parent_id && localItem.sub_items?.length > 0 && (
             <div className="space-y-2">
               {localItem.sub_items.map((subItem) => (
-                <div key={subItem.id} className="rounded-lg border border-border/60 px-3 py-2 text-sm">
-                  {subItem.title}
-                </div>
+                <Input
+                  key={subItem.id}
+                  defaultValue={subItem.title}
+                  onBlur={async (event) => {
+                    const title = event.target.value.trim()
+                    if (!title || title === subItem.title) return
+                    const supabase = createClient()
+                    const { error } = await supabase.from("items").update({ title }).eq("id", subItem.id)
+                    if (error) {
+                      toast.error(`Failed to rename sub-item: ${error.message}`)
+                      return
+                    }
+                    setLocalItem((current) => ({ ...current, sub_items: current.sub_items.map((entry) => entry.id === subItem.id ? { ...entry, title } : entry) }))
+                    onItemChanged?.()
+                  }}
+                  className="h-9"
+                />
               ))}
             </div>
           )}
@@ -330,10 +344,10 @@ export function ItemDetailDrawer({
                 placeholder="Write a comment... Type @ to mention a teammate"
                 className="mentions-input"
                 style={{
-                  control: { minHeight: 80, fontSize: 14 },
-                  highlighter: { padding: 12, border: "1px solid transparent" },
-                  input: { padding: 12, border: "1px solid hsl(var(--border))", borderRadius: 8, outline: "none" },
-                  suggestions: { list: { backgroundColor: "white", border: "1px solid hsl(var(--border))", borderRadius: 8, boxShadow: "0 8px 20px rgba(0,0,0,.12)", overflow: "hidden" }, item: { padding: "8px 12px", borderBottom: "1px solid hsl(var(--border))" } },
+                  control: { minHeight: 80, fontSize: 14, fontFamily: "inherit" },
+                  highlighter: { padding: "12px", border: "1px solid transparent", lineHeight: "20px", overflow: "hidden" },
+                  input: { padding: "12px", border: "1px solid hsl(var(--border))", borderRadius: 8, outline: "none", lineHeight: "20px", overflow: "auto" },
+                  suggestions: { list: { backgroundColor: "white", border: "1px solid hsl(var(--border))", borderRadius: 8, boxShadow: "0 8px 20px rgba(0,0,0,.12)", overflow: "hidden", zIndex: 60 }, item: { padding: "8px 12px", borderBottom: "1px solid hsl(var(--border))" } },
                 }}
               >
                 <Mention

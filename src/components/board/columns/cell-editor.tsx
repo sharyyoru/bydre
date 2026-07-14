@@ -24,7 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { CalendarIcon, Star } from "lucide-react"
+import { CalendarIcon, Eye, Star } from "lucide-react"
 
 export function CellEditor({
   column,
@@ -125,8 +125,10 @@ export function CellEditor({
     case "text":
     case "email":
     case "phone":
-    case "url":
       return <DeferredTextInput value={value} onCommit={onChange} />
+
+    case "url":
+      return <UrlInput value={value} onCommit={onChange} />
 
     case "number":
       return <DeferredNumberInput value={value} onCommit={onChange} className="h-8 w-24" />
@@ -230,6 +232,13 @@ function DeferredTextInput({ value, onCommit }: { value: unknown; onCommit: (val
   const [draft, setDraft] = useState(value ? String(value) : "")
   useEffect(() => setDraft(value ? String(value) : ""), [value])
   return <Input type="text" value={draft} onChange={(event) => setDraft(event.target.value)} onBlur={() => onCommit(draft || null)} className="h-8 w-full" />
+}
+
+function UrlInput({ value, onCommit }: { value: unknown; onCommit: (value: string | null) => void }) {
+  const [draft, setDraft] = useState(value ? String(value) : "")
+  useEffect(() => setDraft(value ? String(value) : ""), [value])
+  const href = draft && /^(https?:\/\/)/i.test(draft) ? draft : draft ? `https://${draft}` : ""
+  return <div className="flex items-center gap-1"><Input type="url" value={draft} onChange={(event) => setDraft(event.target.value)} onBlur={() => onCommit(draft || null)} className="h-8 min-w-0 flex-1" />{href && <Button asChild variant="ghost" size="icon" className="h-8 w-8 shrink-0"><a href={href} target="_blank" rel="noopener noreferrer" aria-label="Open asset link"><Eye className="h-4 w-4" /></a></Button>}</div>
 }
 
 function DeferredNumberInput({ value, onCommit, className, step }: { value: unknown; onCommit: (value: number | null) => void; className: string; step?: string }) {
