@@ -10,8 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { toast } from "sonner"
 
 function LoginForm() {
-  const [email, setEmail] = useState("wilson@drehomes.com")
-  const [password, setPassword] = useState("wilsontest")
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const searchParams = useSearchParams()
