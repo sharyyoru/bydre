@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { toast } from "sonner"
+import { Plus } from "lucide-react"
 import {
   ColumnDefinition,
   BoardItem,
@@ -210,6 +211,34 @@ export function ItemDetailDrawer({
               </div>
             ))}
           </div>
+
+          {!localItem.parent_id && (
+            <div className="flex items-center justify-between">
+              <h4 className="font-semibold text-[#0A1628]">Sub-items</h4>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={async () => {
+                  const supabase = createClient()
+                  const { data: user } = await supabase.auth.getUser()
+                  const { error } = await supabase.from("items").insert({
+                    board_id: item.board_id,
+                    group_id: item.group_id,
+                    parent_id: item.id,
+                    title: "New sub-item",
+                    type: item.type,
+                    priority: "medium",
+                    created_by: user.user?.id,
+                    position: 0,
+                  })
+                  if (error) toast.error("Failed to add sub-item")
+                  else toast.success("Sub-item added")
+                }}
+              >
+                <Plus className="h-4 w-4 mr-1" /> Add sub-item
+              </Button>
+            </div>
+          )}
 
           <div className="border rounded-xl p-4 bg-muted/20 space-y-4">
             <h4 className="font-semibold text-[#0A1628]">Comments</h4>

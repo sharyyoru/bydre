@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { Fragment, useCallback, useEffect, useState } from "react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
@@ -82,7 +82,20 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
         .is("archived_at", null)
         .order("position", { ascending: true })
 
-      const typedItems = ((i || []) as any[]).map((item: any) => {
+      const parentItemIds = ((i || []) as any[]).map((item: any) => item.id)
+
+      const { data: subData } = parentItemIds.length > 0
+        ? await supabase
+            .from("items")
+            .select(
+              "*, item_assignees(user_id, profiles(id, email, full_name)), comments(count), item_values(id, column_id, value)"
+            )
+            .in("parent_id", parentItemIds)
+            .is("archived_at", null)
+            .order("position", { ascending: true })
+        : { data: [] }
+
+      const buildItem = (item: any): BoardItem => {
         const values: Record<string, any> = {}
         for (const v of item.item_values || []) {
           values[v.column_id] = v.value
@@ -97,11 +110,24 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
           comments_count: item.comments?.[0]?.count || 0,
           sub_items: [],
         } as BoardItem
-      })
+      }
+
+      const allItems = ((i || []) as any[]).map(buildItem)
+      const subItems = ((subData || []) as any[]).map(buildItem)
+
+      const subByParent: Record<string, BoardItem[]> = {}
+      for (const sub of subItems) {
+        const parentId = sub.parent_id as string
+        if (!subByParent[parentId]) subByParent[parentId] = []
+        subByParent[parentId].push(sub)
+      }
+      for (const item of allItems) {
+        item.sub_items = subByParent[item.id] || []
+      }
 
       const byGroup: Record<string, BoardItem[]> = {}
       for (const group of typedGroups) {
-        byGroup[group.id] = typedItems.filter((it) => it.group_id === group.id)
+        byGroup[group.id] = allItems.filter((it) => it.group_id === group.id && !it.parent_id)
       }
       setItems(byGroup)
     }
@@ -307,35 +333,68 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
                   </thead>
                   <tbody>
                     {(items[group.id] || []).map((item) => (
-                      <tr
-                        key={item.id}
-                        className="border-t border-border/40 hover:bg-muted/20 cursor-pointer"
-                        onClick={() => setSelectedItem(item)}
-                      >
-                        <td className="px-4 py-3 font-medium text-[#0A1628]">
-                          <Input
-                            value={item.title}
-                            onChange={(e) => updateItemTitle(item.id, e.target.value)}
-                            onBlur={() => updateItemTitle(item.id, item.title)}
-                            onClick={(e) => e.stopPropagation()}
-                            className="h-7 border-transparent bg-transparent px-0 hover:bg-white focus:bg-white focus:border-border"
-                          />
-                        </td>
-                        {visibleColumns.map((column) => (
-                          <td
-                            key={column.id}
-                            className="px-4 py-3"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <CellEditor
-                              column={column}
-                              item={item}
-                              members={members}
-                              onChange={(value) => handleCellChange(item, column, value)}
+                      <Fragment key={item.id}>
+                        <tr
+                          key={item.id}
+                          className="border-t border-border/40 hover:bg-muted/20 cursor-pointer"
+                          onClick={() => setSelectedItem(item)}
+                        >
+                          <td className="px-4 py-3 font-medium text-[#0A1628]">
+                            <Input
+                              value={item.title}
+                              onChange={(e) => updateItemTitle(item.id, e.target.value)}
+                              onBlur={() => updateItemTitle(item.id, item.title)}
+                              onClick={(e) => e.stopPropagation()}
+                              className="h-7 border-transparent bg-transparent px-0 hover:bg-white focus:bg-white focus:border-border"
                             />
                           </td>
+                          {visibleColumns.map((column) => (
+                            <td
+                              key={column.id}
+                              className="px-4 py-3"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <CellEditor
+                                column={column}
+                                item={item}
+                                members={members}
+                                onChange={(value) => handleCellChange(item, column, value)}
+                              />
+                            </td>
+                          ))}
+                        </tr>
+                        {item.sub_items?.map((sub) => (
+                          <tr
+                            key={sub.id}
+                            className="border-t border-dashed border-border/30 hover:bg-muted/20 cursor-pointer bg-muted/10"
+                            onClick={() => setSelectedItem(sub)}
+                          >
+                            <td className="px-4 py-2 pl-10 font-medium text-[#0A1628]">
+                              <Input
+                                value={sub.title}
+                                onChange={(e) => updateItemTitle(sub.id, e.target.value)}
+                                onBlur={() => updateItemTitle(sub.id, sub.title)}
+                                onClick={(e) => e.stopPropagation()}
+                                className="h-7 border-transparent bg-transparent px-0 hover:bg-white focus:bg-white focus:border-border"
+                              />
+                            </td>
+                            {visibleColumns.map((column) => (
+                              <td
+                                key={column.id}
+                                className="px-4 py-2"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <CellEditor
+                                  column={column}
+                                  item={sub}
+                                  members={members}
+                                  onChange={(value) => handleCellChange(sub, column, value)}
+                                />
+                              </td>
+                            ))}
+                          </tr>
                         ))}
-                      </tr>
+                      </Fragment>
                     ))}
                     {(items[group.id] || []).length === 0 && (
                       <tr>
