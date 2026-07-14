@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { toast } from "sonner"
-import { Plus } from "lucide-react"
+import { Plus, Trash2 } from "lucide-react"
 import { Mention, MentionsInput } from "react-mentions"
 import {
   ColumnDefinition,
@@ -152,6 +152,19 @@ export function ItemDetailDrawer({
     }
   }
 
+  const deleteItem = async () => {
+    if (!window.confirm(`Delete ${localItem.title}? This cannot be undone.`)) return
+    const supabase = createClient()
+    const { error } = await supabase.from("items").delete().eq("id", item.id)
+    if (error) {
+      toast.error("Failed to delete item")
+      return
+    }
+    toast.success("Item deleted")
+    onItemChanged?.()
+    onOpenChange(false)
+  }
+
   const addComment = async () => {
     if (!commentText.trim() || !userId) return
     setLoading(true)
@@ -190,6 +203,10 @@ export function ItemDetailDrawer({
         </SheetHeader>
 
         <div className="space-y-6 py-6">
+          <div className="flex justify-end">
+            <Button variant="outline" size="sm" onClick={deleteItem} className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4 mr-2" />Delete item</Button>
+          </div>
+
           <div className="space-y-2">
             <label className="text-sm font-medium">Title</label>
             <Input

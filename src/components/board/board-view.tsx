@@ -2,13 +2,13 @@
 
 import { Fragment, useCallback, useEffect, useState } from "react"
 import Link from "next/link"
-import { useParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { AppShell } from "@/components/app-shell"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
-import { Plus, Calendar as CalendarIcon, LayoutGrid, Table as TableIcon } from "lucide-react"
+import { Plus, Calendar as CalendarIcon, LayoutGrid, Table as TableIcon, History, Trash2 } from "lucide-react"
 import {
   ColumnDefinition,
   BoardItem,
@@ -28,7 +28,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { History } from "lucide-react"
 
 type Board = {
   id: string
@@ -40,6 +39,7 @@ type Board = {
 
 export function BoardView({ workspaceId, board }: { workspaceId: string; board: Board }) {
   const params = useParams()
+  const router = useRouter()
   const [groups, setGroups] = useState<BoardGroup[]>([])
   const [columns, setColumns] = useState<ColumnDefinition[]>([])
   const [items, setItems] = useState<Record<string, BoardItem[]>>({})
@@ -253,6 +253,19 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
     }
   }
 
+  const deleteBoard = async () => {
+    if (!window.confirm(`Delete ${board.name}? This permanently deletes its groups, items, and sub-items.`)) return
+    const supabase = createClient()
+    const { error } = await supabase.from("boards").delete().eq("id", board.id)
+    if (error) {
+      toast.error("Failed to delete board")
+      return
+    }
+    toast.success("Board deleted")
+    router.replace("/dashboard")
+    router.refresh()
+  }
+
   const visibleColumns = columns.filter((c) => c.archived_at === null)
 
   return (
@@ -298,6 +311,9 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
                 existingColumnCount={visibleColumns.length}
                 onSuccess={fetchAll}
               />
+              <Button variant="outline" size="sm" onClick={deleteBoard} className="text-destructive hover:text-destructive">
+                <Trash2 className="h-4 w-4 mr-2" />Delete board
+              </Button>
               <Input
                 placeholder="New group"
                 value={newGroupName}
