@@ -16,6 +16,7 @@ import {
   Profile,
 } from "@/lib/board/columns"
 import { CellEditor } from "./columns/cell-editor"
+import { ColumnDefinitionDialog } from "./columns/column-definition-dialog"
 import { ItemDetailDrawer } from "./item-detail-drawer"
 import { KanbanView } from "./views/kanban-view"
 
@@ -251,6 +252,11 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
               </Link>
             </div>
             <div className="flex items-center gap-2">
+              <ColumnDefinitionDialog
+                boardId={board.id}
+                existingColumnCount={visibleColumns.length}
+                onSuccess={fetchAll}
+              />
               <Input
                 placeholder="New group"
                 value={newGroupName}
