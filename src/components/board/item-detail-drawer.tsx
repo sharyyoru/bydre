@@ -164,7 +164,7 @@ export function ItemDetailDrawer({
     const supabase = createClient()
     const { error } = await supabase.from("items").delete().eq("id", item.id)
     if (error) {
-      toast.error("Failed to delete item")
+      toast.error(`Failed to delete item: ${error.message}`)
       return
     }
     toast.success("Item deleted")
