@@ -119,7 +119,7 @@ export function SearchDialog() {
           {error && <p className="py-2 text-sm text-destructive">{error}</p>}
           {!loading && query.trim().length >= 2 && !hasResults && !error && <p className="py-5 text-center text-sm text-muted-foreground">No results found.</p>}
           <SearchSection title="Boards" entries={boards} render={(board) => <Link key={board.id} href={`/workspace/${workspaceSlug}/board/${board.id}`} onClick={close} className="search-result"><LayoutGrid className="h-4 w-4 text-[#D4AF37]" /><div><p>{board.name}</p><span>{board.type} board</span></div></Link>} />
-          <SearchSection title="Items" entries={items} render={(item) => <Link key={item.id} href={`/workspace/${workspaceSlug}/board/${item.board_id}?item=${item.id}`} onClick={close} className="search-result"><FileText className="h-4 w-4 text-[#0A1628]" /><div><p>{item.title}</p>{item.description && <span>{item.description}</span>}</div></Link>} />
+          <SearchSection title="Items" entries={items} render={(item) => <Link key={item.id} href={`/workspace/${workspaceSlug}/board/${item.board_id}?item=${item.id}`} onClick={close} className="search-result"><FileText className="h-4 w-4 text-[#0A1628]" /><div><p>{item.title}</p>{item.description && <span>{item.description.replace(/<[^>]+>/g, " ").trim()}</span>}</div></Link>} />
           <SearchSection title="People" entries={people} render={(person) => <div key={person.id} className="search-result"><UserRound className="h-4 w-4 text-[#0A1628]" /><div><p>{person.name}</p><span>{person.email}</span></div></div>} />
         </div>
       </DialogContent>

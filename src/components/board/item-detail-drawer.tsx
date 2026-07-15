@@ -11,7 +11,7 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
+import { RichTextEditor } from "@/components/ui/rich-text-editor"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { toast } from "sonner"
@@ -216,15 +216,15 @@ export function ItemDetailDrawer({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className={`${expanded ? "w-screen max-w-none sm:max-w-none" : "sm:max-w-lg"} w-full overflow-y-auto`}>
-        <Button variant="ghost" size="icon" aria-label={expanded ? "Retract item pane" : "Expand item pane"} title={expanded ? "Retract pane" : "Expand pane"} onClick={() => setExpanded((value) => !value)} className="absolute right-12 top-3"><>{expanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}</></Button>
-        <SheetHeader className="pb-4 border-b border-border/60">
-          <SheetTitle className="text-[#0A1628]">Item details</SheetTitle>
+        <SheetHeader className="sticky top-0 z-20 -mx-6 -mt-6 border-b border-border/60 bg-white px-6 pt-6 pb-4">
+          <Button variant="ghost" size="icon" aria-label={expanded ? "Retract item pane" : "Expand item pane"} title={expanded ? "Retract pane" : "Expand pane"} onClick={() => setExpanded((value) => !value)} className="absolute right-12 top-4 h-8 w-8"><>{expanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}</></Button>
+          <SheetTitle className="text-[#0A1628] truncate pr-20">{localItem.title || "Item details"}</SheetTitle>
           <SheetDescription>
             Update fields and collaborate with comments.
           </SheetDescription>
         </SheetHeader>
 
-        <div className="space-y-6 py-6">
+        <div className={`space-y-6 py-6 ${expanded ? "mx-auto w-full max-w-3xl" : ""}`}>
           <div className="flex justify-end">
             <Button variant="outline" size="sm" onClick={deleteItem} className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4 mr-2" />Delete item</Button>
           </div>
@@ -239,9 +239,9 @@ export function ItemDetailDrawer({
 
           <div className="space-y-2">
             <label className="text-sm font-medium">Description</label>
-            <Textarea
+            <RichTextEditor
               value={localItem.description || ""}
-              onChange={(e) => setLocalItem((p) => ({ ...p, description: e.target.value }))}
+              onChange={(html) => setLocalItem((p) => ({ ...p, description: html }))}
               placeholder="Add a description..."
             />
           </div>
@@ -252,9 +252,9 @@ export function ItemDetailDrawer({
 
           <div className="space-y-3">
             {visibleColumns.map((column) => (
-              <div key={column.id} className="grid grid-cols-3 gap-4 items-center">
+              <div key={column.id} className="grid grid-cols-[140px_1fr] gap-3 items-center">
                 <label className="text-sm font-medium text-muted-foreground">{column.name}</label>
-                <div className="col-span-2">
+                <div>
                   <CellEditor
                     column={column}
                     item={localItem}
