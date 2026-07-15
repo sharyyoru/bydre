@@ -61,6 +61,9 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
   const [selectedPriorities, setSelectedPriorities] = useState<string[]>(() => searchParams.get("priority")?.split(",").filter(Boolean) || [])
   const [groupsPage, setGroupsPage] = useState(() => Math.max(1, Number(searchParams.get("groupsPage")) || 1))
   const GROUPS_PER_PAGE = 5
+  const ITEMS_PER_BATCH = 20
+  const [visibleItemCounts, setVisibleItemCounts] = useState<Record<string, number>>({})
+  const showMoreItems = (groupId: string) => setVisibleItemCounts((current) => ({ ...current, [groupId]: (current[groupId] || ITEMS_PER_BATCH) + ITEMS_PER_BATCH }))
 
   const fetchAll = useCallback(async () => {
     const supabase = createClient()
@@ -445,7 +448,7 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
                     </tr>
                   </thead>
                   <tbody>
-                    {(filteredItems[group.id] || []).map((item) => (
+                    {(filteredItems[group.id] || []).slice(0, visibleItemCounts[group.id] || ITEMS_PER_BATCH).map((item) => (
                       <Fragment key={item.id}>
                         <tr
                           key={item.id}
@@ -541,6 +544,12 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
                     )}
                   </tbody>
                 </table>
+                {(filteredItems[group.id] || []).length > (visibleItemCounts[group.id] || ITEMS_PER_BATCH) && (
+                  <div className="flex items-center justify-between border-t border-border/40 bg-muted/10 px-4 py-3">
+                    <p className="text-xs text-muted-foreground">Showing {Math.min(visibleItemCounts[group.id] || ITEMS_PER_BATCH, (filteredItems[group.id] || []).length)} of {(filteredItems[group.id] || []).length} items</p>
+                    <Button variant="outline" size="sm" onClick={() => showMoreItems(group.id)}>Show {Math.min(ITEMS_PER_BATCH, (filteredItems[group.id] || []).length - (visibleItemCounts[group.id] || ITEMS_PER_BATCH))} more</Button>
+                  </div>
+                )}
               </div>}
             </div>
           ))}
