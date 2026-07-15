@@ -326,7 +326,7 @@ export function ItemDetailDrawer({
                         {format(new Date(comment.created_at), "MMM d, h:mm a")}
                       </span>
                     </div>
-                    <p className="text-sm text-foreground">{renderComment(comment.content)}</p>
+                    <p className="text-sm text-[#0A1628]">{renderComment(comment.content)}</p>
                   </div>
                 </div>
               ))}
