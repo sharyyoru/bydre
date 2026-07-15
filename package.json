@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "seed:user": "node --env-file=.env.local scripts/seed-user.mjs",
-    "import:trello": "node --env-file=.env.local scripts/import-trello-marketing.mjs"
+    "import:trello": "node --env-file=.env.local scripts/import-trello-marketing.mjs",
+    "reassign:marketing": "node --env-file=.env.local scripts/reassign-imported-marketing-work.mjs"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.0",
