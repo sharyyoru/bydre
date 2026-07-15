@@ -345,9 +345,9 @@ export function ItemDetailDrawer({
                 className="mentions-input"
                 style={{
                   control: { minHeight: 80, fontSize: 14, fontFamily: "inherit" },
-                  highlighter: { padding: "12px", border: "1px solid transparent", lineHeight: "20px", overflow: "hidden" },
+                  highlighter: { padding: "12px", border: "1px solid transparent", lineHeight: "20px", overflow: "hidden", color: "#0A1628" },
                   input: { padding: "12px", border: "1px solid hsl(var(--border))", borderRadius: 8, outline: "none", lineHeight: "20px", overflow: "auto", color: "transparent", caretColor: "#0A1628" },
-                  suggestions: { list: { backgroundColor: "white", border: "1px solid hsl(var(--border))", borderRadius: 8, boxShadow: "0 8px 20px rgba(0,0,0,.12)", overflow: "hidden", zIndex: 60 }, item: { padding: "8px 12px", borderBottom: "1px solid hsl(var(--border))" } },
+                  suggestions: { list: { backgroundColor: "white", border: "1px solid hsl(var(--border))", borderRadius: 8, boxShadow: "0 8px 20px rgba(0,0,0,.12)", overflow: "hidden", zIndex: 60, color: "#0A1628" }, item: { padding: "8px 12px", borderBottom: "1px solid hsl(var(--border))", color: "#0A1628" } },
                 }}
               >
                 <Mention

@@ -395,15 +395,18 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
                           onClick={() => setSelectedItem(item)}
                         >
                           <td className="min-w-[260px] px-4 py-3 font-medium text-[#0A1628]">
-                            <Input
-                              key={`${item.id}-${item.title}`}
-                              defaultValue={item.title}
-                              onBlur={(e) => {
-                                if (e.target.value !== item.title) updateItemTitle(item.id, e.target.value)
-                              }}
-                              onClick={(e) => e.stopPropagation()}
-                              className="h-7 w-full min-w-0 border-transparent bg-transparent px-0 hover:bg-white focus:bg-white focus:border-border"
-                            />
+                            <div className="flex items-center gap-2">
+                              <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-muted-foreground hover:text-[#0A1628]" aria-label={`View ${item.title}`} onClick={(event) => { event.stopPropagation(); setSelectedItem(item) }}><Eye className="h-4 w-4" /></Button>
+                              <Input
+                                key={`${item.id}-${item.title}`}
+                                defaultValue={item.title}
+                                onBlur={(e) => {
+                                  if (e.target.value !== item.title) updateItemTitle(item.id, e.target.value)
+                                }}
+                                onClick={(e) => e.stopPropagation()}
+                                className="h-7 w-full min-w-0 border-transparent bg-transparent px-0 hover:bg-white focus:bg-white focus:border-border"
+                              />
+                            </div>
                           </td>
                           {visibleColumns.map((column) => (
                             <td
@@ -432,15 +435,18 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
                             onClick={() => setSelectedItem(sub)}
                           >
                             <td className="min-w-[260px] px-4 py-2 pl-10 font-medium text-[#0A1628]">
-                              <Input
-                                key={`${sub.id}-${sub.title}`}
-                                defaultValue={sub.title}
-                                onBlur={(e) => {
-                                  if (e.target.value !== sub.title) updateItemTitle(sub.id, e.target.value)
-                                }}
-                                onClick={(e) => e.stopPropagation()}
-                                className="h-7 w-full min-w-0 border-transparent bg-transparent px-0 hover:bg-white focus:bg-white focus:border-border"
-                              />
+                              <div className="flex items-center gap-2">
+                                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-muted-foreground hover:text-[#0A1628]" aria-label={`View ${sub.title}`} onClick={(event) => { event.stopPropagation(); setSelectedItem(sub) }}><Eye className="h-4 w-4" /></Button>
+                                <Input
+                                  key={`${sub.id}-${sub.title}`}
+                                  defaultValue={sub.title}
+                                  onBlur={(e) => {
+                                    if (e.target.value !== sub.title) updateItemTitle(sub.id, e.target.value)
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="h-7 w-full min-w-0 border-transparent bg-transparent px-0 hover:bg-white focus:bg-white focus:border-border"
+                                />
+                              </div>
                             </td>
                             {visibleColumns.map((column) => (
                               <td
