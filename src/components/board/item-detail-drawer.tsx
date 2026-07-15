@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { toast } from "sonner"
-import { Plus, Trash2 } from "lucide-react"
+import { Maximize2, Minimize2, Plus, Trash2 } from "lucide-react"
 import { Mention, MentionsInput } from "react-mentions"
 import {
   ColumnDefinition,
@@ -54,6 +54,7 @@ export function ItemDetailDrawer({
   const [loading, setLoading] = useState(false)
   const [savingDetails, setSavingDetails] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
+  const [expanded, setExpanded] = useState(false)
 
   useEffect(() => {
     setLocalItem(item)
@@ -199,9 +200,23 @@ export function ItemDetailDrawer({
 
   const visibleColumns = columns.filter((c) => c.archived_at === null)
 
+  const deleteSubItem = async (subItem: BoardItem) => {
+    if (!window.confirm(`Delete sub-item \"${subItem.title}\"? This cannot be undone.`)) return
+    const supabase = createClient()
+    const { error } = await supabase.from("items").delete().eq("id", subItem.id)
+    if (error) {
+      toast.error(`Failed to delete sub-item: ${error.message}`)
+      return
+    }
+    setLocalItem((current) => ({ ...current, sub_items: current.sub_items.filter((entry) => entry.id !== subItem.id) }))
+    onItemChanged?.()
+    toast.success("Sub-item deleted")
+  }
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="sm:max-w-lg w-full overflow-y-auto">
+      <SheetContent className={`${expanded ? "w-screen max-w-none sm:max-w-none" : "sm:max-w-lg"} w-full overflow-y-auto`}>
+        <Button variant="ghost" size="icon" aria-label={expanded ? "Retract item pane" : "Expand item pane"} title={expanded ? "Retract pane" : "Expand pane"} onClick={() => setExpanded((value) => !value)} className="absolute right-12 top-3"><>{expanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}</></Button>
         <SheetHeader className="pb-4 border-b border-border/60">
           <SheetTitle className="text-[#0A1628]">Item details</SheetTitle>
           <SheetDescription>
@@ -286,23 +301,25 @@ export function ItemDetailDrawer({
           {!localItem.parent_id && localItem.sub_items?.length > 0 && (
             <div className="space-y-2">
               {localItem.sub_items.map((subItem) => (
-                <Input
-                  key={subItem.id}
-                  defaultValue={subItem.title}
-                  onBlur={async (event) => {
-                    const title = event.target.value.trim()
-                    if (!title || title === subItem.title) return
-                    const supabase = createClient()
-                    const { error } = await supabase.from("items").update({ title }).eq("id", subItem.id)
-                    if (error) {
-                      toast.error(`Failed to rename sub-item: ${error.message}`)
-                      return
-                    }
-                    setLocalItem((current) => ({ ...current, sub_items: current.sub_items.map((entry) => entry.id === subItem.id ? { ...entry, title } : entry) }))
-                    onItemChanged?.()
-                  }}
-                  className="h-9"
-                />
+                <div key={subItem.id} className="flex gap-2">
+                  <Input
+                    defaultValue={subItem.title}
+                    onBlur={async (event) => {
+                      const title = event.target.value.trim()
+                      if (!title || title === subItem.title) return
+                      const supabase = createClient()
+                      const { error } = await supabase.from("items").update({ title }).eq("id", subItem.id)
+                      if (error) {
+                        toast.error(`Failed to rename sub-item: ${error.message}`)
+                        return
+                      }
+                      setLocalItem((current) => ({ ...current, sub_items: current.sub_items.map((entry) => entry.id === subItem.id ? { ...entry, title } : entry) }))
+                      onItemChanged?.()
+                    }}
+                    className="h-9"
+                  />
+                  <Button variant="ghost" size="icon" aria-label={`Delete ${subItem.title}`} title="Delete sub-item" onClick={() => deleteSubItem(subItem)} className="h-9 w-9 text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                </div>
               ))}
             </div>
           )}

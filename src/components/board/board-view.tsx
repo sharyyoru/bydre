@@ -1,6 +1,6 @@
 "use client"
 
-import { Fragment, useCallback, useEffect, useState } from "react"
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
@@ -53,7 +53,9 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
   const [selectedItem, setSelectedItem] = useState<BoardItem | null>(null)
   const [activeView, setActiveView] = useState("table")
   const [collapsedGroups, setCollapsedGroups] = useState<string[]>([])
-  const [visibleGroupIds, setVisibleGroupIds] = useState<string[]>([]) 
+  const [visibleGroupIds, setVisibleGroupIds] = useState<string[]>([])
+  const [searchQuery, setSearchQuery] = useState("")
+  const [dateRange, setDateRange] = useState("any")
 
   const fetchAll = useCallback(async () => {
     const supabase = createClient()
@@ -287,6 +289,21 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
 
   const visibleColumns = columns.filter((c) => c.archived_at === null)
   const displayedGroups = visibleGroupIds.length ? groups.filter((group) => visibleGroupIds.includes(group.id)) : groups
+  const filteredItems = useMemo(() => {
+    const today = new Date(); today.setHours(0, 0, 0, 0)
+    const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1)
+    const weekEnd = new Date(today); weekEnd.setDate(today.getDate() + 7)
+    const dateColumns = visibleColumns.filter((column) => column.type === "date")
+    const matches = (item: BoardItem) => {
+      const haystack = [item.title, item.description, ...Object.values(item.values || {}).map(String), ...item.assignees.map((assignee) => `${assignee.profiles.full_name || ""} ${assignee.profiles.email}`)].join(" ").toLowerCase()
+      if (searchQuery && !haystack.includes(searchQuery.toLowerCase())) return false
+      const dates = [item.due_date, ...dateColumns.map((column) => item.values?.[column.id])].filter(Boolean).map((value) => new Date(`${value}T00:00:00`))
+      if (dateRange === "no-date") return dates.length === 0
+      if (dateRange === "any") return true
+      return dates.some((date) => dateRange === "overdue" ? date < today : dateRange === "today" ? date.getTime() === today.getTime() : dateRange === "tomorrow" ? date.getTime() === tomorrow.getTime() : date >= today && date <= weekEnd)
+    }
+    return Object.fromEntries(Object.entries(items).map(([groupId, groupItems]) => [groupId, groupItems.filter(matches).map((item) => ({ ...item, sub_items: item.sub_items.filter(matches) }))])) as Record<string, BoardItem[]>
+  }, [items, searchQuery, dateRange, visibleColumns])
   const toggleGroup = (groupId: string) => setCollapsedGroups((current) => current.includes(groupId) ? current.filter((id) => id !== groupId) : [...current, groupId])
 
   return (
@@ -322,6 +339,8 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
               </Link>
             </div>
             <div className="flex items-center gap-2">
+              <Input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search this board" className="h-9 w-44" />
+              <select value={dateRange} onChange={(event) => setDateRange(event.target.value)} className="h-9 rounded-md border bg-background px-2 text-sm"><option value="any">Any date</option><option value="no-date">No date</option><option value="overdue">Overdue</option><option value="today">Today</option><option value="tomorrow">Tomorrow</option><option value="week">Next 7 days</option></select>
               <select value={visibleGroupIds[0] || "all"} onChange={(event) => setVisibleGroupIds(event.target.value === "all" ? [] : [event.target.value])} className="h-9 rounded-md border bg-background px-2 text-sm"><option value="all">All groups</option>{groups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}</select>
               <Dialog>
                 <DialogTrigger asChild><Button variant="outline" size="sm"><History className="h-4 w-4 mr-2" />Activity</Button></DialogTrigger>
@@ -387,7 +406,7 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
                     </tr>
                   </thead>
                   <tbody>
-                    {(items[group.id] || []).map((item) => (
+                    {(filteredItems[group.id] || []).map((item) => (
                       <Fragment key={item.id}>
                         <tr
                           key={item.id}
@@ -471,7 +490,7 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
                         ))}
                       </Fragment>
                     ))}
-                    {(items[group.id] || []).length === 0 && (
+                    {(filteredItems[group.id] || []).length === 0 && (
                       <tr>
                         <td
                           colSpan={visibleColumns.length + 2}
@@ -500,7 +519,7 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
         {activeView === "kanban" && (
           <KanbanView
             columns={columns}
-            items={items}
+            items={filteredItems}
             members={members}
             onItemClick={setSelectedItem}
             onStatusChange={(itemId: string, columnId: string, value: string) => updateItemValue(itemId, columnId, value)}

@@ -15,6 +15,8 @@ import {
   CheckSquare,
   Plus,
   Users,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -37,7 +39,7 @@ const boardIcon = (type: string) => {
   }
 }
 
-export function Sidebar({ mobile }: { mobile?: boolean }) {
+export function Sidebar({ mobile, collapsed = false, onToggle }: { mobile?: boolean; collapsed?: boolean; onToggle?: () => void }) {
   const pathname = usePathname()
   const params = useParams()
   const workspaceId = params.id as string | undefined
@@ -75,19 +77,20 @@ export function Sidebar({ mobile }: { mobile?: boolean }) {
   }, [])
 
   return (
-    <aside className={`flex-col w-64 h-screen bg-[#0A1628] text-white border-r border-white/10 z-40 ${
+    <aside className={`flex-col ${mobile || !collapsed ? "w-64" : "w-16"} h-screen bg-[#0A1628] text-white border-r border-white/10 z-40 transition-[width] ${
       mobile ? "flex" : "hidden lg:flex fixed left-0 top-0"
     }`}>
-      <div className="p-5 flex flex-col items-center text-center">
+      <div className="p-5 flex flex-col items-center text-center relative">
+        {!mobile && <Button variant="ghost" size="icon" onClick={onToggle} aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"} className="absolute right-1 top-1 text-white/70 hover:bg-white/10 hover:text-white">{collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}</Button>}
         <Image
           src="/dre-logo.png"
           alt="DreHomes"
           width={120}
           height={120}
-          className="rounded-xl bg-white mb-3"
+          className={`${collapsed && !mobile ? "h-8 w-8" : "h-[120px] w-[120px]"} rounded-xl bg-white mb-3`}
           priority
         />
-        <p className="text-xs text-white/60">{workspaceName}</p>
+        {!collapsed && <p className="text-xs text-white/60">{workspaceName}</p>}
       </div>
 
       <Separator className="bg-white/10" />
@@ -102,7 +105,7 @@ export function Sidebar({ mobile }: { mobile?: boolean }) {
               }`}
             >
               <LayoutDashboard className="h-4 w-4" />
-              Dashboard
+              {!collapsed && "Dashboard"}
             </Button>
           </Link>
 
@@ -114,13 +117,11 @@ export function Sidebar({ mobile }: { mobile?: boolean }) {
               }`}
             >
               <Users className="h-4 w-4" />
-              Users
+              {!collapsed && "Users"}
             </Button>
           </Link>
 
-          <p className="text-xs font-semibold text-white/40 uppercase tracking-wider px-3 mt-6 mb-2">
-            Boards
-          </p>
+          {!collapsed && <p className="text-xs font-semibold text-white/40 uppercase tracking-wider px-3 mt-6 mb-2">Boards</p>}
 
           {boards.map((board) => {
             const isActive = workspaceId && boardId === board.id
@@ -136,7 +137,7 @@ export function Sidebar({ mobile }: { mobile?: boolean }) {
                   }`}
                 >
                   {boardIcon(board.type)}
-                  {board.name}
+                  {!collapsed && board.name}
                 </Button>
               </Link>
             )
@@ -148,16 +149,12 @@ export function Sidebar({ mobile }: { mobile?: boolean }) {
             disabled
           >
             <Plus className="h-4 w-4" />
-            Add board
+            {!collapsed && "Add board"}
           </Button>
         </nav>
       </ScrollArea>
 
-      <div className="p-4 border-t border-white/10">
-        <p className="text-xs text-white/40">
-          ByDre v0.1 — DreHomes
-        </p>
-      </div>
+      {!collapsed && <div className="p-4 border-t border-white/10"><p className="text-xs text-white/40">ByDre v0.1 — DreHomes</p></div>}
     </aside>
   )
 }
