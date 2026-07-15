@@ -7,6 +7,7 @@ import { AppShell } from "@/components/app-shell"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { ProductivityReport } from "@/components/dashboard/productivity-report"
 import {
   Camera,
   FileText,
@@ -150,6 +151,8 @@ export default function DashboardPage() {
             </Card>
           )}
         </div>
+
+        <ProductivityReport />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card className="rounded-2xl border-border/60">
