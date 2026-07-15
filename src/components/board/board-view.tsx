@@ -59,6 +59,8 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
   const [dateRange, setDateRange] = useState(() => searchParams.get("date") || "any")
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>(() => searchParams.get("status")?.split(",").filter(Boolean) || [])
   const [selectedPriorities, setSelectedPriorities] = useState<string[]>(() => searchParams.get("priority")?.split(",").filter(Boolean) || [])
+  const [selectedOwners, setSelectedOwners] = useState<string[]>(() => searchParams.get("owner")?.split(",").filter(Boolean) || [])
+  const [groupDialogOpen, setGroupDialogOpen] = useState(false)
   const [groupsPage, setGroupsPage] = useState(() => Math.max(1, Number(searchParams.get("groupsPage")) || 1))
   const GROUPS_PER_PAGE = 5
   const ITEMS_PER_BATCH = 20
@@ -300,7 +302,7 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
     if (!value || value === "all" || value === "any") next.delete(key); else next.set(key, value)
     router.replace(`${pathname}${next.size ? `?${next}` : ""}`)
   }
-  const toggleMultiFilter = (key: "status" | "priority", value: string, selected: string[], setSelected: (next: string[]) => void) => {
+  const toggleMultiFilter = (key: "status" | "priority" | "owner", value: string, selected: string[], setSelected: (next: string[]) => void) => {
     const next = selected.includes(value) ? selected.filter((entry) => entry !== value) : [...selected, value]
     setSelected(next)
     updateFilterUrl(key, next.join(","))
@@ -327,13 +329,18 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
       if (searchQuery && !haystack.includes(searchQuery.toLowerCase())) return false
       if (selectedStatuses.length && (!statusColumn || !selectedStatuses.includes(String(item.values?.[statusColumn.id] || "")))) return false
       if (selectedPriorities.length && !selectedPriorities.includes(item.priority)) return false
+      if (selectedOwners.length) {
+        const ownerIds = item.assignees.map((assignee) => assignee.user_id)
+        const matchesOwner = selectedOwners.some((owner) => owner === "unassigned" ? ownerIds.length === 0 : ownerIds.includes(owner))
+        if (!matchesOwner) return false
+      }
       const dates = [item.due_date, ...dateColumns.map((column) => item.values?.[column.id])].filter(Boolean).map((value) => new Date(`${value}T00:00:00`))
       if (dateRange === "no-date") return dates.length === 0
       if (dateRange === "any") return true
       return dates.some((date) => dateRange === "overdue" ? date < today : dateRange === "today" ? date.getTime() === today.getTime() : dateRange === "tomorrow" ? date.getTime() === tomorrow.getTime() : date >= today && date <= weekEnd)
     }
     return Object.fromEntries(Object.entries(items).map(([groupId, groupItems]) => [groupId, groupItems.filter(matches).map((item) => ({ ...item, sub_items: item.sub_items.filter(matches) }))])) as Record<string, BoardItem[]>
-  }, [items, searchQuery, dateRange, selectedStatuses, selectedPriorities, statusColumn, visibleColumns])
+  }, [items, searchQuery, dateRange, selectedStatuses, selectedPriorities, selectedOwners, statusColumn, visibleColumns])
   const toggleGroup = (groupId: string) => setCollapsedGroups((current) => current.includes(groupId) ? current.filter((id) => id !== groupId) : [...current, groupId])
 
   return (
@@ -375,6 +382,7 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
               <select value={visibleGroupIds[0] || "all"} onChange={(event) => { const value = event.target.value; setVisibleGroupIds(value === "all" ? [] : [value]); updateFilterUrl("group", value) }} className="h-9 rounded-md border bg-background px-2 text-sm"><option value="all">All groups</option>{groups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}</select>
               {statusColumn && <DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" size="sm">Status{selectedStatuses.length ? ` (${selectedStatuses.length})` : ""}</Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuLabel>Filter status</DropdownMenuLabel><DropdownMenuSeparator />{statusOptions.map((option) => <DropdownMenuCheckboxItem key={option.id} checked={selectedStatuses.includes(option.id)} onCheckedChange={() => toggleMultiFilter("status", option.id, selectedStatuses, setSelectedStatuses)}><span className="mr-2 h-2 w-2 rounded-full" style={{ backgroundColor: option.color || "#6B7280" }} />{option.name}</DropdownMenuCheckboxItem>)}{selectedStatuses.length > 0 && <><DropdownMenuSeparator /><DropdownMenuCheckboxItem checked={false} onSelect={(event) => { event.preventDefault(); setSelectedStatuses([]); updateFilterUrl("status", "") }}>Clear status filters</DropdownMenuCheckboxItem></>}</DropdownMenuContent></DropdownMenu>}
               <DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" size="sm">Priority{selectedPriorities.length ? ` (${selectedPriorities.length})` : ""}</Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuLabel>Filter priority</DropdownMenuLabel><DropdownMenuSeparator />{["low", "medium", "high", "urgent"].map((priority) => <DropdownMenuCheckboxItem key={priority} checked={selectedPriorities.includes(priority)} onCheckedChange={() => toggleMultiFilter("priority", priority, selectedPriorities, setSelectedPriorities)} className="capitalize">{priority}</DropdownMenuCheckboxItem>)}{selectedPriorities.length > 0 && <><DropdownMenuSeparator /><DropdownMenuCheckboxItem checked={false} onSelect={(event) => { event.preventDefault(); setSelectedPriorities([]); updateFilterUrl("priority", "") }}>Clear priority filters</DropdownMenuCheckboxItem></>}</DropdownMenuContent></DropdownMenu>
+              <DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" size="sm">Owner{selectedOwners.length ? ` (${selectedOwners.length})` : ""}</Button></DropdownMenuTrigger><DropdownMenuContent align="end" className="max-h-80 overflow-y-auto"><DropdownMenuLabel>Filter owner</DropdownMenuLabel><DropdownMenuSeparator /><DropdownMenuCheckboxItem checked={selectedOwners.includes("unassigned")} onCheckedChange={() => toggleMultiFilter("owner", "unassigned", selectedOwners, setSelectedOwners)}>Unassigned</DropdownMenuCheckboxItem>{members.map((member) => <DropdownMenuCheckboxItem key={member.id} checked={selectedOwners.includes(member.id)} onCheckedChange={() => toggleMultiFilter("owner", member.id, selectedOwners, setSelectedOwners)}>{member.full_name || member.email}</DropdownMenuCheckboxItem>)}{selectedOwners.length > 0 && <><DropdownMenuSeparator /><DropdownMenuCheckboxItem checked={false} onSelect={(event) => { event.preventDefault(); setSelectedOwners([]); updateFilterUrl("owner", "") }}>Clear owner filters</DropdownMenuCheckboxItem></>}</DropdownMenuContent></DropdownMenu>
               <Dialog>
                 <DialogTrigger asChild><Button variant="outline" size="sm"><History className="h-4 w-4 mr-2" />Activity</Button></DialogTrigger>
                 <DialogContent className="sm:max-w-2xl"><DialogHeader><DialogTitle>Board activity</DialogTitle></DialogHeader><ActivityLog boardId={board.id} /></DialogContent>
@@ -385,15 +393,22 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
                 existingColumnCount={visibleColumns.length}
                 onSuccess={fetchAll}
               />
-              <Input
-                placeholder="New group"
-                value={newGroupName}
-                onChange={(e) => setNewGroupName(e.target.value)}
-                className="w-40"
-              />
-              <Button size="sm" onClick={addGroup} className="bg-[#0A1628]">
-                <Plus className="h-4 w-4" />
-              </Button>
+              <Dialog open={groupDialogOpen} onOpenChange={setGroupDialogOpen}>
+                <DialogTrigger asChild><Button size="sm" className="bg-[#0A1628]"><Plus className="h-4 w-4 mr-1" />New group</Button></DialogTrigger>
+                <DialogContent className="sm:max-w-sm">
+                  <DialogHeader><DialogTitle>Create group</DialogTitle></DialogHeader>
+                  <form className="space-y-4" onSubmit={async (event) => { event.preventDefault(); await addGroup(); setGroupDialogOpen(false) }}>
+                    <div className="space-y-2">
+                      <label htmlFor="new-group-name" className="text-sm font-medium">Group name</label>
+                      <Input id="new-group-name" autoFocus placeholder="e.g. This Week" value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)} />
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Button type="button" variant="outline" onClick={() => setGroupDialogOpen(false)}>Cancel</Button>
+                      <Button type="submit" disabled={!newGroupName.trim()} className="bg-[#0A1628]">Create group</Button>
+                    </div>
+                  </form>
+                </DialogContent>
+              </Dialog>
           </div>
         </div>
 
