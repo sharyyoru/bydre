@@ -15,8 +15,8 @@ import {
   CheckSquare,
   Plus,
   Users,
-  PanelLeftClose,
-  PanelLeftOpen,
+  ChevronsLeft,
+  ChevronsRight,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -80,17 +80,39 @@ export function Sidebar({ mobile, collapsed = false, onToggle }: { mobile?: bool
     <aside className={`flex-col ${mobile || !collapsed ? "w-64" : "w-16"} h-screen bg-[#0A1628] text-white border-r border-white/10 z-40 transition-[width] ${
       mobile ? "flex" : "hidden lg:flex fixed left-0 top-0"
     }`}>
-      <div className="p-5 flex flex-col items-center text-center relative">
-        {!mobile && <Button variant="ghost" size="icon" onClick={onToggle} aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"} className="absolute right-1 top-1 text-white/70 hover:bg-white/10 hover:text-white">{collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}</Button>}
-        <Image
-          src="/dre-logo.png"
-          alt="DreHomes"
-          width={120}
-          height={120}
-          className={`${collapsed && !mobile ? "h-8 w-8" : "h-[120px] w-[120px]"} rounded-xl bg-white mb-3`}
-          priority
-        />
-        {!collapsed && <p className="text-xs text-white/60">{workspaceName}</p>}
+      <div className={`${collapsed && !mobile ? "px-2 py-4" : "p-5"} flex flex-col items-center text-center`}>
+        {collapsed && !mobile ? (
+          <Image
+            src="/square.png"
+            alt="DreHomes"
+            width={40}
+            height={40}
+            className="h-10 w-10 rounded-full bg-white object-cover object-center"
+            priority
+          />
+        ) : (
+          <Image
+            src="/dre-logo.png"
+            alt="DreHomes"
+            width={120}
+            height={120}
+            className="w-[120px] h-auto rounded-xl bg-white mb-3 object-contain"
+            priority
+          />
+        )}
+        {(!collapsed || mobile) && <p className="text-xs text-white/60">{workspaceName}</p>}
+        {!mobile && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onToggle}
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            className="mt-3 h-8 w-8 rounded-full text-white/70 hover:bg-white/10 hover:text-white"
+          >
+            {collapsed ? <ChevronsRight className="h-4 w-4" /> : <ChevronsLeft className="h-4 w-4" />}
+          </Button>
+        )}
       </div>
 
       <Separator className="bg-white/10" />

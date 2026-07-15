@@ -336,13 +336,13 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
   return (
     <AppShell>
       <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-[#0A1628]">{board.name}</h1>
-            <p className="text-sm text-muted-foreground capitalize">{board.type} board</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="flex bg-muted rounded-lg p-1 mr-2">
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h1 className="text-2xl font-bold text-[#0A1628]">{board.name}</h1>
+              <p className="text-sm text-muted-foreground capitalize">{board.type} board</p>
+            </div>
+            <div className="flex bg-muted rounded-lg p-1">
               <Button
                 variant={activeView === "table" ? "secondary" : "ghost"}
                 size="sm"
@@ -365,7 +365,8 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
                 </Button>
               </Link>
             </div>
-            <div className="flex items-center gap-2">
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
               <Input value={searchQuery} onChange={(event) => { setSearchQuery(event.target.value); updateFilterUrl("q", event.target.value) }} placeholder="Search this board" className="h-9 w-44" />
               <select value={dateRange} onChange={(event) => { setDateRange(event.target.value); updateFilterUrl("date", event.target.value) }} className="h-9 rounded-md border bg-background px-2 text-sm"><option value="any">Any date</option><option value="no-date">No date</option><option value="overdue">Overdue</option><option value="today">Today</option><option value="tomorrow">Tomorrow</option><option value="week">Next 7 days</option></select>
               <select value={visibleGroupIds[0] || "all"} onChange={(event) => { const value = event.target.value; setVisibleGroupIds(value === "all" ? [] : [value]); updateFilterUrl("group", value) }} className="h-9 rounded-md border bg-background px-2 text-sm"><option value="all">All groups</option>{groups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}</select>
@@ -390,7 +391,6 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
               <Button size="sm" onClick={addGroup} className="bg-[#0A1628]">
                 <Plus className="h-4 w-4" />
               </Button>
-            </div>
           </div>
         </div>
 
