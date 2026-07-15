@@ -59,6 +59,8 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
   const [dateRange, setDateRange] = useState(() => searchParams.get("date") || "any")
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>(() => searchParams.get("status")?.split(",").filter(Boolean) || [])
   const [selectedPriorities, setSelectedPriorities] = useState<string[]>(() => searchParams.get("priority")?.split(",").filter(Boolean) || [])
+  const [groupsPage, setGroupsPage] = useState(() => Math.max(1, Number(searchParams.get("groupsPage")) || 1))
+  const GROUPS_PER_PAGE = 5
 
   const fetchAll = useCallback(async () => {
     const supabase = createClient()
@@ -304,6 +306,14 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
   const statusColumn = visibleColumns.find((column) => column.type === "status")
   const statusOptions = ((statusColumn?.settings as { options?: { id: string; name: string; color?: string }[] } | null)?.options || [])
   const displayedGroups = visibleGroupIds.length ? groups.filter((group) => visibleGroupIds.includes(group.id)) : groups
+  const totalGroupPages = Math.max(1, Math.ceil(displayedGroups.length / GROUPS_PER_PAGE))
+  const currentGroupPage = Math.min(groupsPage, totalGroupPages)
+  const pagedGroups = displayedGroups.length > GROUPS_PER_PAGE ? displayedGroups.slice((currentGroupPage - 1) * GROUPS_PER_PAGE, currentGroupPage * GROUPS_PER_PAGE) : displayedGroups
+  const changeGroupPage = (page: number) => {
+    const next = Math.min(Math.max(1, page), totalGroupPages)
+    setGroupsPage(next)
+    updateFilterUrl("groupsPage", next > 1 ? String(next) : "")
+  }
   const filteredItems = useMemo(() => {
     const today = new Date(); today.setHours(0, 0, 0, 0)
     const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1)
@@ -386,7 +396,17 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
 
         {activeView === "table" && (
           <div className="space-y-6">
-          {displayedGroups.map((group) => (
+          {displayedGroups.length > GROUPS_PER_PAGE && (
+            <div className="flex items-center justify-between rounded-xl border border-border/60 bg-white px-4 py-2">
+              <p className="text-sm text-muted-foreground">Showing groups {(currentGroupPage - 1) * GROUPS_PER_PAGE + 1}–{Math.min(currentGroupPage * GROUPS_PER_PAGE, displayedGroups.length)} of {displayedGroups.length}</p>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => changeGroupPage(currentGroupPage - 1)} disabled={currentGroupPage <= 1}>Previous</Button>
+                <span className="text-sm text-muted-foreground" aria-live="polite">Page {currentGroupPage} of {totalGroupPages}</span>
+                <Button variant="outline" size="sm" onClick={() => changeGroupPage(currentGroupPage + 1)} disabled={currentGroupPage >= totalGroupPages}>Next</Button>
+              </div>
+            </div>
+          )}
+          {pagedGroups.map((group) => (
             <div key={group.id} className="bg-white rounded-2xl border border-border/60 shadow-sm overflow-hidden">
               <div
                 className="px-4 py-3 flex items-center gap-3 border-b border-border/60"
