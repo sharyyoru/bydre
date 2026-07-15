@@ -36,6 +36,10 @@ ALTER TABLE public.import_runs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.import_entity_map ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.import_assignment_review ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "import_runs_admin" ON public.import_runs;
+DROP POLICY IF EXISTS "import_maps_admin" ON public.import_entity_map;
+DROP POLICY IF EXISTS "import_reviews_admin" ON public.import_assignment_review;
+
 CREATE POLICY "import_runs_admin" ON public.import_runs FOR ALL USING (public.is_workspace_admin(workspace_id)) WITH CHECK (public.is_workspace_admin(workspace_id));
 CREATE POLICY "import_maps_admin" ON public.import_entity_map FOR SELECT USING (EXISTS (SELECT 1 FROM public.import_runs r WHERE r.id = import_run_id AND public.is_workspace_admin(r.workspace_id)));
 CREATE POLICY "import_reviews_admin" ON public.import_assignment_review FOR ALL USING (EXISTS (SELECT 1 FROM public.import_runs r WHERE r.id = import_run_id AND public.is_workspace_admin(r.workspace_id))) WITH CHECK (EXISTS (SELECT 1 FROM public.import_runs r WHERE r.id = import_run_id AND public.is_workspace_admin(r.workspace_id)));

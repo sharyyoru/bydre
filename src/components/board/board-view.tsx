@@ -53,9 +53,9 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
   const [selectedItem, setSelectedItem] = useState<BoardItem | null>(null)
   const [activeView, setActiveView] = useState("table")
   const [collapsedGroups, setCollapsedGroups] = useState<string[]>([])
-  const [visibleGroupIds, setVisibleGroupIds] = useState<string[]>([])
-  const [searchQuery, setSearchQuery] = useState("")
-  const [dateRange, setDateRange] = useState("any")
+  const [visibleGroupIds, setVisibleGroupIds] = useState<string[]>(() => searchParams.get("group") ? [searchParams.get("group")!] : [])
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get("q") || "")
+  const [dateRange, setDateRange] = useState(() => searchParams.get("date") || "any")
 
   const fetchAll = useCallback(async () => {
     const supabase = createClient()
@@ -287,6 +287,11 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
     fetchAll()
   }
 
+  const updateFilterUrl = (key: string, value: string) => {
+    const next = new URLSearchParams(window.location.search)
+    if (!value || value === "all" || value === "any") next.delete(key); else next.set(key, value)
+    router.replace(`${pathname}${next.size ? `?${next}` : ""}`)
+  }
   const visibleColumns = columns.filter((c) => c.archived_at === null)
   const displayedGroups = visibleGroupIds.length ? groups.filter((group) => visibleGroupIds.includes(group.id)) : groups
   const filteredItems = useMemo(() => {
@@ -339,9 +344,9 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
               </Link>
             </div>
             <div className="flex items-center gap-2">
-              <Input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search this board" className="h-9 w-44" />
-              <select value={dateRange} onChange={(event) => setDateRange(event.target.value)} className="h-9 rounded-md border bg-background px-2 text-sm"><option value="any">Any date</option><option value="no-date">No date</option><option value="overdue">Overdue</option><option value="today">Today</option><option value="tomorrow">Tomorrow</option><option value="week">Next 7 days</option></select>
-              <select value={visibleGroupIds[0] || "all"} onChange={(event) => setVisibleGroupIds(event.target.value === "all" ? [] : [event.target.value])} className="h-9 rounded-md border bg-background px-2 text-sm"><option value="all">All groups</option>{groups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}</select>
+              <Input value={searchQuery} onChange={(event) => { setSearchQuery(event.target.value); updateFilterUrl("q", event.target.value) }} placeholder="Search this board" className="h-9 w-44" />
+              <select value={dateRange} onChange={(event) => { setDateRange(event.target.value); updateFilterUrl("date", event.target.value) }} className="h-9 rounded-md border bg-background px-2 text-sm"><option value="any">Any date</option><option value="no-date">No date</option><option value="overdue">Overdue</option><option value="today">Today</option><option value="tomorrow">Tomorrow</option><option value="week">Next 7 days</option></select>
+              <select value={visibleGroupIds[0] || "all"} onChange={(event) => { const value = event.target.value; setVisibleGroupIds(value === "all" ? [] : [value]); updateFilterUrl("group", value) }} className="h-9 rounded-md border bg-background px-2 text-sm"><option value="all">All groups</option>{groups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}</select>
               <Dialog>
                 <DialogTrigger asChild><Button variant="outline" size="sm"><History className="h-4 w-4 mr-2" />Activity</Button></DialogTrigger>
                 <DialogContent className="sm:max-w-2xl"><DialogHeader><DialogTitle>Board activity</DialogTitle></DialogHeader><ActivityLog boardId={board.id} /></DialogContent>

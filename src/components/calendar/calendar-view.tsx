@@ -1,12 +1,14 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { AppShell } from "@/components/app-shell"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 import { Calendar as CalendarIcon, ArrowLeft } from "lucide-react"
 import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isSameMonth } from "date-fns"
 import { ColumnDefinition } from "@/lib/board/columns"
@@ -24,7 +26,12 @@ type Board = { id: string; name: string; type: "shoots" | "content" | "tasks"; d
 export function CalendarView({ workspaceId, board }: { workspaceId: string; board: Board }) {
   const [items, setItems] = useState<Item[]>([])
   const [columns, setColumns] = useState<ColumnDefinition[]>([])
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const pathname = usePathname()
   const [currentMonth, setCurrentMonth] = useState(new Date())
+  const [query, setQuery] = useState(() => searchParams.get("q") || "")
+  const [selectedDateColumnId, setSelectedDateColumnId] = useState(() => searchParams.get("dateColumn") || "")
 
   useEffect(() => {
     const supabase = createClient()
@@ -38,9 +45,10 @@ export function CalendarView({ workspaceId, board }: { workspaceId: string; boar
 
       const typedColumns = (colData as ColumnDefinition[]) || []
       setColumns(typedColumns)
+      const urlColumn = searchParams.get("dateColumn")
+      if (!urlColumn) setSelectedDateColumnId(typedColumns.find((c) => c.type === "date")?.id || "")
 
-      const dateColumn = typedColumns.find((c) => c.type === "date")
-      if (!dateColumn) return
+      if (!typedColumns.some((c) => c.type === "date")) return
 
       const { data } = await supabase
         .from("items")
@@ -56,23 +64,26 @@ export function CalendarView({ workspaceId, board }: { workspaceId: string; boar
         return { ...item, values }
       }) as Item[]
 
-      setItems(typedItems.filter((it) => it.values?.[dateColumn.id]))
+      setItems(typedItems)
     }
 
     fetchData()
   }, [board.id])
 
-  const dateColumn = columns.find((c) => c.type === "date")
-  const dateColumnId = dateColumn?.id
+  const dateColumns = columns.filter((c) => c.type === "date")
+  const dateColumnId = selectedDateColumnId || dateColumns[0]?.id
+  const dateColumn = dateColumns.find((column) => column.id === dateColumnId)
 
   const days = eachDayOfInterval({
     start: startOfMonth(currentMonth),
     end: endOfMonth(currentMonth),
   })
 
+  const visibleItems = useMemo(() => items.filter((item) => item.title.toLowerCase().includes(query.toLowerCase())), [items, query])
+  const updateUrl = (key: string, value: string) => { const next = new URLSearchParams(window.location.search); if (value) next.set(key, value); else next.delete(key); router.replace(`${pathname}${next.size ? `?${next}` : ""}`) }
   const itemsForDay = (day: Date) =>
     dateColumnId
-      ? items.filter((item) => item.values?.[dateColumnId] && isSameDay(parseISO(item.values[dateColumnId]), day))
+      ? visibleItems.filter((item) => item.values?.[dateColumnId] && isSameDay(parseISO(item.values[dateColumnId]), day))
       : []
 
   const priorityColor = (p: string) => {
@@ -110,6 +121,7 @@ export function CalendarView({ workspaceId, board }: { workspaceId: string; boar
           </Link>
         </div>
 
+        <div className="flex flex-wrap gap-2"><Input value={query} onChange={(event) => { setQuery(event.target.value); updateUrl("q", event.target.value) }} placeholder="Search calendar" className="w-56" /><select value={dateColumnId || ""} onChange={(event) => { setSelectedDateColumnId(event.target.value); updateUrl("dateColumn", event.target.value) }} className="h-10 rounded-md border bg-background px-2 text-sm">{dateColumns.map((column) => <option key={column.id} value={column.id}>{column.name}</option>)}</select></div>
         <Card className="rounded-2xl border-border/60">
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-6">
