@@ -29,6 +29,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
 type Board = {
   id: string
@@ -56,6 +57,8 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
   const [visibleGroupIds, setVisibleGroupIds] = useState<string[]>(() => searchParams.get("group") ? [searchParams.get("group")!] : [])
   const [searchQuery, setSearchQuery] = useState(() => searchParams.get("q") || "")
   const [dateRange, setDateRange] = useState(() => searchParams.get("date") || "any")
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>(() => searchParams.get("status")?.split(",").filter(Boolean) || [])
+  const [selectedPriorities, setSelectedPriorities] = useState<string[]>(() => searchParams.get("priority")?.split(",").filter(Boolean) || [])
 
   const fetchAll = useCallback(async () => {
     const supabase = createClient()
@@ -292,7 +295,14 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
     if (!value || value === "all" || value === "any") next.delete(key); else next.set(key, value)
     router.replace(`${pathname}${next.size ? `?${next}` : ""}`)
   }
+  const toggleMultiFilter = (key: "status" | "priority", value: string, selected: string[], setSelected: (next: string[]) => void) => {
+    const next = selected.includes(value) ? selected.filter((entry) => entry !== value) : [...selected, value]
+    setSelected(next)
+    updateFilterUrl(key, next.join(","))
+  }
   const visibleColumns = columns.filter((c) => c.archived_at === null)
+  const statusColumn = visibleColumns.find((column) => column.type === "status")
+  const statusOptions = ((statusColumn?.settings as { options?: { id: string; name: string; color?: string }[] } | null)?.options || [])
   const displayedGroups = visibleGroupIds.length ? groups.filter((group) => visibleGroupIds.includes(group.id)) : groups
   const filteredItems = useMemo(() => {
     const today = new Date(); today.setHours(0, 0, 0, 0)
@@ -302,13 +312,15 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
     const matches = (item: BoardItem) => {
       const haystack = [item.title, item.description, ...Object.values(item.values || {}).map(String), ...item.assignees.map((assignee) => `${assignee.profiles.full_name || ""} ${assignee.profiles.email}`)].join(" ").toLowerCase()
       if (searchQuery && !haystack.includes(searchQuery.toLowerCase())) return false
+      if (selectedStatuses.length && (!statusColumn || !selectedStatuses.includes(String(item.values?.[statusColumn.id] || "")))) return false
+      if (selectedPriorities.length && !selectedPriorities.includes(item.priority)) return false
       const dates = [item.due_date, ...dateColumns.map((column) => item.values?.[column.id])].filter(Boolean).map((value) => new Date(`${value}T00:00:00`))
       if (dateRange === "no-date") return dates.length === 0
       if (dateRange === "any") return true
       return dates.some((date) => dateRange === "overdue" ? date < today : dateRange === "today" ? date.getTime() === today.getTime() : dateRange === "tomorrow" ? date.getTime() === tomorrow.getTime() : date >= today && date <= weekEnd)
     }
     return Object.fromEntries(Object.entries(items).map(([groupId, groupItems]) => [groupId, groupItems.filter(matches).map((item) => ({ ...item, sub_items: item.sub_items.filter(matches) }))])) as Record<string, BoardItem[]>
-  }, [items, searchQuery, dateRange, visibleColumns])
+  }, [items, searchQuery, dateRange, selectedStatuses, selectedPriorities, statusColumn, visibleColumns])
   const toggleGroup = (groupId: string) => setCollapsedGroups((current) => current.includes(groupId) ? current.filter((id) => id !== groupId) : [...current, groupId])
 
   return (
@@ -347,6 +359,8 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
               <Input value={searchQuery} onChange={(event) => { setSearchQuery(event.target.value); updateFilterUrl("q", event.target.value) }} placeholder="Search this board" className="h-9 w-44" />
               <select value={dateRange} onChange={(event) => { setDateRange(event.target.value); updateFilterUrl("date", event.target.value) }} className="h-9 rounded-md border bg-background px-2 text-sm"><option value="any">Any date</option><option value="no-date">No date</option><option value="overdue">Overdue</option><option value="today">Today</option><option value="tomorrow">Tomorrow</option><option value="week">Next 7 days</option></select>
               <select value={visibleGroupIds[0] || "all"} onChange={(event) => { const value = event.target.value; setVisibleGroupIds(value === "all" ? [] : [value]); updateFilterUrl("group", value) }} className="h-9 rounded-md border bg-background px-2 text-sm"><option value="all">All groups</option>{groups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}</select>
+              {statusColumn && <DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" size="sm">Status{selectedStatuses.length ? ` (${selectedStatuses.length})` : ""}</Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuLabel>Filter status</DropdownMenuLabel><DropdownMenuSeparator />{statusOptions.map((option) => <DropdownMenuCheckboxItem key={option.id} checked={selectedStatuses.includes(option.id)} onCheckedChange={() => toggleMultiFilter("status", option.id, selectedStatuses, setSelectedStatuses)}><span className="mr-2 h-2 w-2 rounded-full" style={{ backgroundColor: option.color || "#6B7280" }} />{option.name}</DropdownMenuCheckboxItem>)}{selectedStatuses.length > 0 && <><DropdownMenuSeparator /><DropdownMenuCheckboxItem checked={false} onSelect={(event) => { event.preventDefault(); setSelectedStatuses([]); updateFilterUrl("status", "") }}>Clear status filters</DropdownMenuCheckboxItem></>}</DropdownMenuContent></DropdownMenu>}
+              <DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" size="sm">Priority{selectedPriorities.length ? ` (${selectedPriorities.length})` : ""}</Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuLabel>Filter priority</DropdownMenuLabel><DropdownMenuSeparator />{["low", "medium", "high", "urgent"].map((priority) => <DropdownMenuCheckboxItem key={priority} checked={selectedPriorities.includes(priority)} onCheckedChange={() => toggleMultiFilter("priority", priority, selectedPriorities, setSelectedPriorities)} className="capitalize">{priority}</DropdownMenuCheckboxItem>)}{selectedPriorities.length > 0 && <><DropdownMenuSeparator /><DropdownMenuCheckboxItem checked={false} onSelect={(event) => { event.preventDefault(); setSelectedPriorities([]); updateFilterUrl("priority", "") }}>Clear priority filters</DropdownMenuCheckboxItem></>}</DropdownMenuContent></DropdownMenu>
               <Dialog>
                 <DialogTrigger asChild><Button variant="outline" size="sm"><History className="h-4 w-4 mr-2" />Activity</Button></DialogTrigger>
                 <DialogContent className="sm:max-w-2xl"><DialogHeader><DialogTitle>Board activity</DialogTitle></DialogHeader><ActivityLog boardId={board.id} /></DialogContent>
