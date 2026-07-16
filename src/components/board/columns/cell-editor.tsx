@@ -42,7 +42,7 @@ export function CellEditor({
   switch (column.type) {
     case "status":
       return (
-        <Select value={value || ""} onValueChange={(v) => onChange(v || null)}>
+        <Select value={value || ""} onValueChange={(v) => onChange(v || "")}>
           <SelectTrigger className="w-36 h-8">
             <SelectValue placeholder="Select" />
           </SelectTrigger>
