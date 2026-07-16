@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useRef } from "react"
+import { useState, useRef } from "react"
 import { useParams } from "next/navigation"
 import { AppShell } from "@/components/app-shell"
 import { ShapeSelector } from "@/components/tools/collage-maker/shape-selector"

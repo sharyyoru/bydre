@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useCallback } from "react"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Upload, X, Image as ImageIcon } from "lucide-react"
@@ -25,21 +26,6 @@ export function ImageLibrary({
 }: ImageLibraryProps) {
   const [uploading, setUploading] = useState(false)
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
-
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || [])
-    await processFiles(files)
-    e.target.value = ''
-  }
-
-  const handleDrop = useCallback(
-    async (e: React.DragEvent) => {
-      e.preventDefault()
-      const files = Array.from(e.dataTransfer.files)
-      await processFiles(files)
-    },
-    []
-  )
 
   const processFiles = async (files: File[]) => {
     const remainingSlots = maxImages - images.length
@@ -81,6 +67,22 @@ export function ImageLibrary({
       setUploading(false)
     }
   }
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    await processFiles(files)
+    e.target.value = ''
+  }
+
+  const handleDrop = useCallback(
+    async (e: React.DragEvent) => {
+      e.preventDefault()
+      const files = Array.from(e.dataTransfer.files)
+      await processFiles(files)
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  )
 
   const handleDragStart = (index: number) => {
     setDraggedIndex(index)
@@ -159,11 +161,12 @@ export function ImageLibrary({
                     draggedIndex === index ? 'border-primary opacity-50' : 'border-border'
                   }`}
                 >
-                  <div className="aspect-square">
-                    <img
+                  <div className="aspect-square relative">
+                    <Image
                       src={image.thumbnail}
                       alt={`Image ${index + 1}`}
-                      className="w-full h-full object-cover"
+                      fill
+                      className="object-cover"
                     />
                   </div>
                   <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">

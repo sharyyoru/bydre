@@ -1,11 +1,10 @@
 "use client"
 
-import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Progress } from "@/components/ui/progress"
 import { getEstimatedFileSize } from "@/lib/collage"
-import { CheckCircle2, Download } from "lucide-react"
+import { CheckCircle2 } from "lucide-react"
 
 interface ExportDialogProps {
   open: boolean

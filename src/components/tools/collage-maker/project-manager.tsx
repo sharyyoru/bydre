@@ -24,6 +24,7 @@ export function ProjectManager({ onLoad, workspaceId }: ProjectManagerProps) {
     if (open) {
       loadProjects()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, workspaceId])
 
   const loadProjects = async () => {
