@@ -1,16 +1,16 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { CollageImage, CollageSettings } from "@/lib/collage"
-import { renderPreview, applyMaskToCanvas, createCanvas } from "@/lib/collage"
+import { CollageImage, CollageSettings, ShapeAnalysis } from "@/lib/collage"
+import { renderPreview, createCanvas } from "@/lib/collage"
 import { getCanvasDimensions } from "@/lib/collage"
-import { createMaskDataUrl } from "@/lib/collage"
 import { Loader2 } from "lucide-react"
 
 interface CollageCanvasProps {
   images: CollageImage[]
   settings: CollageSettings
   shapeSvgPath: string
+  shapeAnalysis?: ShapeAnalysis
   onCanvasReady?: (canvas: HTMLCanvasElement) => void
 }
 
@@ -18,6 +18,7 @@ export function CollageCanvas({
   images,
   settings,
   shapeSvgPath,
+  shapeAnalysis,
   onCanvasReady,
 }: CollageCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -42,14 +43,12 @@ export function CollageCanvas({
           canvasRef.current.height = height
         }
 
-        const maskDataUrl = createMaskDataUrl(shapeSvgPath)
-        applyMaskToCanvas(canvasRef.current, maskDataUrl)
-
         await renderPreview(canvasRef.current, {
           images,
           settings,
           shapeSvgPath,
           dpi: 72,
+          shapeAnalysis,
           onProgress: (p) => setProgress(p * 100),
         })
 
@@ -73,7 +72,7 @@ export function CollageCanvas({
 
     const debounceTimer = setTimeout(renderCanvas, 300)
     return () => clearTimeout(debounceTimer)
-  }, [images, settings, shapeSvgPath, onCanvasReady])
+  }, [images, settings, shapeSvgPath, shapeAnalysis, onCanvasReady])
 
   return (
     <div className="relative w-full h-full flex items-center justify-center bg-muted/30 rounded-lg overflow-hidden">

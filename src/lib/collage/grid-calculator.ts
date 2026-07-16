@@ -1,4 +1,5 @@
-import { CellPosition } from './types';
+import { CellPosition, CellVisibility, ShapeAnalysis } from './types';
+import { isPointInSvgShape } from './svg-processor';
 
 export function calculateOptimalGrid(
   imageCount: number,
@@ -95,4 +96,66 @@ export function getSafeDimensions(
     height: Math.floor(requestedHeight * scale),
     scaled: true,
   };
+}
+
+export function calculateCellVisibility(
+  cells: CellPosition[],
+  shapeSvgPath: string,
+  shapeAnalysis?: ShapeAnalysis,
+  imageCount: number = 100
+): CellVisibility[] {
+  const threshold = calculateVisibilityThreshold(shapeAnalysis, imageCount, cells.length);
+  
+  return cells.map((cell) => {
+    const visibilityPercentage = calculateCellVisibilityPercentage(cell, shapeSvgPath);
+    const shouldRender = visibilityPercentage >= threshold;
+    
+    return {
+      ...cell,
+      visibilityPercentage,
+      shouldRender,
+    };
+  });
+}
+
+function calculateCellVisibilityPercentage(cell: CellPosition, shapeSvgPath: string): number {
+  const samplePoints = 9;
+  const gridSize = 3;
+  let visiblePoints = 0;
+  
+  for (let y = 0; y < gridSize; y++) {
+    for (let x = 0; x < gridSize; x++) {
+      const px = cell.x + (cell.width * (x + 0.5)) / gridSize;
+      const py = cell.y + (cell.height * (y + 0.5)) / gridSize;
+      
+      const normalizedX = px;
+      const normalizedY = py;
+      
+      if (isPointInSvgShape(normalizedX, normalizedY, shapeSvgPath)) {
+        visiblePoints++;
+      }
+    }
+  }
+  
+  return (visiblePoints / samplePoints) * 100;
+}
+
+export function calculateVisibilityThreshold(
+  shapeAnalysis: ShapeAnalysis | undefined,
+  imageCount: number,
+  totalCells: number
+): number {
+  if (!shapeAnalysis || totalCells === 0) {
+    return 50;
+  }
+  
+  const fillRatio = imageCount / totalCells;
+  
+  const baseThreshold = 30;
+  const maxThreshold = 70;
+  const adjustment = (1 - fillRatio) * 40;
+  
+  const threshold = Math.max(baseThreshold, Math.min(maxThreshold, baseThreshold + adjustment));
+  
+  return threshold;
 }

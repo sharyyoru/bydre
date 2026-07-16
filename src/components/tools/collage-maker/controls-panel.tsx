@@ -3,8 +3,8 @@
 import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
 import { Button } from "@/components/ui/button"
-import { CollageSettings } from "@/lib/collage"
-import { Download, Save } from "lucide-react"
+import { CollageSettings, ShapeAnalysis } from "@/lib/collage"
+import { Download, Save, Sparkles } from "lucide-react"
 
 interface ControlsPanelProps {
   settings: CollageSettings
@@ -13,6 +13,7 @@ interface ControlsPanelProps {
   onSave: () => void
   canExport: boolean
   exporting: boolean
+  shapeAnalysis?: ShapeAnalysis
 }
 
 export function ControlsPanel({
@@ -22,11 +23,43 @@ export function ControlsPanel({
   onSave,
   canExport,
   exporting,
+  shapeAnalysis,
 }: ControlsPanelProps) {
+  const handleUseSuggested = () => {
+    if (shapeAnalysis) {
+      onSettingsChange({
+        gridRows: shapeAnalysis.optimalGridRows,
+        gridCols: shapeAnalysis.optimalGridCols,
+      })
+    }
+  }
+
   return (
     <div className="space-y-6 p-4">
       <div>
-        <h3 className="font-semibold mb-4">Layout Settings</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold">Layout Settings</h3>
+          {shapeAnalysis && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleUseSuggested}
+              className="text-xs"
+            >
+              <Sparkles className="h-3 w-3 mr-1" />
+              Use Suggested
+            </Button>
+          )}
+        </div>
+
+        {shapeAnalysis && (
+          <div className="mb-4 p-3 bg-muted/50 rounded-lg text-sm">
+            <p className="font-medium mb-1">Recommended Grid</p>
+            <p className="text-muted-foreground">
+              {shapeAnalysis.optimalGridRows}×{shapeAnalysis.optimalGridCols} (Shape fills ~{Math.round(shapeAnalysis.coverageArea * 100)}% of canvas)
+            </p>
+          </div>
+        )}
 
         <div className="space-y-4">
           <div>

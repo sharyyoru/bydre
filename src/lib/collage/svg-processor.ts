@@ -1,4 +1,4 @@
-import { ShapeTemplate } from './types';
+import { ShapeTemplate, ShapeAnalysis, Point } from './types';
 
 export const SHAPE_TEMPLATES: ShapeTemplate[] = [
   {
@@ -128,4 +128,104 @@ export function validateSvgFile(file: File): Promise<boolean> {
     reader.onerror = () => resolve(false);
     reader.readAsText(file);
   });
+}
+
+const shapeAnalysisCache = new Map<string, ShapeAnalysis>();
+
+export function analyzeShape(svgPath: string, imageCount: number = 100, aspectRatio: number = 1): ShapeAnalysis {
+  const cacheKey = `${svgPath}-${imageCount}-${aspectRatio}`;
+  
+  if (shapeAnalysisCache.has(cacheKey)) {
+    return shapeAnalysisCache.get(cacheKey)!;
+  }
+
+  const shapePoints = sampleShapePoints(svgPath, 1000);
+  const coverageArea = calculateCoverageArea(shapePoints);
+  const { rows, cols } = suggestOptimalGrid(coverageArea, imageCount, aspectRatio);
+
+  const analysis: ShapeAnalysis = {
+    coverageArea,
+    optimalGridRows: rows,
+    optimalGridCols: cols,
+    boundingBox: { x: 0, y: 0, width: 1, height: 1 },
+    shapePoints,
+  };
+
+  shapeAnalysisCache.set(cacheKey, analysis);
+  return analysis;
+}
+
+export function sampleShapePoints(svgPath: string, samples: number): Point[] {
+  const points: Point[] = [];
+  const gridSize = Math.ceil(Math.sqrt(samples));
+  
+  for (let y = 0; y < gridSize; y++) {
+    for (let x = 0; x < gridSize; x++) {
+      const px = x / (gridSize - 1);
+      const py = y / (gridSize - 1);
+      
+      if (isPointInSvgShape(px, py, svgPath)) {
+        points.push({ x: px, y: py });
+      }
+    }
+  }
+  
+  return points;
+}
+
+export function calculateCoverageArea(points: Point[]): number {
+  const totalSamples = 1000;
+  const gridSize = Math.ceil(Math.sqrt(totalSamples));
+  const totalCells = gridSize * gridSize;
+  
+  return points.length / totalCells;
+}
+
+export function suggestOptimalGrid(
+  coverageArea: number,
+  imageCount: number,
+  aspectRatio: number
+): { rows: number; cols: number } {
+  if (imageCount <= 0 || coverageArea <= 0) {
+    return { rows: 10, cols: 10 };
+  }
+
+  const buffer = 1.2;
+  const targetCells = Math.ceil((imageCount / coverageArea) * buffer);
+  
+  const cols = Math.ceil(Math.sqrt(targetCells * aspectRatio));
+  const rows = Math.ceil(targetCells / cols);
+  
+  const clampedRows = Math.max(3, Math.min(50, rows));
+  const clampedCols = Math.max(3, Math.min(50, cols));
+  
+  return { rows: clampedRows, cols: clampedCols };
+}
+
+export function isPointInSvgShape(x: number, y: number, svgPath: string): boolean {
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width = 100;
+    canvas.height = 100;
+    const ctx = canvas.getContext('2d');
+    
+    if (!ctx) return false;
+    
+    const path = new Path2D(scaleSvgPath(svgPath, 100, 100));
+    return ctx.isPointInPath(path, x * 100, y * 100);
+  } catch (error) {
+    console.error('Error testing point in shape:', error);
+    return false;
+  }
+}
+
+function scaleSvgPath(normalizedPath: string, width: number, height: number): string {
+  return normalizedPath.replace(
+    /([ML])\s*(-?\d+\.?\d*)\s*,?\s*(-?\d+\.?\d*)/g,
+    (match, command, x, y) => {
+      const scaledX = parseFloat(x) * width;
+      const scaledY = parseFloat(y) * height;
+      return `${command}${scaledX},${scaledY}`;
+    }
+  );
 }

@@ -1,5 +1,5 @@
 import { RenderOptions, CollageSettings } from './types';
-import { getCellPositions } from './grid-calculator';
+import { getCellPositions, calculateCellVisibility } from './grid-calculator';
 import {
   processImages,
   drawImageCropped,
@@ -7,8 +7,35 @@ import {
   applyGradientOverlay,
 } from './image-processor';
 
+export function applyShapeClip(
+  ctx: CanvasRenderingContext2D,
+  svgPath: string,
+  width: number,
+  height: number
+): void {
+  try {
+    const scaledPath = scaleSvgPathToCanvas(svgPath, width, height);
+    const path = new Path2D(scaledPath);
+    ctx.save();
+    ctx.clip(path);
+  } catch (error) {
+    console.error('Error applying shape clip:', error);
+  }
+}
+
+function scaleSvgPathToCanvas(normalizedPath: string, width: number, height: number): string {
+  return normalizedPath.replace(
+    /([MLHVCSQTAZ])\s*(-?\d+\.?\d*)\s*,?\s*(-?\d+\.?\d*)?/gi,
+    (match, command, x, y) => {
+      const scaledX = parseFloat(x) * width;
+      const scaledY = y ? parseFloat(y) * height : 0;
+      return y ? `${command}${scaledX},${scaledY}` : `${command}${scaledX}`;
+    }
+  );
+}
+
 export async function renderCollage(options: RenderOptions): Promise<void> {
-  const { canvas, images, settings, dpi, onProgress } = options;
+  const { canvas, images, settings, shapeSvgPath, dpi, shapeAnalysis, onProgress } = options;
   const ctx = canvas.getContext('2d');
 
   if (!ctx) {
@@ -20,6 +47,8 @@ export async function renderCollage(options: RenderOptions): Promise<void> {
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+  applyShapeClip(ctx, shapeSvgPath, canvas.width, canvas.height);
+
   const cells = getCellPositions(
     canvas.width,
     canvas.height,
@@ -28,15 +57,24 @@ export async function renderCollage(options: RenderOptions): Promise<void> {
     settings.padding * (dpi / 72)
   );
 
+  const cellsWithVisibility = calculateCellVisibility(
+    cells,
+    shapeSvgPath,
+    shapeAnalysis,
+    images.length
+  );
+
+  const visibleCells = cellsWithVisibility.filter(cell => cell.shouldRender);
+
   onProgress?.(0);
 
   const imageMap = await processImages(images);
 
-  const imagesToRender = images.slice(0, cells.length);
+  const imagesToRender = images.slice(0, visibleCells.length);
 
   for (let i = 0; i < imagesToRender.length; i++) {
     const image = imagesToRender[i];
-    const cell = cells[i];
+    const cell = visibleCells[i];
     const htmlImg = imageMap.get(image.id);
 
     if (!htmlImg) continue;

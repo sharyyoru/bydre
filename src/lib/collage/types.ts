@@ -37,6 +37,24 @@ export interface CellPosition {
   height: number;
 }
 
+export interface CellVisibility extends CellPosition {
+  visibilityPercentage: number;
+  shouldRender: boolean;
+}
+
+export interface Point {
+  x: number;
+  y: number;
+}
+
+export interface ShapeAnalysis {
+  coverageArea: number;
+  optimalGridRows: number;
+  optimalGridCols: number;
+  boundingBox: { x: number; y: number; width: number; height: number };
+  shapePoints: Point[];
+}
+
 export interface ShapeTemplate {
   name: string;
   displayName: string;
@@ -57,5 +75,6 @@ export interface RenderOptions {
   settings: CollageSettings;
   shapeSvgPath: string;
   dpi: number;
+  shapeAnalysis?: ShapeAnalysis;
   onProgress?: (progress: number) => void;
 }

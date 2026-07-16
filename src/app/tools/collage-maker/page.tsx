@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { AppShell } from "@/components/app-shell"
 import { ShapeSelector } from "@/components/tools/collage-maker/shape-selector"
 import { ImageLibrary } from "@/components/tools/collage-maker/image-library"
@@ -8,9 +8,9 @@ import { ControlsPanel } from "@/components/tools/collage-maker/controls-panel"
 import { CollageCanvas } from "@/components/tools/collage-maker/collage-canvas"
 import { ProjectManager, SaveProjectDialog } from "@/components/tools/collage-maker/project-manager"
 import { ExportDialog } from "@/components/tools/collage-maker/export-dialog"
-import { CollageImage, CollageSettings, CollageProject, SHAPE_TEMPLATES } from "@/lib/collage"
-import { createCanvas, renderExport, applyMaskToCanvas } from "@/lib/collage"
-import { getCanvasDimensions, createMaskDataUrl, exportWithProgress } from "@/lib/collage"
+import { CollageImage, CollageSettings, CollageProject, SHAPE_TEMPLATES, ShapeAnalysis } from "@/lib/collage"
+import { createCanvas, renderExport, applyShapeClip } from "@/lib/collage"
+import { getCanvasDimensions, exportWithProgress, analyzeShape, getShapeAspectRatio } from "@/lib/collage"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 
@@ -25,6 +25,7 @@ export default function CollageMakerPage() {
     padding: 5,
     effect: 'color',
   })
+  const [shapeAnalysis, setShapeAnalysis] = useState<ShapeAnalysis | undefined>()
 
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null)
   const [exporting, setExporting] = useState(false)
@@ -34,6 +35,14 @@ export default function CollageMakerPage() {
   const [exportComplete, setExportComplete] = useState(false)
 
   const previewCanvasRef = useRef<HTMLCanvasElement | null>(null)
+
+  useEffect(() => {
+    if (shapeSvgPath) {
+      const aspectRatio = getShapeAspectRatio(selectedShape)
+      const analysis = analyzeShape(shapeSvgPath, images.length || 100, aspectRatio)
+      setShapeAnalysis(analysis)
+    }
+  }, [shapeSvgPath, selectedShape, images.length])
 
   const handleShapeSelect = (shapeName: string, svgPath: string, isCustom: boolean) => {
     setSelectedShape(shapeName)
@@ -122,14 +131,13 @@ export default function CollageMakerPage() {
       const { width, height } = getCanvasDimensions(200, 78.74)
 
       const exportCanvas = createCanvas(width, height)
-      const maskDataUrl = createMaskDataUrl(shapeSvgPath)
-      applyMaskToCanvas(exportCanvas, maskDataUrl)
 
       await renderExport(exportCanvas, {
         images,
         settings,
         shapeSvgPath,
         dpi: 200,
+        shapeAnalysis,
         onProgress: (p) => setExportProgress(p),
       })
 
@@ -179,6 +187,7 @@ export default function CollageMakerPage() {
               images={images}
               settings={settings}
               shapeSvgPath={shapeSvgPath}
+              shapeAnalysis={shapeAnalysis}
               onCanvasReady={(canvas) => {
                 previewCanvasRef.current = canvas
               }}
@@ -204,6 +213,7 @@ export default function CollageMakerPage() {
                   onSave={() => {}}
                   canExport={images.length > 0}
                   exporting={exporting}
+                  shapeAnalysis={shapeAnalysis}
                 />
               </div>
 
