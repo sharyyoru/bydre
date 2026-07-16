@@ -17,6 +17,7 @@ import {
   Users,
   ChevronsLeft,
   ChevronsRight,
+  Wrench,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -140,6 +141,20 @@ export function Sidebar({ mobile, collapsed = false, onToggle }: { mobile?: bool
             >
               <Users className="h-4 w-4" />
               {!collapsed && "Users"}
+            </Button>
+          </Link>
+
+          {!collapsed && <p className="text-xs font-semibold text-white/40 uppercase tracking-wider px-3 mt-6 mb-2">Tools</p>}
+
+          <Link href={`/workspace/${workspaceId || "drehomes"}/tools/collage-maker`}>
+            <Button
+              variant="ghost"
+              className={`w-full justify-start gap-3 text-white/80 hover:bg-white/10 hover:text-white ${
+                pathname.includes("/tools/collage-maker") ? "bg-white/10 text-white" : ""
+              }`}
+            >
+              <Wrench className="h-4 w-4" />
+              {!collapsed && "Collage Maker"}
             </Button>
           </Link>
 
