@@ -251,7 +251,9 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
       .from("item_values")
       .upsert({ item_id: itemId, column_id: columnId, value }, { onConflict: "item_id, column_id" })
     if (error) {
-      toast.error("Failed to update value")
+      const errorMessage = error.message || "Failed to update value"
+      toast.error(errorMessage)
+      console.error("Update value error:", error)
       return
     }
     fetchAll()
