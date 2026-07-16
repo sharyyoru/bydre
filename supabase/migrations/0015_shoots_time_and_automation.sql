@@ -44,7 +44,7 @@ DECLARE
   assignee_record record;
 BEGIN
   -- Check if this is an Approval column on Content Calendar board
-  SELECT c.*, b.id as board_id INTO approval_column, content_board_id
+  SELECT c.* INTO approval_column
   FROM public.columns c
   JOIN public.boards b ON b.id = c.board_id
   WHERE c.id = NEW.column_id 
@@ -55,6 +55,11 @@ BEGIN
   IF approval_column.id IS NULL THEN
     RETURN NEW;
   END IF;
+
+  -- Get the Content Calendar board ID
+  SELECT b.id INTO content_board_id
+  FROM public.boards b
+  WHERE b.name = 'Content Calendar' AND b.archived_at IS NULL;
 
   -- Check if value is "approval-approved"
   IF NEW.value #>> '{}' != 'approval-approved' THEN
