@@ -24,14 +24,29 @@ export function applyShapeClip(
 }
 
 function scaleSvgPathToCanvas(normalizedPath: string, width: number, height: number): string {
-  return normalizedPath.replace(
-    /([MLHVCSQTAZ])\s*(-?\d+\.?\d*)\s*,?\s*(-?\d+\.?\d*)?/gi,
-    (match, command, x, y) => {
-      const scaledX = parseFloat(x) * width;
-      const scaledY = y ? parseFloat(y) * height : 0;
-      return y ? `${command}${scaledX},${scaledY}` : `${command}${scaledX}`;
+  let result = '';
+  const commands = normalizedPath.match(/[MLHVCSQTAZ][^MLHVCSQTAZ]*/gi) || [];
+  
+  for (const cmd of commands) {
+    const command = cmd[0];
+    const coords = cmd.slice(1).trim().split(/[\s,]+/).filter(Boolean).map(Number);
+    
+    result += command;
+    
+    for (let i = 0; i < coords.length; i += 2) {
+      const x = coords[i] * width;
+      const y = coords[i + 1] !== undefined ? coords[i + 1] * height : 0;
+      
+      if (i > 0) result += ' ';
+      if (coords[i + 1] !== undefined) {
+        result += `${x},${y}`;
+      } else {
+        result += `${x}`;
+      }
     }
-  );
+  }
+  
+  return result;
 }
 
 export async function renderCollage(options: RenderOptions): Promise<void> {
@@ -43,11 +58,6 @@ export async function renderCollage(options: RenderOptions): Promise<void> {
   }
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  applyShapeClip(ctx, shapeSvgPath, canvas.width, canvas.height);
 
   const cells = getCellPositions(
     canvas.width,
@@ -61,7 +71,9 @@ export async function renderCollage(options: RenderOptions): Promise<void> {
     cells,
     shapeSvgPath,
     shapeAnalysis,
-    images.length
+    images.length,
+    canvas.width,
+    canvas.height
   );
 
   const visibleCells = cellsWithVisibility.filter(cell => cell.shouldRender);
@@ -71,6 +83,12 @@ export async function renderCollage(options: RenderOptions): Promise<void> {
   const imageMap = await processImages(images);
 
   const imagesToRender = images.slice(0, visibleCells.length);
+
+  ctx.save();
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  applyShapeClip(ctx, shapeSvgPath, canvas.width, canvas.height);
 
   for (let i = 0; i < imagesToRender.length; i++) {
     const image = imagesToRender[i];
@@ -85,6 +103,8 @@ export async function renderCollage(options: RenderOptions): Promise<void> {
 
     onProgress?.((i + 1) / imagesToRender.length);
   }
+
+  ctx.restore();
 }
 
 function applyEffect(

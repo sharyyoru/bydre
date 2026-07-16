@@ -102,12 +102,19 @@ export function calculateCellVisibility(
   cells: CellPosition[],
   shapeSvgPath: string,
   shapeAnalysis?: ShapeAnalysis,
-  imageCount: number = 100
+  imageCount: number = 100,
+  canvasWidth: number = 1,
+  canvasHeight: number = 1
 ): CellVisibility[] {
   const threshold = calculateVisibilityThreshold(shapeAnalysis, imageCount, cells.length);
   
   return cells.map((cell) => {
-    const visibilityPercentage = calculateCellVisibilityPercentage(cell, shapeSvgPath);
+    const visibilityPercentage = calculateCellVisibilityPercentage(
+      cell,
+      shapeSvgPath,
+      canvasWidth,
+      canvasHeight
+    );
     const shouldRender = visibilityPercentage >= threshold;
     
     return {
@@ -118,7 +125,12 @@ export function calculateCellVisibility(
   });
 }
 
-function calculateCellVisibilityPercentage(cell: CellPosition, shapeSvgPath: string): number {
+function calculateCellVisibilityPercentage(
+  cell: CellPosition,
+  shapeSvgPath: string,
+  canvasWidth: number,
+  canvasHeight: number
+): number {
   const samplePoints = 9;
   const gridSize = 3;
   let visiblePoints = 0;
@@ -128,8 +140,8 @@ function calculateCellVisibilityPercentage(cell: CellPosition, shapeSvgPath: str
       const px = cell.x + (cell.width * (x + 0.5)) / gridSize;
       const py = cell.y + (cell.height * (y + 0.5)) / gridSize;
       
-      const normalizedX = px;
-      const normalizedY = py;
+      const normalizedX = px / canvasWidth;
+      const normalizedY = py / canvasHeight;
       
       if (isPointInSvgShape(normalizedX, normalizedY, shapeSvgPath)) {
         visiblePoints++;
