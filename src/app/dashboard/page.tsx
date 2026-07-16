@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ProductivityReport } from "@/components/dashboard/productivity-report"
+import { TodaysShootsReport } from "@/components/dashboard/todays-shoots"
 import {
   Camera,
   FileText,
@@ -152,7 +153,10 @@ export default function DashboardPage() {
           )}
         </div>
 
-        <ProductivityReport />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <ProductivityReport />
+          <TodaysShootsReport workspaceSlug={workspaceSlug} />
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card className="rounded-2xl border-border/60">

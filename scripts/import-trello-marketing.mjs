@@ -24,7 +24,11 @@ const cards = source.cards || []
 const lists = (source.lists || []).filter((list) => !list.closed)
 const summary = { board: source.name, cards: cards.length, openCards: cards.filter((card) => !card.closed).length, closedCards: cards.filter((card) => card.closed).length, lists: lists.length, labels: (source.labels || []).length, descriptions: cards.filter((card) => card.desc).length, datedCards: cards.filter((card) => card.due).length }
 
-const { data: workspace, error: workspaceError } = await supabase.from("workspaces").select("id,name").or(`id.eq.${workspaceArg},slug.eq.${workspaceArg}`).maybeSingle()
+const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(workspaceArg)
+const workspaceQuery = supabase.from("workspaces").select("id,name,slug")
+const { data: workspace, error: workspaceError } = isUuid
+  ? await workspaceQuery.eq("id", workspaceArg).maybeSingle()
+  : await workspaceQuery.eq("slug", workspaceArg).maybeSingle()
 if (workspaceError || !workspace) throw new Error(`Workspace not found: ${workspaceArg}`)
 const { data: profiles } = await supabase.from("workspace_members").select("user_id, profiles(id,email,full_name)").eq("workspace_id", workspace.id)
 const memberByAlias = new Map()

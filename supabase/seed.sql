@@ -90,12 +90,13 @@ BEGIN
   PERFORM public.create_default_columns(board_tasks);
 
   -- Board-specific extra columns
-  -- Shoots: Location, Crew, Equipment, Budget
+  -- Shoots: Location, Crew, Equipment, Budget, Shoot Time
   INSERT INTO public.columns (board_id, name, type, position, settings) VALUES
     (board_shoots, 'Location', 'text', 7, '{}'),
     (board_shoots, 'Crew', 'dropdown', 8, '{"options": [{"id":"crew-small","name":"Small","color":"#6B7280"},{"id":"crew-medium","name":"Medium","color":"#3B82F6"},{"id":"crew-large","name":"Large","color":"#D4AF37"}]}'),
     (board_shoots, 'Equipment', 'text', 9, '{}'),
-    (board_shoots, 'Budget', 'currency', 10, '{"currency":"USD","precision":2}')
+    (board_shoots, 'Budget', 'currency', 10, '{"currency":"USD","precision":2}'),
+    (board_shoots, 'Shoot Time', 'date', 11, '{"include_time": true}')
   ON CONFLICT (board_id, name) DO UPDATE SET
     type = EXCLUDED.type,
     position = EXCLUDED.position,

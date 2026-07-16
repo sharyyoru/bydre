@@ -60,6 +60,7 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>(() => searchParams.get("status")?.split(",").filter(Boolean) || [])
   const [selectedPriorities, setSelectedPriorities] = useState<string[]>(() => searchParams.get("priority")?.split(",").filter(Boolean) || [])
   const [selectedOwners, setSelectedOwners] = useState<string[]>(() => searchParams.get("owner")?.split(",").filter(Boolean) || [])
+  const [selectedApprovals, setSelectedApprovals] = useState<string[]>(() => searchParams.get("approval")?.split(",").filter(Boolean) || [])
   const [groupDialogOpen, setGroupDialogOpen] = useState(false)
   const [groupsPage, setGroupsPage] = useState(() => Math.max(1, Number(searchParams.get("groupsPage")) || 1))
   const GROUPS_PER_PAGE = 5
@@ -302,7 +303,7 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
     if (!value || value === "all" || value === "any") next.delete(key); else next.set(key, value)
     router.replace(`${pathname}${next.size ? `?${next}` : ""}`)
   }
-  const toggleMultiFilter = (key: "status" | "priority" | "owner", value: string, selected: string[], setSelected: (next: string[]) => void) => {
+  const toggleMultiFilter = (key: "status" | "priority" | "owner" | "approval", value: string, selected: string[], setSelected: (next: string[]) => void) => {
     const next = selected.includes(value) ? selected.filter((entry) => entry !== value) : [...selected, value]
     setSelected(next)
     updateFilterUrl(key, next.join(","))
@@ -310,6 +311,8 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
   const visibleColumns = columns.filter((c) => c.archived_at === null)
   const statusColumn = visibleColumns.find((column) => column.type === "status")
   const statusOptions = ((statusColumn?.settings as { options?: { id: string; name: string; color?: string }[] } | null)?.options || [])
+  const approvalColumn = visibleColumns.find((column) => column.name === "Approval")
+  const approvalOptions = ((approvalColumn?.settings as { options?: { id: string; name: string; color?: string }[] } | null)?.options || [])
   const displayedGroups = visibleGroupIds.length ? groups.filter((group) => visibleGroupIds.includes(group.id)) : groups
   const totalGroupPages = Math.max(1, Math.ceil(displayedGroups.length / GROUPS_PER_PAGE))
   const currentGroupPage = Math.min(groupsPage, totalGroupPages)
@@ -334,13 +337,17 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
         const matchesOwner = selectedOwners.some((owner) => owner === "unassigned" ? ownerIds.length === 0 : ownerIds.includes(owner))
         if (!matchesOwner) return false
       }
+      if (selectedApprovals.length && approvalColumn) {
+        const itemApproval = String(item.values?.[approvalColumn.id] || "")
+        if (!selectedApprovals.includes(itemApproval)) return false
+      }
       const dates = [item.due_date, ...dateColumns.map((column) => item.values?.[column.id])].filter(Boolean).map((value) => new Date(`${value}T00:00:00`))
       if (dateRange === "no-date") return dates.length === 0
       if (dateRange === "any") return true
       return dates.some((date) => dateRange === "overdue" ? date < today : dateRange === "today" ? date.getTime() === today.getTime() : dateRange === "tomorrow" ? date.getTime() === tomorrow.getTime() : date >= today && date <= weekEnd)
     }
     return Object.fromEntries(Object.entries(items).map(([groupId, groupItems]) => [groupId, groupItems.filter(matches).map((item) => ({ ...item, sub_items: item.sub_items.filter(matches) }))])) as Record<string, BoardItem[]>
-  }, [items, searchQuery, dateRange, selectedStatuses, selectedPriorities, selectedOwners, statusColumn, visibleColumns])
+  }, [items, searchQuery, dateRange, selectedStatuses, selectedPriorities, selectedOwners, selectedApprovals, statusColumn, approvalColumn, visibleColumns])
   const toggleGroup = (groupId: string) => setCollapsedGroups((current) => current.includes(groupId) ? current.filter((id) => id !== groupId) : [...current, groupId])
 
   return (
@@ -383,6 +390,7 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
               {statusColumn && <DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" size="sm">Status{selectedStatuses.length ? ` (${selectedStatuses.length})` : ""}</Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuLabel>Filter status</DropdownMenuLabel><DropdownMenuSeparator />{statusOptions.map((option) => <DropdownMenuCheckboxItem key={option.id} checked={selectedStatuses.includes(option.id)} onCheckedChange={() => toggleMultiFilter("status", option.id, selectedStatuses, setSelectedStatuses)}><span className="mr-2 h-2 w-2 rounded-full" style={{ backgroundColor: option.color || "#6B7280" }} />{option.name}</DropdownMenuCheckboxItem>)}{selectedStatuses.length > 0 && <><DropdownMenuSeparator /><DropdownMenuCheckboxItem checked={false} onSelect={(event) => { event.preventDefault(); setSelectedStatuses([]); updateFilterUrl("status", "") }}>Clear status filters</DropdownMenuCheckboxItem></>}</DropdownMenuContent></DropdownMenu>}
               <DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" size="sm">Priority{selectedPriorities.length ? ` (${selectedPriorities.length})` : ""}</Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuLabel>Filter priority</DropdownMenuLabel><DropdownMenuSeparator />{["low", "medium", "high", "urgent"].map((priority) => <DropdownMenuCheckboxItem key={priority} checked={selectedPriorities.includes(priority)} onCheckedChange={() => toggleMultiFilter("priority", priority, selectedPriorities, setSelectedPriorities)} className="capitalize">{priority}</DropdownMenuCheckboxItem>)}{selectedPriorities.length > 0 && <><DropdownMenuSeparator /><DropdownMenuCheckboxItem checked={false} onSelect={(event) => { event.preventDefault(); setSelectedPriorities([]); updateFilterUrl("priority", "") }}>Clear priority filters</DropdownMenuCheckboxItem></>}</DropdownMenuContent></DropdownMenu>
               <DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" size="sm">Owner{selectedOwners.length ? ` (${selectedOwners.length})` : ""}</Button></DropdownMenuTrigger><DropdownMenuContent align="end" className="max-h-80 overflow-y-auto"><DropdownMenuLabel>Filter owner</DropdownMenuLabel><DropdownMenuSeparator /><DropdownMenuCheckboxItem checked={selectedOwners.includes("unassigned")} onCheckedChange={() => toggleMultiFilter("owner", "unassigned", selectedOwners, setSelectedOwners)}>Unassigned</DropdownMenuCheckboxItem>{members.map((member) => <DropdownMenuCheckboxItem key={member.id} checked={selectedOwners.includes(member.id)} onCheckedChange={() => toggleMultiFilter("owner", member.id, selectedOwners, setSelectedOwners)}>{member.full_name || member.email}</DropdownMenuCheckboxItem>)}{selectedOwners.length > 0 && <><DropdownMenuSeparator /><DropdownMenuCheckboxItem checked={false} onSelect={(event) => { event.preventDefault(); setSelectedOwners([]); updateFilterUrl("owner", "") }}>Clear owner filters</DropdownMenuCheckboxItem></>}</DropdownMenuContent></DropdownMenu>
+              {approvalColumn && <DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" size="sm">Approval{selectedApprovals.length ? ` (${selectedApprovals.length})` : ""}</Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuLabel>Filter approval</DropdownMenuLabel><DropdownMenuSeparator />{approvalOptions.map((option) => <DropdownMenuCheckboxItem key={option.id} checked={selectedApprovals.includes(option.id)} onCheckedChange={() => toggleMultiFilter("approval", option.id, selectedApprovals, setSelectedApprovals)}><span className="mr-2 h-2 w-2 rounded-full" style={{ backgroundColor: option.color || "#6B7280" }} />{option.name}</DropdownMenuCheckboxItem>)}{selectedApprovals.length > 0 && <><DropdownMenuSeparator /><DropdownMenuCheckboxItem checked={false} onSelect={(event) => { event.preventDefault(); setSelectedApprovals([]); updateFilterUrl("approval", "") }}>Clear approval filters</DropdownMenuCheckboxItem></>}</DropdownMenuContent></DropdownMenu>}
               <Dialog>
                 <DialogTrigger asChild><Button variant="outline" size="sm"><History className="h-4 w-4 mr-2" />Activity</Button></DialogTrigger>
                 <DialogContent className="sm:max-w-2xl"><DialogHeader><DialogTitle>Board activity</DialogTitle></DialogHeader><ActivityLog boardId={board.id} /></DialogContent>

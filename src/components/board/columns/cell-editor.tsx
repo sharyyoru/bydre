@@ -102,7 +102,27 @@ export function CellEditor({
       )
     }
 
-    case "date":
+    case "date": {
+      const includeTime = column.settings?.include_time === true
+      
+      if (includeTime) {
+        return (
+          <div className="flex items-center gap-2">
+            <Input
+              type="datetime-local"
+              value={value ? value.slice(0, 16) : ""}
+              onChange={(e) => onChange(e.target.value ? e.target.value + ":00" : null)}
+              className="h-8 w-52 text-sm"
+            />
+            {value && (
+              <span className="text-xs text-muted-foreground">
+                {format(new Date(value), "MMM d, h:mm a")}
+              </span>
+            )}
+          </div>
+        )
+      }
+      
       return (
         <Popover>
           <PopoverTrigger asChild>
@@ -121,6 +141,7 @@ export function CellEditor({
           </PopoverContent>
         </Popover>
       )
+    }
 
     case "text":
     case "email":
