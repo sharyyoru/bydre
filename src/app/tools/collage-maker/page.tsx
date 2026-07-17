@@ -136,6 +136,7 @@ export default function CollageMakerPage() {
         images,
         settings,
         shapeSvgPath,
+        shapeName: isCustomShape ? undefined : selectedShape,
         dpi: 200,
         shapeAnalysis,
         onProgress: (p) => setExportProgress(p),
@@ -187,6 +188,7 @@ export default function CollageMakerPage() {
               images={images}
               settings={settings}
               shapeSvgPath={shapeSvgPath}
+              shapeName={isCustomShape ? undefined : selectedShape}
               shapeAnalysis={shapeAnalysis}
               onCanvasReady={(canvas) => {
                 previewCanvasRef.current = canvas

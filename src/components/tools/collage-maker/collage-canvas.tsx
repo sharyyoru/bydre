@@ -10,6 +10,7 @@ interface CollageCanvasProps {
   images: CollageImage[]
   settings: CollageSettings
   shapeSvgPath: string
+  shapeName?: string
   shapeAnalysis?: ShapeAnalysis
   onCanvasReady?: (canvas: HTMLCanvasElement) => void
 }
@@ -18,6 +19,7 @@ export function CollageCanvas({
   images,
   settings,
   shapeSvgPath,
+  shapeName,
   shapeAnalysis,
   onCanvasReady,
 }: CollageCanvasProps) {
@@ -47,6 +49,7 @@ export function CollageCanvas({
           images,
           settings,
           shapeSvgPath,
+          shapeName,
           dpi: 72,
           shapeAnalysis,
           onProgress: (p) => setProgress(p * 100),
@@ -72,7 +75,7 @@ export function CollageCanvas({
 
     const debounceTimer = setTimeout(renderCanvas, 300)
     return () => clearTimeout(debounceTimer)
-  }, [images, settings, shapeSvgPath, shapeAnalysis, onCanvasReady])
+  }, [images, settings, shapeSvgPath, shapeName, shapeAnalysis, onCanvasReady])
 
   return (
     <div className="relative w-full h-full flex items-center justify-center bg-muted/30 rounded-lg overflow-hidden">

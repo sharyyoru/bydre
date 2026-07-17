@@ -1,5 +1,6 @@
 import { CellPosition, CellVisibility, ShapeAnalysis } from './types';
 import { isPointInSvgShape } from './svg-processor';
+import { GridPattern } from './shape-patterns';
 
 export function calculateOptimalGrid(
   imageCount: number,
@@ -170,4 +171,27 @@ export function calculateVisibilityThreshold(
   const threshold = Math.max(baseThreshold, Math.min(maxThreshold, baseThreshold + adjustment));
   
   return threshold;
+}
+
+export function calculateOptimalGridForPattern(
+  pattern: GridPattern,
+  imageCount: number
+): { rows: number; cols: number } {
+  let { rows, cols } = pattern.optimalGridSize;
+
+  const patternCells = pattern.getCells(rows, cols).length;
+
+  if (imageCount > patternCells) {
+    const scaleFactor = Math.sqrt(imageCount / patternCells);
+    rows = Math.ceil(rows * scaleFactor);
+    cols = Math.ceil(cols * scaleFactor);
+  }
+
+  rows = Math.max(rows, pattern.minGridSize.rows);
+  cols = Math.max(cols, pattern.minGridSize.cols);
+
+  rows = Math.min(rows, 50);
+  cols = Math.min(cols, 50);
+
+  return { rows, cols };
 }

@@ -1,27 +1,13 @@
 import { RenderOptions, CollageSettings } from './types';
-import { getCellPositions, calculateCellVisibility } from './grid-calculator';
+import { getCellPositions } from './grid-calculator';
 import {
   processImages,
   drawImageCropped,
   applyGrayscale,
   applyGradientOverlay,
 } from './image-processor';
-
-export function applyShapeClip(
-  ctx: CanvasRenderingContext2D,
-  svgPath: string,
-  width: number,
-  height: number
-): void {
-  try {
-    const scaledPath = scaleSvgPathToCanvas(svgPath, width, height);
-    const path = new Path2D(scaledPath);
-    ctx.save();
-    ctx.clip(path);
-  } catch (error) {
-    console.error('Error applying shape clip:', error);
-  }
-}
+import { getShapePattern } from './shape-patterns';
+import { generatePatternFromSVG } from './svg-processor';
 
 function scaleSvgPathToCanvas(normalizedPath: string, width: number, height: number): string {
   let result = '';
@@ -49,8 +35,54 @@ function scaleSvgPathToCanvas(normalizedPath: string, width: number, height: num
   return result;
 }
 
+function createEdgeClipPath(
+  svgPath: string,
+  cellX: number,
+  cellY: number,
+  cellWidth: number,
+  cellHeight: number,
+  canvasWidth: number,
+  canvasHeight: number
+): string | undefined {
+  try {
+    const normalizedCellX = cellX / canvasWidth;
+    const normalizedCellY = cellY / canvasHeight;
+    const normalizedCellWidth = cellWidth / canvasWidth;
+    const normalizedCellHeight = cellHeight / canvasHeight;
+
+    const commands = svgPath.match(/[MLHVCSQTAZ][^MLHVCSQTAZ]*/gi) || [];
+    let result = '';
+
+    for (const cmd of commands) {
+      const command = cmd[0];
+      const coords = cmd.slice(1).trim().split(/[\s,]+/).filter(Boolean).map(Number);
+      
+      result += command;
+      
+      for (let i = 0; i < coords.length; i += 2) {
+        const x = (coords[i] - normalizedCellX) / normalizedCellWidth * cellWidth;
+        const y = coords[i + 1] !== undefined 
+          ? (coords[i + 1] - normalizedCellY) / normalizedCellHeight * cellHeight 
+          : 0;
+        
+        if (i > 0) result += ' ';
+        if (coords[i + 1] !== undefined) {
+          result += `${x},${y}`;
+        } else {
+          result += `${x}`;
+        }
+      }
+    }
+
+    return result;
+  } catch (error) {
+    console.error('Error creating edge clip path:', error);
+    return undefined;
+  }
+}
+
 export async function renderCollage(options: RenderOptions): Promise<void> {
-  const { canvas, images, settings, shapeSvgPath, dpi, shapeAnalysis, onProgress } = options;
+  const { canvas, images, settings, shapeSvgPath, shapeName, dpi, onProgress } = options;
   const ctx = canvas.getContext('2d');
 
   if (!ctx) {
@@ -58,8 +90,10 @@ export async function renderCollage(options: RenderOptions): Promise<void> {
   }
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  const cells = getCellPositions(
+  const allCells = getCellPositions(
     canvas.width,
     canvas.height,
     settings.gridRows,
@@ -67,44 +101,73 @@ export async function renderCollage(options: RenderOptions): Promise<void> {
     settings.padding * (dpi / 72)
   );
 
-  const cellsWithVisibility = calculateCellVisibility(
-    cells,
-    shapeSvgPath,
-    shapeAnalysis,
-    images.length,
-    canvas.width,
-    canvas.height
-  );
+  let selectedCells: Array<{ row: number; col: number; isEdge: boolean }> = [];
 
-  const visibleCells = cellsWithVisibility.filter(cell => cell.shouldRender);
+  if (shapeName) {
+    const pattern = getShapePattern(shapeName);
+    if (pattern) {
+      selectedCells = pattern.getCells(settings.gridRows, settings.gridCols);
+    }
+  }
+
+  if (selectedCells.length === 0) {
+    selectedCells = generatePatternFromSVG(shapeSvgPath, settings.gridRows, settings.gridCols);
+  }
+
+  const cellsToRender = selectedCells.map((sel) => {
+    const cellIndex = sel.row * settings.gridCols + sel.col;
+    const cell = allCells[cellIndex];
+    return {
+      ...cell,
+      isEdge: sel.isEdge,
+    };
+  });
 
   onProgress?.(0);
 
   const imageMap = await processImages(images);
-
-  const imagesToRender = images.slice(0, visibleCells.length);
-
-  ctx.save();
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  applyShapeClip(ctx, shapeSvgPath, canvas.width, canvas.height);
+  const imagesToRender = images.slice(0, cellsToRender.length);
 
   for (let i = 0; i < imagesToRender.length; i++) {
     const image = imagesToRender[i];
-    const cell = visibleCells[i];
+    const cell = cellsToRender[i];
     const htmlImg = imageMap.get(image.id);
 
     if (!htmlImg) continue;
 
-    drawImageCropped(ctx, htmlImg, cell.x, cell.y, cell.width, cell.height);
+    if (cell.isEdge) {
+      ctx.save();
+      const clipPath = createEdgeClipPath(
+        shapeSvgPath,
+        cell.x,
+        cell.y,
+        cell.width,
+        cell.height,
+        canvas.width,
+        canvas.height
+      );
+      
+      if (clipPath) {
+        try {
+          const path = new Path2D(clipPath);
+          ctx.translate(cell.x, cell.y);
+          ctx.clip(path);
+          ctx.translate(-cell.x, -cell.y);
+        } catch (error) {
+          console.error('Error applying edge clip:', error);
+        }
+      }
+    }
 
+    drawImageCropped(ctx, htmlImg, cell.x, cell.y, cell.width, cell.height);
     applyEffect(ctx, cell, settings);
+
+    if (cell.isEdge) {
+      ctx.restore();
+    }
 
     onProgress?.((i + 1) / imagesToRender.length);
   }
-
-  ctx.restore();
 }
 
 function applyEffect(

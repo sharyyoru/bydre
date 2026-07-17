@@ -229,3 +229,93 @@ function scaleSvgPath(normalizedPath: string, width: number, height: number): st
     }
   );
 }
+
+export interface CustomCellSelection {
+  row: number;
+  col: number;
+  isEdge: boolean;
+}
+
+const customPatternCache = new Map<string, CustomCellSelection[]>();
+
+export function generatePatternFromSVG(
+  svgPath: string,
+  rows: number,
+  cols: number
+): CustomCellSelection[] {
+  const cacheKey = `${svgPath}-${rows}-${cols}`;
+  
+  if (customPatternCache.has(cacheKey)) {
+    return customPatternCache.get(cacheKey)!;
+  }
+
+  const cells: CustomCellSelection[] = [];
+  const cellSet = new Set<string>();
+
+  const canvasSize = 1000;
+  const canvas = document.createElement('canvas');
+  canvas.width = canvasSize;
+  canvas.height = canvasSize;
+  const ctx = canvas.getContext('2d');
+
+  if (!ctx) return cells;
+
+  try {
+    const scaledPath = scaleSvgPath(svgPath, canvasSize, canvasSize);
+    const path = new Path2D(scaledPath);
+
+    const cellWidth = canvasSize / cols;
+    const cellHeight = canvasSize / rows;
+
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        let pointsInside = 0;
+        const sampleSize = 5;
+        const totalPoints = sampleSize * sampleSize;
+
+        for (let sy = 0; sy < sampleSize; sy++) {
+          for (let sx = 0; sx < sampleSize; sx++) {
+            const x = c * cellWidth + (sx + 0.5) * (cellWidth / sampleSize);
+            const y = r * cellHeight + (sy + 0.5) * (cellHeight / sampleSize);
+
+            if (ctx.isPointInPath(path, x, y)) {
+              pointsInside++;
+            }
+          }
+        }
+
+        const coverage = pointsInside / totalPoints;
+        if (coverage > 0.6) {
+          cellSet.add(`${r},${c}`);
+        }
+      }
+    }
+
+    cellSet.forEach((key) => {
+      const [row, col] = key.split(',').map(Number);
+      
+      const neighbors = [
+        [row - 1, col],
+        [row + 1, col],
+        [row, col - 1],
+        [row, col + 1],
+      ];
+
+      let isEdge = false;
+      for (const [r, c] of neighbors) {
+        if (r < 0 || r >= rows || c < 0 || c >= cols || !cellSet.has(`${r},${c}`)) {
+          isEdge = true;
+          break;
+        }
+      }
+
+      cells.push({ row, col, isEdge });
+    });
+
+    customPatternCache.set(cacheKey, cells);
+    return cells;
+  } catch (error) {
+    console.error('Error generating pattern from SVG:', error);
+    return cells;
+  }
+}

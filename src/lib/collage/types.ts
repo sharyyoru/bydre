@@ -74,6 +74,7 @@ export interface RenderOptions {
   images: CollageImage[];
   settings: CollageSettings;
   shapeSvgPath: string;
+  shapeName?: string;
   dpi: number;
   shapeAnalysis?: ShapeAnalysis;
   onProgress?: (progress: number) => void;
