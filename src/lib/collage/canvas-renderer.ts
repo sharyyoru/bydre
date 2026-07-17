@@ -9,32 +9,6 @@ import {
 import { getShapePattern } from './shape-patterns';
 import { generatePatternFromSVG } from './svg-processor';
 
-function scaleSvgPathToCanvas(normalizedPath: string, width: number, height: number): string {
-  let result = '';
-  const commands = normalizedPath.match(/[MLHVCSQTAZ][^MLHVCSQTAZ]*/gi) || [];
-  
-  for (const cmd of commands) {
-    const command = cmd[0];
-    const coords = cmd.slice(1).trim().split(/[\s,]+/).filter(Boolean).map(Number);
-    
-    result += command;
-    
-    for (let i = 0; i < coords.length; i += 2) {
-      const x = coords[i] * width;
-      const y = coords[i + 1] !== undefined ? coords[i + 1] * height : 0;
-      
-      if (i > 0) result += ' ';
-      if (coords[i + 1] !== undefined) {
-        result += `${x},${y}`;
-      } else {
-        result += `${x}`;
-      }
-    }
-  }
-  
-  return result;
-}
-
 function createEdgeClipPath(
   svgPath: string,
   cellX: number,

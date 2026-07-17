@@ -1,4 +1,3 @@
-import { Point } from './types';
 
 export interface CellSelection {
   row: number;
