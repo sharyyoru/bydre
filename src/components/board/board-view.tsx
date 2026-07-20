@@ -526,7 +526,7 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
         {activeView === "kanban" && (
           <KanbanView
             columns={columns}
-            items={filteredItems}
+            items={visibleGroupIds.length ? Object.fromEntries(Object.entries(filteredItems).filter(([groupId]) => visibleGroupIds.includes(groupId))) : filteredItems}
             members={members}
             onItemClick={setSelectedItem}
             onStatusChange={(itemId: string, columnId: string, value: string) => updateItemValue(itemId, columnId, value)}

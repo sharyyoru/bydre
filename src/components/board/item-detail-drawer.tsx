@@ -15,7 +15,14 @@ import { RichTextEditor } from "@/components/ui/rich-text-editor"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { toast } from "sonner"
-import { Maximize2, Minimize2, Plus, Trash2 } from "lucide-react"
+import { Maximize2, Minimize2, Plus, Trash2, FolderInput } from "lucide-react"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Mention, MentionsInput } from "react-mentions"
 import {
   ColumnDefinition,
@@ -55,6 +62,8 @@ export function ItemDetailDrawer({
   const [savingDetails, setSavingDetails] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
   const [expanded, setExpanded] = useState(false)
+  const [boards, setBoards] = useState<{ id: string; name: string; type: string }[]>([])
+  const [movingBoard, setMovingBoard] = useState(false)
 
   useEffect(() => {
     setLocalItem(item)
@@ -102,6 +111,85 @@ export function ItemDetailDrawer({
       supabase.removeChannel(channel)
     }
   }, [item.id])
+
+  useEffect(() => {
+    const fetchBoards = async () => {
+      const supabase = createClient()
+      const { data: current } = await supabase
+        .from("boards")
+        .select("workspace_id")
+        .eq("id", item.board_id)
+        .maybeSingle()
+      if (!current) return
+      const { data } = await supabase
+        .from("boards")
+        .select("id, name, type")
+        .eq("workspace_id", (current as { workspace_id: string }).workspace_id)
+        .is("archived_at", null)
+        .neq("id", item.board_id)
+        .order("name", { ascending: true })
+      setBoards((data || []) as { id: string; name: string; type: string }[])
+    }
+    fetchBoards()
+  }, [item.board_id])
+
+  const moveToBoard = async (targetBoardId: string) => {
+    if (!targetBoardId) return
+    const target = boards.find((b) => b.id === targetBoardId)
+    if (!target) return
+    if (!window.confirm(`Move "${localItem.title}" to "${target.name}"? Field values specific to this board may not carry over.`)) return
+    setMovingBoard(true)
+    const supabase = createClient()
+
+    // Find a destination group in the target board (create one if none exist)
+    let { data: group } = await supabase
+      .from("groups")
+      .select("id")
+      .eq("board_id", targetBoardId)
+      .is("archived_at", null)
+      .order("position", { ascending: true })
+      .limit(1)
+      .maybeSingle()
+
+    if (!group) {
+      const { data: newGroup, error: groupError } = await supabase
+        .from("groups")
+        .insert({ board_id: targetBoardId, name: "Imported", color: "#3B82F6", position: 0 })
+        .select("id")
+        .single()
+      if (groupError || !newGroup) {
+        setMovingBoard(false)
+        toast.error("Failed to prepare destination group")
+        return
+      }
+      group = newGroup
+    }
+
+    const newType = target.type.replace(/s$/, "")
+    const groupId = (group as { id: string }).id
+
+    // Move the item and any sub-items to the target board/group
+    const { error } = await supabase
+      .from("items")
+      .update({ board_id: targetBoardId, group_id: groupId, type: newType })
+      .eq("id", item.id)
+
+    if (!error) {
+      await supabase
+        .from("items")
+        .update({ board_id: targetBoardId, group_id: groupId, type: newType })
+        .eq("parent_id", item.id)
+    }
+
+    setMovingBoard(false)
+    if (error) {
+      toast.error(`Failed to move item: ${error.message}`)
+      return
+    }
+    toast.success(`Moved to ${target.name}`)
+    onItemChanged?.()
+    onOpenChange(false)
+  }
 
   const saveDetails = async () => {
     setSavingDetails(true)
@@ -227,7 +315,22 @@ export function ItemDetailDrawer({
         </SheetHeader>
 
         <div className={`space-y-6 py-6 ${expanded ? "mx-auto w-full max-w-3xl" : ""}`}>
-          <div className="flex justify-end">
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {boards.length > 0 && (
+              <div className="flex items-center gap-2">
+                <FolderInput className="h-4 w-4 text-muted-foreground" />
+                <Select onValueChange={moveToBoard} disabled={movingBoard}>
+                  <SelectTrigger className="h-9 w-48">
+                    <SelectValue placeholder={movingBoard ? "Moving..." : "Move to board"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {boards.map((b) => (
+                      <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <Button variant="outline" size="sm" onClick={deleteItem} className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4 mr-2" />Delete item</Button>
           </div>
 
