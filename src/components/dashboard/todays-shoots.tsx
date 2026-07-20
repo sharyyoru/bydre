@@ -33,9 +33,6 @@ export function TodaysShootsReport({ workspaceSlug }: { workspaceSlug: string })
       today.setHours(0, 0, 0, 0)
       const tomorrow = new Date(today)
       tomorrow.setDate(tomorrow.getDate() + 1)
-      
-      const todayStr = today.toISOString().split('T')[0]
-      const tomorrowStr = tomorrow.toISOString().split('T')[0]
 
       // Get Shoots board
       const { data: board } = await supabase
