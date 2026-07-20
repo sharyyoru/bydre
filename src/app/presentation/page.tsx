@@ -6,7 +6,8 @@ import { cookieName, hasPresentationAccess } from "@/lib/presentation-access"
 
 export const metadata: Metadata = { title: "DreHomes Marketing Team Playbook", robots: { index: false, follow: false } }
 
-export default function PresentationPage() {
-  const allowed = hasPresentationAccess(cookies().get(cookieName)?.value)
+export default async function PresentationPage() {
+  const cookieStore = await cookies()
+  const allowed = hasPresentationAccess(cookieStore.get(cookieName)?.value)
   return allowed ? <PresentationDeck /> : <PresentationGate />
 }
