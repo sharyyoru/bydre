@@ -1,14 +1,15 @@
 import { BoardRouteClient } from "@/components/board/board-route-client"
 
-export default function BoardPage({
+export default async function BoardPage({
   params,
 }: {
-  params: { id: string; boardId: string }
+  params: Promise<{ id: string; boardId: string }>
 }) {
+  const { id, boardId } = await params
   return (
     <BoardRouteClient
-      workspaceIdentifier={params.id}
-      boardId={params.boardId}
+      workspaceIdentifier={id}
+      boardId={boardId}
     />
   )
 }
