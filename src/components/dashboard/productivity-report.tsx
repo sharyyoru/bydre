@@ -84,9 +84,14 @@ export function ProductivityReport() {
   }, [])
 
   const scoped = useMemo(() => tasks.filter((task) => {
-    if (!task.due_date) return false
-    const date = new Date(`${task.due_date}T00:00:00`)
-    return (!customStart || date >= new Date(`${customStart}T00:00:00`)) && (!customEnd || date <= new Date(`${customEnd}T00:00:00`))
+    // If date range is specified, only filter by due_date
+    if (customStart || customEnd) {
+      if (!task.due_date) return false
+      const date = new Date(`${task.due_date}T00:00:00`)
+      return (!customStart || date >= new Date(`${customStart}T00:00:00`)) && (!customEnd || date <= new Date(`${customEnd}T00:00:00`))
+    }
+    // If no date range, include all tasks (with or without due dates)
+    return true
   }), [tasks, customStart, customEnd])
 
   const overdue = useMemo(() => scoped.filter((task) => task.due_date && new Date(`${task.due_date}T00:00:00`) < new Date(new Date().setHours(0, 0, 0, 0))).length, [scoped])
@@ -100,12 +105,14 @@ export function ProductivityReport() {
       counts.set(displayName, 0)
     })
 
-    // Count tasks per assignee
+    // Count all tasks per assignee (including in-progress tasks without due dates)
     scoped.forEach((task) => {
-      task.item_assignees?.forEach((assignee) => {
-        const displayName = assignee.profiles?.full_name || assignee.profiles?.email || assignee.user_id
-        counts.set(displayName, (counts.get(displayName) || 0) + 1)
-      })
+      if (task.item_assignees && task.item_assignees.length > 0) {
+        task.item_assignees.forEach((assignee) => {
+          const displayName = assignee.profiles?.full_name || assignee.profiles?.email || assignee.user_id
+          counts.set(displayName, (counts.get(displayName) || 0) + 1)
+        })
+      }
     })
 
     return Array.from(counts.entries()).sort((a, b) => b[1] - a[1])
