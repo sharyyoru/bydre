@@ -8,14 +8,13 @@ import { AppShell } from "@/components/app-shell"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
-import { Plus, Calendar as CalendarIcon, ChevronDown, ChevronRight, Eye, LayoutGrid, Table as TableIcon, History, Trash2 } from "lucide-react"
+import { Plus, Calendar as CalendarIcon, ChevronDown, ChevronRight, LayoutGrid, Table as TableIcon, History, Trash2 } from "lucide-react"
 import {
   ColumnDefinition,
   BoardItem,
   BoardGroup,
   Profile,
 } from "@/lib/board/columns"
-import { CellEditor } from "./columns/cell-editor"
 import { ColumnDefinitionDialog } from "./columns/column-definition-dialog"
 import { ItemDetailDrawer } from "./item-detail-drawer"
 import { ItemRowTwoLine } from "./item-row-two-line"
@@ -30,7 +29,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
 type Board = {
@@ -462,19 +460,8 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
                 </Button>}
               </div>
 
-              {!collapsedGroups.includes(group.id) && <div className="overflow-x-auto">
-                <table className="w-full min-w-[960px] text-sm">
-                  <thead className="bg-muted/30 text-muted-foreground">
-                    <tr>
-                      <th className="min-w-[260px] w-[30%] text-left px-4 py-2 font-medium">Item</th>
-                      {visibleColumns.map((column) => (
-                        <th key={column.id} className="text-left px-4 py-2 font-medium whitespace-nowrap">
-                          {column.name}
-                        </th>
-                      ))}
-                      <th className="px-4 py-2" aria-label="View details" />
-                    </tr>
-                  </thead>
+              {!collapsedGroups.includes(group.id) && <div>
+                <table className="w-full text-sm">
                   <tbody>
                     {(filteredItems[group.id] || []).slice(0, visibleItemCounts[group.id] || ITEMS_PER_BATCH).map((item, itemIndex) => (
                       <Fragment key={item.id}>
@@ -482,49 +469,25 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
                           item={item}
                           visibleColumns={visibleColumns}
                           members={members}
+                          totalColumns={1}
                           onTitleChange={(title) => updateItemTitle(item.id, title)}
                           onCellChange={(columnId, value) => handleCellChange(item, visibleColumns.find(c => c.id === columnId)!, value)}
                           onViewClick={() => setSelectedItem(item)}
                           rowIndex={itemIndex}
                         />
                         {item.sub_items?.map((sub) => (
-                          <Fragment key={sub.id}>
-                            <tr className="border-t border-dashed border-border/30 hover:bg-muted/20 cursor-pointer bg-muted/10">
-                              <td className="min-w-[260px] px-4 py-2 pl-10 font-medium text-[#0A1628]">
-                                <div className="flex items-center gap-2">
-                                  <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-muted-foreground hover:text-[#0A1628]" aria-label={`View ${sub.title}`} onClick={(event) => { event.stopPropagation(); setSelectedItem(sub) }}><Eye className="h-4 w-4" /></Button>
-                                  <Input
-                                    key={`${sub.id}-${sub.title}`}
-                                    defaultValue={sub.title}
-                                    onBlur={(e) => {
-                                      if (e.target.value !== sub.title) updateItemTitle(sub.id, e.target.value)
-                                    }}
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="h-7 w-full min-w-0 border-transparent bg-transparent px-0 hover:bg-white focus:bg-white focus:border-border"
-                                  />
-                                </div>
-                              </td>
-                              {visibleColumns.map((column) => (
-                                <td
-                                  key={column.id}
-                                  className="px-4 py-2"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  {isNotesColumn(column) ? (
-                                    <NotesPreview value={sub.values?.[column.id]} onOpen={() => setSelectedItem(sub)} />
-                                  ) : (
-                                    <CellEditor
-                                      column={column}
-                                      item={sub}
-                                      members={members}
-                                      onChange={(value) => handleCellChange(sub, column, value)}
-                                    />
-                                  )}
-                                </td>
-                              ))}
-                              <td className="px-4 py-2" onClick={(e) => e.stopPropagation()}><Button variant="outline" size="sm" onClick={() => setSelectedItem(sub)}>View</Button></td>
-                            </tr>
-                          </Fragment>
+                          <ItemRowTwoLine
+                            key={sub.id}
+                            item={sub}
+                            visibleColumns={visibleColumns}
+                            members={members}
+                            totalColumns={1}
+                            isSubItem
+                            onTitleChange={(title) => updateItemTitle(sub.id, title)}
+                            onCellChange={(columnId, value) => handleCellChange(sub, visibleColumns.find(c => c.id === columnId)!, value)}
+                            onViewClick={() => setSelectedItem(sub)}
+                            rowIndex={itemIndex}
+                          />
                         ))}
                       </Fragment>
                     ))}
@@ -591,24 +554,5 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
         />
       )}
     </AppShell>
-  )
-}
-
-function isNotesColumn(column: ColumnDefinition) {
-  return column.type === "text" && column.name.trim().toLowerCase() === "notes"
-}
-
-function NotesPreview({ value, onOpen }: { value: unknown; onOpen: () => void }) {
-  const note = typeof value === "string" ? value.trim() : ""
-  if (!note) return <Button variant="ghost" size="sm" onClick={onOpen}>Add note</Button>
-  return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button variant="ghost" size="icon" onClick={onOpen} aria-label="View note"><Eye className="h-4 w-4" /></Button>
-        </TooltipTrigger>
-        <TooltipContent className="max-w-sm whitespace-pre-wrap">{note}</TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
   )
 }
