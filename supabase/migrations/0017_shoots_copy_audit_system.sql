@@ -304,13 +304,24 @@ BEGIN
   END IF;
 
   -- Record in activity log
-  INSERT INTO public.activity_log (user_id, action, source_id, target_id, board_id, item_id, metadata)
-  VALUES (
-    item_row.created_by,
-    'auto_copy_to_shoots',
-    item_row.id,
-    new_item_id,
+  INSERT INTO public.activity_events (
+    workspace_id,
+    board_id,
+    item_id,
+    actor_id,
+    actor_type,
+    event_type,
+    entity_type,
+    entity_id,
+    metadata
+  ) VALUES (
+    workspace_uuid,
     shoots_board_id,
+    new_item_id,
+    item_row.created_by,
+    'system',
+    'auto_copy_to_shoots',
+    'item',
     new_item_id,
     jsonb_build_object(
       'original_item_id', item_row.id,
