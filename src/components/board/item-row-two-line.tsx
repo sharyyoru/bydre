@@ -17,7 +17,6 @@ export function ItemRowTwoLine({
   item,
   visibleColumns,
   members,
-  isSubItem,
   onTitleChange,
   onCellChange,
   onViewClick,
@@ -26,7 +25,6 @@ export function ItemRowTwoLine({
   item: BoardItem
   visibleColumns: ColumnDefinition[]
   members: Profile[]
-  isSubItem?: boolean
   onTitleChange: (title: string) => void
   onCellChange: (columnId: string, value: any) => void
   onViewClick: () => void

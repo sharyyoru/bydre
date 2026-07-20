@@ -4,10 +4,9 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { AlertCircle, CheckCircle2, X } from "lucide-react"
-import { acknowledgeNotification, completeNotification, getNotificationMessage } from "@/lib/workflow-notifications"
+import { AlertCircle, X } from "lucide-react"
+import { acknowledgeNotification, getNotificationMessage } from "@/lib/workflow-notifications"
 
 type WorkflowNotification = {
   id: string
@@ -70,11 +69,6 @@ export function WorkflowNotificationsPanel({
 
   const handleAcknowledge = async (notificationId: string) => {
     await acknowledgeNotification(notificationId)
-    setNotifications(notifications.filter(n => n.id !== notificationId))
-  }
-
-  const handleComplete = async (notificationId: string) => {
-    await completeNotification(notificationId)
     setNotifications(notifications.filter(n => n.id !== notificationId))
   }
 

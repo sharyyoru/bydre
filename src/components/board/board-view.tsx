@@ -487,7 +487,7 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
                           onViewClick={() => setSelectedItem(item)}
                           rowIndex={itemIndex}
                         />
-                        {item.sub_items?.map((sub, subIndex) => (
+                        {item.sub_items?.map((sub) => (
                           <Fragment key={sub.id}>
                             <tr className="border-t border-dashed border-border/30 hover:bg-muted/20 cursor-pointer bg-muted/10">
                               <td className="min-w-[260px] px-4 py-2 pl-10 font-medium text-[#0A1628]">
