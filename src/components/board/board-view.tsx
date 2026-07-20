@@ -19,6 +19,7 @@ import { CellEditor } from "./columns/cell-editor"
 import { ColumnDefinitionDialog } from "./columns/column-definition-dialog"
 import { ItemDetailDrawer } from "./item-detail-drawer"
 import { ItemRowTwoLine } from "./item-row-two-line"
+import { WorkflowNotificationsPanel } from "./workflow-notifications-panel"
 import { KanbanView } from "./views/kanban-view"
 import { AutomationBuilder } from "../automations/automation-builder"
 import { ActivityLog } from "../activity/activity-log"
@@ -425,6 +426,7 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
 
         {activeView === "table" && (
           <div className="space-y-6">
+          <WorkflowNotificationsPanel workspaceId={workspaceId} boardId={board.id} />
           {displayedGroups.length > GROUPS_PER_PAGE && (
             <div className="flex items-center justify-between rounded-xl border border-border/60 bg-white px-4 py-2">
               <p className="text-sm text-muted-foreground">Showing groups {(currentGroupPage - 1) * GROUPS_PER_PAGE + 1}–{Math.min(currentGroupPage * GROUPS_PER_PAGE, displayedGroups.length)} of {displayedGroups.length}</p>

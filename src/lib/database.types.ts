@@ -330,6 +330,38 @@ export interface Database {
           assigned_at?: string
         }
       }
+      workflow_notifications: {
+        Row: {
+          id: string
+          workspace_id: string
+          item_id: string
+          notification_type: "assign_shooter" | "assign_editor" | "assign_reviewer"
+          status: "pending" | "acknowledged" | "completed"
+          created_at: string
+          acknowledged_at: string | null
+          completed_at: string | null
+        }
+        Insert: {
+          id?: string
+          workspace_id: string
+          item_id: string
+          notification_type: "assign_shooter" | "assign_editor" | "assign_reviewer"
+          status?: "pending" | "acknowledged" | "completed"
+          created_at?: string
+          acknowledged_at?: string | null
+          completed_at?: string | null
+        }
+        Update: {
+          id?: string
+          workspace_id?: string
+          item_id?: string
+          notification_type?: "assign_shooter" | "assign_editor" | "assign_reviewer"
+          status?: "pending" | "acknowledged" | "completed"
+          created_at?: string
+          acknowledged_at?: string | null
+          completed_at?: string | null
+        }
+      }
     }
   }
 }
