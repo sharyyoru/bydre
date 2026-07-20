@@ -21,6 +21,7 @@ export function SidebarMyTasks() {
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string | null>(null)
   const [priorityFilter, setPriorityFilter] = useState<string | null>(null)
+  const [dateFilter, setDateFilter] = useState<"today" | "tomorrow" | "week" | null>("today")
   const [workspaceSlug, setWorkspaceSlug] = useState("drehomes")
 
   useEffect(() => {
@@ -124,15 +125,42 @@ export function SidebarMyTasks() {
 
   // Filter and search tasks
   const filteredTasks = useMemo(() => {
+    const now = new Date()
+    now.setHours(0, 0, 0, 0)
+    
+    const tomorrow = new Date(now)
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    
+    const weekEnd = new Date(now)
+    weekEnd.setDate(weekEnd.getDate() + 7)
+
     return tasks.filter(task => {
       const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                            task.board_name.toLowerCase().includes(searchQuery.toLowerCase())
       const matchesStatus = !statusFilter || task.status === statusFilter
       const matchesPriority = !priorityFilter || task.priority === priorityFilter
 
-      return matchesSearch && matchesStatus && matchesPriority
+      // Date filter
+      let matchesDate = true
+      if (dateFilter && task.due_date) {
+        const taskDate = new Date(task.due_date)
+        taskDate.setHours(0, 0, 0, 0)
+
+        if (dateFilter === "today") {
+          matchesDate = taskDate.getTime() === now.getTime()
+        } else if (dateFilter === "tomorrow") {
+          matchesDate = taskDate.getTime() === tomorrow.getTime()
+        } else if (dateFilter === "week") {
+          matchesDate = taskDate >= now && taskDate <= weekEnd
+        }
+      } else if (dateFilter) {
+        // If filter is set but task has no due date, exclude it
+        matchesDate = false
+      }
+
+      return matchesSearch && matchesStatus && matchesPriority && matchesDate
     })
-  }, [tasks, searchQuery, statusFilter, priorityFilter])
+  }, [tasks, searchQuery, statusFilter, priorityFilter, dateFilter])
 
   // Get unique statuses and priorities for filters
   const statuses = Array.from(new Set(tasks.map(t => t.status)))
@@ -175,6 +203,45 @@ export function SidebarMyTasks() {
       {/* Filters */}
       {tasks.length > 0 && (
         <div className="space-y-2">
+          {/* Date Filter */}
+          <div>
+            <p className="text-xs font-medium text-muted-foreground mb-1">Due Date</p>
+            <div className="flex flex-wrap gap-1">
+              <button
+                onClick={() => setDateFilter("today")}
+                className={`text-xs px-2 py-1 rounded border transition-colors ${
+                  dateFilter === "today" ? "bg-[#D4AF37]/20 border-[#D4AF37]" : "border-border hover:bg-muted"
+                }`}
+              >
+                Today
+              </button>
+              <button
+                onClick={() => setDateFilter("tomorrow")}
+                className={`text-xs px-2 py-1 rounded border transition-colors ${
+                  dateFilter === "tomorrow" ? "bg-[#D4AF37]/20 border-[#D4AF37]" : "border-border hover:bg-muted"
+                }`}
+              >
+                Tomorrow
+              </button>
+              <button
+                onClick={() => setDateFilter("week")}
+                className={`text-xs px-2 py-1 rounded border transition-colors ${
+                  dateFilter === "week" ? "bg-[#D4AF37]/20 border-[#D4AF37]" : "border-border hover:bg-muted"
+                }`}
+              >
+                This Week
+              </button>
+              <button
+                onClick={() => setDateFilter(null)}
+                className={`text-xs px-2 py-1 rounded border transition-colors ${
+                  !dateFilter ? "bg-[#D4AF37]/20 border-[#D4AF37]" : "border-border hover:bg-muted"
+                }`}
+              >
+                All
+              </button>
+            </div>
+          </div>
+
           {statuses.length > 0 && (
             <div>
               <p className="text-xs font-medium text-muted-foreground mb-1">Status</p>
