@@ -42,8 +42,9 @@ async function authorize(workspaceId: string) {
   }
 }
 
-export async function POST(request: NextRequest, { params }: { params: { workspaceId: string } }) {
-  const authorization = await authorize(params.workspaceId)
+export async function POST(request: NextRequest, { params }: { params: Promise<{ workspaceId: string }> }) {
+  const { workspaceId } = await params
+  const authorization = await authorize(workspaceId)
   if (authorization.error) return authorization.error
 
   const body = await request.json()
@@ -84,12 +85,12 @@ export async function POST(request: NextRequest, { params }: { params: { workspa
 
   const { error: membershipError } = await authorization.admin
     .from("workspace_members")
-    .upsert({ workspace_id: params.workspaceId, user_id: targetUserId, role })
+    .upsert({ workspace_id: workspaceId, user_id: targetUserId, role })
 
   if (membershipError) return NextResponse.json({ error: membershipError.message }, { status: 400 })
 
   await authorization.admin.from("activity_events").insert({
-    workspace_id: params.workspaceId,
+    workspace_id: workspaceId,
     actor_id: authorization.user.id,
     actor_type: "user",
     event_type: "user.created",
@@ -101,8 +102,9 @@ export async function POST(request: NextRequest, { params }: { params: { workspa
   return NextResponse.json({ id: targetUserId })
 }
 
-export async function PATCH(request: NextRequest, { params }: { params: { workspaceId: string } }) {
-  const authorization = await authorize(params.workspaceId)
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ workspaceId: string }> }) {
+  const { workspaceId } = await params
+  const authorization = await authorize(workspaceId)
   if (authorization.error) return authorization.error
 
   const body = await request.json()
@@ -113,7 +115,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { worksp
   const { count: adminCount } = await authorization.admin
     .from("workspace_members")
     .select("*", { count: "exact", head: true })
-    .eq("workspace_id", params.workspaceId)
+    .eq("workspace_id", workspaceId)
     .eq("role", "admin")
 
   if (userId === authorization.user.id && role !== "admin" && (adminCount || 0) <= 1) {
@@ -123,20 +125,20 @@ export async function PATCH(request: NextRequest, { params }: { params: { worksp
   const { data: before } = await authorization.admin
     .from("workspace_members")
     .select("role")
-    .eq("workspace_id", params.workspaceId)
+    .eq("workspace_id", workspaceId)
     .eq("user_id", userId)
     .maybeSingle()
 
   const { error } = await authorization.admin
     .from("workspace_members")
     .update({ role })
-    .eq("workspace_id", params.workspaceId)
+    .eq("workspace_id", workspaceId)
     .eq("user_id", userId)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
 
   await authorization.admin.from("activity_events").insert({
-    workspace_id: params.workspaceId,
+    workspace_id: workspaceId,
     actor_id: authorization.user.id,
     actor_type: "user",
     event_type: "user.role_changed",
@@ -149,8 +151,9 @@ export async function PATCH(request: NextRequest, { params }: { params: { worksp
   return NextResponse.json({ ok: true })
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { workspaceId: string } }) {
-  const authorization = await authorize(params.workspaceId)
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ workspaceId: string }> }) {
+  const { workspaceId } = await params
+  const authorization = await authorize(workspaceId)
   if (authorization.error) return authorization.error
 
   const userId = new URL(request.url).searchParams.get("userId")
@@ -161,7 +164,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { works
   const { data: target } = await authorization.admin
     .from("workspace_members")
     .select("role")
-    .eq("workspace_id", params.workspaceId)
+    .eq("workspace_id", workspaceId)
     .eq("user_id", userId)
     .maybeSingle()
 
@@ -169,7 +172,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { works
     const { count } = await authorization.admin
       .from("workspace_members")
       .select("*", { count: "exact", head: true })
-      .eq("workspace_id", params.workspaceId)
+      .eq("workspace_id", workspaceId)
       .eq("role", "admin")
     if ((count || 0) <= 1) return NextResponse.json({ error: "The final Admin cannot be removed" }, { status: 400 })
   }
@@ -177,12 +180,12 @@ export async function DELETE(request: NextRequest, { params }: { params: { works
   const { error } = await authorization.admin
     .from("workspace_members")
     .delete()
-    .eq("workspace_id", params.workspaceId)
+    .eq("workspace_id", workspaceId)
     .eq("user_id", userId)
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
 
   await authorization.admin.from("activity_events").insert({
-    workspace_id: params.workspaceId,
+    workspace_id: workspaceId,
     actor_id: authorization.user.id,
     actor_type: "user",
     event_type: "user.removed",
