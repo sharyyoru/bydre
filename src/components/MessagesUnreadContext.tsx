@@ -1,0 +1,123 @@
+"use client";
+
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
+import { supabaseClient } from "@/lib/supabaseClient";
+
+type MessagesUnreadContextValue = {
+  unreadCount: number | null;
+  refreshUnread: () => Promise<void>;
+  setUnreadCountOptimistic: (updater: (prev: number) => number) => void;
+};
+
+const MessagesUnreadContext = createContext<MessagesUnreadContextValue | undefined>(
+  undefined,
+);
+
+export function MessagesUnreadProvider({ children }: { children: ReactNode }) {
+  const [unreadCount, setUnreadCount] = useState<number | null>(null);
+
+  const refreshUnread = async () => {
+    try {
+      const { data: authData } = await supabaseClient.auth.getUser();
+      const user = authData?.user;
+
+      if (!user) {
+        setUnreadCount(0);
+        return;
+      }
+
+      // Count unread project note mentions
+      const { count: noteCount, error: noteError } = await supabaseClient
+        .from("project_note_mentions")
+        .select("id", { count: "exact", head: true })
+        .eq("mentioned_user_id", user.id)
+        .is("read_at", null);
+
+      // Count unread task comment mentions
+      const { count: taskCount, error: taskError } = await supabaseClient
+        .from("task_comment_mentions")
+        .select("id", { count: "exact", head: true })
+        .eq("mentioned_user_id", user.id)
+        .is("read_at", null);
+
+      // Count unread workflow step mentions
+      const { count: workflowCount, error: workflowError } = await supabaseClient
+        .from("workflow_step_mentions")
+        .select("id", { count: "exact", head: true })
+        .eq("mentioned_user_id", user.id)
+        .is("read_at", null);
+
+      // Count unread social workflow tasks (pending status = unread)
+      const { count: socialWorkflowCount, error: socialWorkflowError } = await supabaseClient
+        .from("tasks")
+        .select("id", { count: "exact", head: true })
+        .eq("assigned_user_id", user.id)
+        .eq("source", "social_workflow")
+        .neq("status", "completed");
+
+      if (noteError && taskError && workflowError && socialWorkflowError) {
+        setUnreadCount(0);
+        return;
+      }
+
+      setUnreadCount((noteCount ?? 0) + (taskCount ?? 0) + (workflowCount ?? 0) + (socialWorkflowCount ?? 0));
+    } catch {
+      setUnreadCount(0);
+    }
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function load() {
+      if (!isMounted) return;
+      await refreshUnread();
+    }
+
+    load();
+
+    const intervalId = window.setInterval(() => {
+      if (!isMounted) return;
+      void refreshUnread();
+    }, 30000);
+
+    return () => {
+      isMounted = false;
+      window.clearInterval(intervalId);
+    };
+  }, []);
+
+  const setUnreadCountOptimistic = (updater: (prev: number) => number) => {
+    setUnreadCount((prev) => {
+      const base = prev ?? 0;
+      const next = updater(base);
+      return next < 0 ? 0 : next;
+    });
+  };
+
+  const value: MessagesUnreadContextValue = {
+    unreadCount,
+    refreshUnread,
+    setUnreadCountOptimistic,
+  };
+
+  return (
+    <MessagesUnreadContext.Provider value={value}>
+      {children}
+    </MessagesUnreadContext.Provider>
+  );
+}
+
+export function useMessagesUnread(): MessagesUnreadContextValue {
+  const ctx = useContext(MessagesUnreadContext);
+  if (!ctx) {
+    throw new Error("useMessagesUnread must be used within MessagesUnreadProvider");
+  }
+  return ctx;
+}

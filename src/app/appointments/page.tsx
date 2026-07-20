@@ -1,0 +1,2385 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { supabaseClient } from "@/lib/supabaseClient";
+
+type AppointmentStatus =
+  | "scheduled"
+  | "confirmed"
+  | "completed"
+  | "cancelled"
+  | "no_show";
+
+type WorkflowStatus = "pending" | "approved" | "rescheduled" | "cancelled";
+
+function appointmentStatusToWorkflow(status: AppointmentStatus): WorkflowStatus {
+  if (status === "confirmed") return "approved";
+  if (status === "cancelled") return "cancelled";
+  return "pending";
+}
+
+function workflowToAppointmentStatus(status: WorkflowStatus): AppointmentStatus {
+  if (status === "approved") return "confirmed";
+  if (status === "cancelled") return "cancelled";
+  // Treat rescheduled as a scheduled (pending) appointment in the DB
+  return "scheduled";
+}
+
+function getAppointmentStatusColorClasses(status: AppointmentStatus): string {
+  switch (status) {
+    case "confirmed":
+      return "border border-emerald-400";
+    case "cancelled":
+      return "border border-rose-400";
+    case "completed":
+      return "border border-slate-300 opacity-70";
+    default:
+      return "border border-sky-100";
+  }
+}
+
+type AppointmentPatient = {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+  phone: string | null;
+};
+
+type AppointmentPatientSuggestion = {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+  phone: string | null;
+};
+
+type ServiceOption = {
+  id: string;
+  name: string;
+};
+
+const MEETING_TYPE_OPTIONS = [
+  { value: "online", label: "Online" },
+  { value: "physical", label: "Physical" },
+  { value: "shooting", label: "Shooting Schedule" },
+];
+
+function generateMeetCode(): string {
+  const chars = "abcdefghijklmnopqrstuvwxyz";
+  const segments = [3, 4, 3];
+  return segments.map(len => 
+    Array.from({ length: len }, () => chars[Math.floor(Math.random() * chars.length)]).join("")
+  ).join("-");
+}
+
+function generateGoogleMeetLink(): string {
+  return `https://meet.google.com/${generateMeetCode()}`;
+}
+
+// Location is now open entry - no predefined options
+
+type CalendarAppointment = {
+  id: string;
+  patient_id: string | null;
+  contact_id: string | null;
+  provider_id: string | null;
+  start_time: string;
+  end_time: string | null;
+  status: AppointmentStatus;
+  reason: string | null;
+  location: string | null;
+  patient: AppointmentPatient | null;
+  contact: AppointmentPatient | null;
+  provider: {
+    id: string;
+    name: string | null;
+  } | null;
+};
+
+type CalendarView = "month" | "day" | "range";
+
+const DAY_VIEW_START_MINUTES = 8 * 60;
+const DAY_VIEW_END_MINUTES = 17 * 60;
+const DAY_VIEW_SLOT_MINUTES = 15;
+const DAY_VIEW_SLOT_HEIGHT = 48;
+
+type ProviderOption = {
+  id: string;
+  name: string | null;
+};
+
+type DoctorCalendar = {
+  id: string;
+  providerId: string;
+  name: string;
+  color: string;
+  selected: boolean;
+};
+
+const CALENDAR_COLOR_CLASSES = [
+  "bg-red-500",
+  "bg-orange-500",
+  "bg-amber-500",
+  "bg-yellow-500",
+  "bg-lime-500",
+  "bg-green-500",
+  "bg-emerald-500",
+  "bg-teal-500",
+  "bg-cyan-500",
+  "bg-sky-500",
+  "bg-blue-500",
+  "bg-indigo-500",
+  "bg-violet-500",
+  "bg-purple-500",
+  "bg-fuchsia-500",
+  "bg-pink-500",
+  "bg-rose-500",
+  "bg-red-400",
+  "bg-orange-400",
+  "bg-amber-400",
+  "bg-lime-400",
+  "bg-green-400",
+  "bg-emerald-400",
+  "bg-teal-400",
+  "bg-cyan-400",
+  "bg-sky-400",
+  "bg-blue-400",
+  "bg-indigo-400",
+  "bg-violet-400",
+  "bg-purple-400",
+  "bg-fuchsia-400",
+  "bg-pink-400",
+  "bg-rose-400",
+  "bg-slate-500",
+  "bg-gray-500",
+  "bg-zinc-500",
+];
+
+function getCalendarColorForIndex(index: number): string {
+  if (CALENDAR_COLOR_CLASSES.length === 0) return "bg-sky-500";
+  const safeIndex = index % CALENDAR_COLOR_CLASSES.length;
+  return CALENDAR_COLOR_CLASSES[safeIndex];
+}
+
+function formatMonthYear(date: Date) {
+  return date.toLocaleDateString(undefined, {
+    month: "long",
+    year: "numeric",
+  });
+}
+
+function formatYmd(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function formatTimeRangeLabel(start: Date, end: Date | null): string {
+  if (Number.isNaN(start.getTime())) return "";
+
+  const startLabel = start.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  let endLabel: string;
+  if (end && !Number.isNaN(end.getTime())) {
+    endLabel = end.toLocaleTimeString(undefined, {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } else {
+    const fallbackEnd = new Date(start.getTime() + DAY_VIEW_SLOT_MINUTES * 60 * 1000);
+    endLabel = fallbackEnd.toLocaleTimeString(undefined, {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+
+  return `${startLabel} - ${endLabel}`;
+}
+
+function getServiceAndStatusFromReason(reason: string | null): {
+  serviceLabel: string;
+  statusLabel: string | null;
+} {
+  let serviceLabel = "Appointment";
+  let statusLabel: string | null = null;
+
+  if (!reason) {
+    return { serviceLabel, statusLabel };
+  }
+
+  const firstBracketIndex = reason.indexOf("[");
+  const servicePart =
+    firstBracketIndex === -1 ? reason : reason.slice(0, firstBracketIndex);
+  if (servicePart.trim()) {
+    serviceLabel = servicePart.trim();
+  }
+
+  const statusMatch = reason.match(/\[Status:\s*(.+?)\s*]/);
+  if (statusMatch) {
+    const rawStatus = statusMatch[1].trim();
+    if (rawStatus) statusLabel = rawStatus;
+  }
+
+  return { serviceLabel, statusLabel };
+}
+
+function getDoctorNameFromReason(reason: string | null): string | null {
+  if (!reason) return null;
+  const match = reason.match(/\[Doctor:\s*(.+?)\s*]/);
+  if (!match) return null;
+  const raw = match[1].trim();
+  return raw || null;
+}
+
+async function sendAppointmentConfirmationEmail(
+  appointment: CalendarAppointment,
+): Promise<void> {
+  const patientEmail = appointment.patient?.email ?? null;
+  if (!patientEmail) return;
+
+  try {
+    const { data: authData } = await supabaseClient.auth.getUser();
+    const authUser = authData?.user ?? null;
+    const fromAddress = authUser?.email ?? null;
+
+    const start = new Date(appointment.start_time);
+    const end = appointment.end_time ? new Date(appointment.end_time) : null;
+
+    const dateLabel = start.toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+    const timeLabel = formatTimeRangeLabel(start, end);
+    const dateTimeLabel = `${dateLabel} ${timeLabel}`;
+
+    const patientName = `${appointment.patient?.first_name ?? ""} ${appointment
+      .patient?.last_name ?? ""}`
+      .trim()
+      .replace(/\s+/g, " ");
+
+    const doctorName =
+      getDoctorNameFromReason(appointment.reason) ??
+      appointment.provider?.name ??
+      "your doctor";
+
+    const location = appointment.location ?? "the clinic";
+
+    const { serviceLabel } = getServiceAndStatusFromReason(appointment.reason);
+
+    const origin =
+      typeof window !== "undefined" ? window.location.origin : "";
+    const preConsultationUrl = origin
+      ? `${origin}/pre-consultation`
+      : "/pre-consultation";
+
+    const subject = `Appointment confirmation - ${dateLabel} ${timeLabel}`;
+
+    const htmlBody = `
+      <p>Dear ${patientName || "patient"},</p>
+      <p>Your appointment has been booked with ${doctorName}.</p>
+      <p>
+        <strong>Date:</strong> ${dateLabel}<br />
+        <strong>Time:</strong> ${timeLabel}<br />
+        <strong>Location:</strong> ${location}
+      </p>
+      <p>
+        If you need to reschedule or cancel, please contact the clinic or reply to this email.
+      </p>
+      <p>
+        <strong>Complete Your Pre-Consultation Form</strong><br />
+        <a href="${preConsultationUrl}">Pre Consultation Link</a>
+      </p>
+      <p>
+        <strong>Maison Toa</strong><br />
+        <strong>GENEVE</strong><br />
+        Rue du Rhône 17, 1204, Switzerland<br />
+        📞 0227322223 ✉️ info@aesthetics-ge.ch<br /><br />
+        <strong>GSTAAD</strong><br />
+        Gsteigstrasse 70, 3780, Switzerland<br />
+        📞 +41 337 483 437 ✉️ info@aesthetics-ge.ch<br /><br />
+        <strong>MONTREUX</strong><br />
+        Av Calud Nobs 2, 1820, Switzerland<br />
+        📞 +41 21 991 98 98 ✉️ info@thebeautybooth.shop
+      </p>
+    `;
+
+    const nowIso = new Date().toISOString();
+
+    const { data, error } = await supabaseClient
+      .from("emails")
+      .insert({
+        patient_id: appointment.patient_id,
+        deal_id: null,
+        to_address: patientEmail,
+        from_address: fromAddress,
+        subject,
+        body: htmlBody,
+        direction: "outbound",
+        status: "sent",
+        sent_at: nowIso,
+      })
+      .select("id")
+      .single();
+
+    if (error || !data) {
+      console.error("Failed to insert appointment confirmation email", error);
+      return;
+    }
+
+    try {
+      await fetch("/api/emails/send", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          to: patientEmail,
+          subject,
+          html: htmlBody,
+          fromUserEmail: fromAddress,
+          emailId: (data as any).id as string,
+        }),
+      });
+    } catch (error) {
+      console.error(
+        "Appointment confirmation email saved but failed to send via provider",
+        error,
+      );
+    }
+
+    const patientPhone = appointment.patient?.phone ?? null;
+    if (patientPhone && patientPhone.trim().length > 0) {
+      const whatsappText = `Appointment confirmation on ${dateTimeLabel} for ${serviceLabel} with ${doctorName} at ${location}`;
+
+      const templateVariables = {
+        "1": dateTimeLabel,
+        "2": serviceLabel,
+        "3": doctorName,
+        "4": patientName || "patient",
+      };
+
+      try {
+        await fetch("/api/whatsapp/send", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            patientId: appointment.patient_id,
+            to: patientPhone,
+            body: whatsappText,
+            templateSid: "HX6f50c6d2b3b2372a9c2145ebfc1b5911",
+            templateVariables,
+          }),
+        });
+      } catch (error) {
+        console.error("Failed to send WhatsApp appointment notification", error);
+      }
+    }
+  } catch (error) {
+    console.error("Failed to prepare appointment confirmation email", error);
+  }
+}
+
+export default function CalendarPage() {
+  const [visibleMonth, setVisibleMonth] = useState(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  });
+  const [appointments, setAppointments] = useState<CalendarAppointment[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [providers, setProviders] = useState<ProviderOption[]>([]);
+  const [providersLoading, setProvidersLoading] = useState(false);
+  const [providersError, setProvidersError] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [doctorCalendars, setDoctorCalendars] = useState<DoctorCalendar[]>([]);
+  const [view, setView] = useState<CalendarView>("month");
+  const [viewMenuOpen, setViewMenuOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [rangeEndDate, setRangeEndDate] = useState<Date | null>(null);
+  const [isDraggingRange, setIsDraggingRange] = useState(false);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [draftTitle, setDraftTitle] = useState("");
+  const [draftDate, setDraftDate] = useState("");
+  const [draftTime, setDraftTime] = useState("");
+  const [draftLocation, setDraftLocation] = useState("");
+  const [draftDescription, setDraftDescription] = useState("");
+  const [savingCreate, setSavingCreate] = useState(false);
+  const [createPatientSearch, setCreatePatientSearch] = useState("");
+  const [showCreatePatientSuggestions, setShowCreatePatientSuggestions] =
+    useState(false);
+  const [createPatientId, setCreatePatientId] = useState<string | null>(null);
+  const [createPatientName, setCreatePatientName] = useState("");
+  const [consultationDuration, setConsultationDuration] = useState(15);
+  const [patientOptions, setPatientOptions] = useState<
+    AppointmentPatientSuggestion[]
+  >([]);
+  const [patientOptionsLoading, setPatientOptionsLoading] = useState(false);
+  const [patientOptionsError, setPatientOptionsError] = useState<string | null>(
+    null,
+  );
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [serviceOptions, setServiceOptions] = useState<ServiceOption[]>([]);
+  const [serviceOptionsLoading, setServiceOptionsLoading] = useState(false);
+  const [serviceOptionsError, setServiceOptionsError] = useState<string | null>(
+    null,
+  );
+  const [selectedServiceId, setSelectedServiceId] = useState("");
+  const [bookingStatus, setBookingStatus] = useState("");
+  const [createDoctorCalendarId, setCreateDoctorCalendarId] = useState("");
+  const [staffSearch, setStaffSearch] = useState("");
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
+  const [companyOptions, setCompanyOptions] = useState<{id: string; name: string}[]>([]);
+  const [companySearch, setCompanySearch] = useState("");
+  const [showCompanySuggestions, setShowCompanySuggestions] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingAppointment, setEditingAppointment] =
+    useState<CalendarAppointment | null>(null);
+  const [editWorkflowStatus, setEditWorkflowStatus] =
+    useState<WorkflowStatus>("pending");
+  const [editDate, setEditDate] = useState("");
+  const [editTime, setEditTime] = useState("");
+  const [editConsultationDuration, setEditConsultationDuration] = useState(15);
+  const [editBookingStatus, setEditBookingStatus] = useState("");
+  const [editLocation, setEditLocation] = useState("");
+  const [editError, setEditError] = useState<string | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [draftMeetLink, setDraftMeetLink] = useState("");
+  const [editMeetLink, setEditMeetLink] = useState("");
+  const [attendeeIds, setAttendeeIds] = useState<string[]>([]);
+  const [attendeeSearch, setAttendeeSearch] = useState("");
+  const [showAttendeeSuggestions, setShowAttendeeSuggestions] = useState(false);
+
+  const monthStart = useMemo(() => {
+    return new Date(visibleMonth.getFullYear(), visibleMonth.getMonth(), 1);
+  }, [visibleMonth]);
+
+  const monthEnd = useMemo(() => {
+    return new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1, 0, 23, 59, 59, 999);
+  }, [visibleMonth]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadAppointments() {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const fromIso = monthStart.toISOString();
+        const toIso = monthEnd.toISOString();
+
+        const { data, error } = await supabaseClient
+          .from("appointments")
+          .select(
+            "id, patient_id, provider_id, start_time, end_time, status, reason, location, patient:patients(id, first_name, last_name, email, phone), provider:providers(id, name)",
+          )
+          .neq("status", "cancelled")
+          .gte("start_time", fromIso)
+          .lte("start_time", toIso)
+          .order("start_time", { ascending: true });
+
+        if (!isMounted) return;
+
+        if (error || !data) {
+          setError(error?.message ?? "Failed to load appointments.");
+          setAppointments([]);
+          setLoading(false);
+          return;
+        }
+
+        setAppointments(data as unknown as CalendarAppointment[]);
+        setLoading(false);
+      } catch {
+        if (!isMounted) return;
+        setError("Failed to load appointments.");
+        setAppointments([]);
+        setLoading(false);
+      }
+    }
+
+    void loadAppointments();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [monthStart, monthEnd]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadCurrentUser() {
+      try {
+        const { data, error } = await supabaseClient.auth.getUser();
+        if (!isMounted) return;
+        if (!error && data?.user) {
+          setCurrentUserId(data.user.id);
+        } else {
+          setCurrentUserId(null);
+        }
+      } catch {
+        if (!isMounted) return;
+        setCurrentUserId(null);
+      }
+    }
+
+    void loadCurrentUser();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadProviders() {
+      try {
+        setProvidersLoading(true);
+        setProvidersError(null);
+
+        const { data, error } = await supabaseClient
+          .from("users")
+          .select("id, full_name, email")
+          .order("full_name", { ascending: true });
+
+        if (!isMounted) return;
+
+        if (error || !data) {
+          setProviders([]);
+          setProvidersError(error?.message ?? "Failed to load users.");
+        } else {
+          setProviders(
+            (data as any[]).map((row) => {
+              const fullName = (row.full_name as string | null) ?? null;
+              const email = (row.email as string | null) ?? null;
+              const rawName = fullName && fullName.trim().length > 0 ? fullName : email;
+              const name = rawName && rawName.trim().length > 0 ? rawName : null;
+              return {
+                id: row.id as string,
+                name,
+              };
+            }),
+          );
+        }
+
+        setProvidersLoading(false);
+      } catch {
+        if (!isMounted) return;
+        setProviders([]);
+        setProvidersError("Failed to load users.");
+        setProvidersLoading(false);
+      }
+    }
+
+    void loadProviders();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (providers.length === 0) return;
+
+    setDoctorCalendars((prev) => {
+      if (prev.length > 0) return prev;
+
+      const baseCalendars: DoctorCalendar[] = providers.map((provider, index) => {
+        const rawName = provider.name ?? "Unnamed doctor";
+        const trimmedName = rawName.trim() || "Unnamed doctor";
+
+        let selected = true;
+        if (currentUserId) {
+          selected = provider.id === currentUserId;
+        }
+
+        return {
+          id: provider.id,
+          providerId: provider.id,
+          name: trimmedName,
+          color: getCalendarColorForIndex(index),
+          selected,
+        };
+      });
+
+      if (currentUserId) {
+        const anySelected = baseCalendars.some((calendar) => calendar.selected);
+        if (!anySelected && baseCalendars.length > 0) {
+          baseCalendars[0] = {
+            ...baseCalendars[0],
+            selected: true,
+          };
+        }
+      }
+
+      const xavierIndex = baseCalendars.findIndex((calendar) => {
+        const value = calendar.name.toLowerCase();
+        return value.includes("xavier") && value.includes("tenorio");
+      });
+
+      if (xavierIndex > 0) {
+        const [xavier] = baseCalendars.splice(xavierIndex, 1);
+        baseCalendars.unshift(xavier);
+      }
+
+      return baseCalendars;
+    });
+  }, [providers, currentUserId]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadServices() {
+      try {
+        setServiceOptionsLoading(true);
+        setServiceOptionsError(null);
+
+        const { data, error } = await supabaseClient
+          .from("services")
+          .select("id, name, is_active")
+          .eq("is_active", true)
+          .order("name", { ascending: true });
+
+        if (!isMounted) return;
+
+        if (error || !data) {
+          setServiceOptions([]);
+          setServiceOptionsError(error?.message ?? "Failed to load services.");
+        } else {
+          setServiceOptions(
+            (data as any[]).map((row) => ({
+              id: row.id as string,
+              name: (row.name as string) ?? "Unnamed service",
+            })),
+          );
+        }
+
+        setServiceOptionsLoading(false);
+      } catch {
+        if (!isMounted) return;
+        setServiceOptions([]);
+        setServiceOptionsError("Failed to load services.");
+        setServiceOptionsLoading(false);
+      }
+    }
+
+    void loadServices();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Load companies for optional company tag
+  useEffect(() => {
+    let isMounted = true;
+    async function loadCompanies() {
+      const { data } = await supabaseClient
+        .from("companies")
+        .select("id, name")
+        .order("name", { ascending: true })
+        .limit(500);
+      if (isMounted && data) {
+        setCompanyOptions(data as {id: string; name: string}[]);
+      }
+    }
+    void loadCompanies();
+    return () => { isMounted = false; };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadContactsForCreate() {
+      try {
+        setPatientOptionsLoading(true);
+        setPatientOptionsError(null);
+
+        const { data, error } = await supabaseClient
+          .from("meeting_contacts")
+          .select("id, first_name, last_name, email, phone, contact_type")
+          .limit(500);
+
+        if (!isMounted) return;
+
+        if (error || !data) {
+          setPatientOptions([]);
+          setPatientOptionsError(error?.message ?? "Failed to load contacts.");
+        } else {
+          setPatientOptions(data as AppointmentPatientSuggestion[]);
+        }
+
+        setPatientOptionsLoading(false);
+      } catch {
+        if (!isMounted) return;
+        setPatientOptions([]);
+        setPatientOptionsError("Failed to load contacts.");
+        setPatientOptionsLoading(false);
+      }
+    }
+
+    void loadContactsForCreate();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isDraggingRange) return;
+
+    function handleMouseUp() {
+      setIsDraggingRange(false);
+    }
+
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isDraggingRange]);
+
+  const appointmentsByDay = useMemo(() => {
+    const map: Record<string, CalendarAppointment[]> = {};
+
+    const selectedDoctorNames = doctorCalendars
+      .filter((calendar) => calendar.selected)
+      .map((calendar) => calendar.name.trim().toLowerCase())
+      .filter((value) => value.length > 0);
+    const hasAnyCalendars = doctorCalendars.length > 0;
+
+    appointments.forEach((appt) => {
+      if (hasAnyCalendars) {
+        const doctorFromReason = getDoctorNameFromReason(appt.reason);
+        const providerName = (appt.provider?.name ?? "").trim().toLowerCase();
+        const doctorKey = (doctorFromReason ?? providerName).trim().toLowerCase();
+        if (!doctorKey) return;
+        if (selectedDoctorNames.length === 0) return;
+        if (!selectedDoctorNames.includes(doctorKey)) return;
+      }
+
+      const key = appt.start_time ? appt.start_time.slice(0, 10) : null;
+      if (!key) return;
+
+      if (!map[key]) map[key] = [];
+      map[key].push(appt);
+    });
+
+    return map;
+  }, [appointments, doctorCalendars]);
+
+  const gridDates = useMemo(() => {
+    const dates: Date[] = [];
+    const firstDayOfWeek = 0; // Sunday
+    const firstOfMonth = new Date(
+      visibleMonth.getFullYear(),
+      visibleMonth.getMonth(),
+      1,
+    );
+    const startWeekday = firstOfMonth.getDay();
+    const diff = (startWeekday - firstDayOfWeek + 7) % 7;
+    const gridStart = new Date(
+      firstOfMonth.getFullYear(),
+      firstOfMonth.getMonth(),
+      firstOfMonth.getDate() - diff,
+    );
+
+    for (let i = 0; i < 42; i += 1) {
+      const d = new Date(
+        gridStart.getFullYear(),
+        gridStart.getMonth(),
+        gridStart.getDate() + i,
+      );
+      dates.push(d);
+    }
+
+    return dates;
+  }, [visibleMonth]);
+
+  const todayYmd = formatYmd(new Date());
+  const visibleMonthIndex = visibleMonth.getMonth();
+
+  const activeRangeDates = useMemo(() => {
+    if (!selectedDate) return [] as Date[];
+    if (view === "day" || !rangeEndDate) {
+      return [selectedDate];
+    }
+
+    const start = selectedDate < rangeEndDate ? selectedDate : rangeEndDate;
+    const end = selectedDate < rangeEndDate ? rangeEndDate : selectedDate;
+
+    const dates: Date[] = [];
+    const current = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+    while (current <= end) {
+      dates.push(new Date(current));
+      current.setDate(current.getDate() + 1);
+    }
+
+    return dates;
+  }, [view, selectedDate, rangeEndDate]);
+
+  const timeSlots = useMemo(() => {
+    const values: number[] = [];
+    for (
+      let minutes = DAY_VIEW_START_MINUTES;
+      minutes < DAY_VIEW_END_MINUTES;
+      minutes += DAY_VIEW_SLOT_MINUTES
+    ) {
+      values.push(minutes);
+    }
+    return values;
+  }, []);
+
+  const availableTimeOptions = useMemo(() => {
+    if (!draftDate) return [] as { value: string; label: string }[];
+
+    const dayAppointments = appointmentsByDay[draftDate] ?? [];
+    const windowStart = DAY_VIEW_START_MINUTES;
+    const windowEnd = DAY_VIEW_END_MINUTES;
+    const desiredDuration = consultationDuration || DAY_VIEW_SLOT_MINUTES;
+
+    const options: { value: string; label: string }[] = [];
+
+    for (
+      let minutes = windowStart;
+      minutes <= windowEnd - desiredDuration;
+      minutes += DAY_VIEW_SLOT_MINUTES
+    ) {
+      const slotStart = minutes;
+      const slotEnd = minutes + desiredDuration;
+
+      const overlaps = dayAppointments.some((appt) => {
+        const start = new Date(appt.start_time);
+        if (Number.isNaN(start.getTime())) return false;
+
+        const rawStartMinutes = start.getHours() * 60 + start.getMinutes();
+        let endMinutes = rawStartMinutes + 60;
+
+        if (appt.end_time) {
+          const end = new Date(appt.end_time);
+          if (!Number.isNaN(end.getTime())) {
+            endMinutes = end.getHours() * 60 + end.getMinutes();
+          }
+        }
+
+        if (endMinutes <= rawStartMinutes) {
+          endMinutes = rawStartMinutes + DAY_VIEW_SLOT_MINUTES * 2;
+        }
+
+        if (endMinutes > windowEnd) {
+          endMinutes = windowEnd;
+        }
+
+        const apptStart = Math.max(rawStartMinutes, windowStart);
+        const apptEnd = Math.max(
+          apptStart + DAY_VIEW_SLOT_MINUTES,
+          Math.min(endMinutes, windowEnd),
+        );
+
+        return apptStart < slotEnd && apptEnd > slotStart;
+      });
+
+      if (!overlaps) {
+        const hours24 = Math.floor(minutes / 60);
+        const mins = minutes % 60;
+        const value = `${hours24.toString().padStart(2, "0")}:${mins
+          .toString()
+          .padStart(2, "0")}`;
+        options.push({
+          value,
+          label: formatTimeOptionLabel(minutes),
+        });
+      }
+    }
+
+    return options;
+  }, [draftDate, appointmentsByDay, consultationDuration]);
+
+  function handleSelectDayView() {
+    const base = selectedDate ?? new Date();
+    const day = new Date(
+      base.getFullYear(),
+      base.getMonth(),
+      base.getDate(),
+    );
+    setSelectedDate(day);
+    setRangeEndDate(null);
+    setView("day");
+    setViewMenuOpen(false);
+  }
+
+  function handleSelectWeekView() {
+    const base = selectedDate ?? new Date();
+    const start = new Date(
+      base.getFullYear(),
+      base.getMonth(),
+      base.getDate(),
+    );
+    const weekday = start.getDay();
+    start.setDate(start.getDate() - weekday);
+
+    const end = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+    end.setDate(start.getDate() + 6);
+
+    setSelectedDate(start);
+    setRangeEndDate(end);
+    setView("range");
+    setViewMenuOpen(false);
+  }
+
+  function handleSelectMonthView() {
+    const base = selectedDate ?? new Date();
+    setVisibleMonth(new Date(base.getFullYear(), base.getMonth(), 1));
+    setSelectedDate(null);
+    setRangeEndDate(null);
+    setView("month");
+    setViewMenuOpen(false);
+  }
+
+  function handleToggleCalendarSelected(calendarId: string) {
+    setDoctorCalendars((prev) =>
+      prev.map((calendar) =>
+        calendar.id === calendarId
+          ? { ...calendar, selected: !calendar.selected }
+          : calendar,
+      ),
+    );
+  }
+
+  function formatTimeLabel(totalMinutes: number): string {
+    if (totalMinutes === DAY_VIEW_END_MINUTES - DAY_VIEW_SLOT_MINUTES) {
+      return "5:00 PM";
+    }
+
+    const minutes = totalMinutes % 60;
+    if (minutes !== 0) return "";
+
+    const hour = Math.floor(totalMinutes / 60);
+    const suffix = hour >= 12 ? "PM" : "AM";
+    let display = hour % 12;
+    if (display === 0) display = 12;
+    return `${display}:00 ${suffix}`;
+  }
+
+  function formatTimeOptionLabel(totalMinutes: number): string {
+    const minutes = totalMinutes % 60;
+    const hour = Math.floor(totalMinutes / 60);
+    const suffix = hour >= 12 ? "PM" : "AM";
+    let displayHour = hour % 12;
+    if (displayHour === 0) displayHour = 12;
+    const minutePadded = minutes.toString().padStart(2, "0");
+    return `${displayHour}:${minutePadded} ${suffix}`;
+  }
+
+  const filteredCreatePatientSuggestions = useMemo(() => {
+    const term = createPatientSearch.trim().toLowerCase();
+    if (!term) return patientOptions;
+
+    return patientOptions.filter((p) => {
+      const name = `${p.first_name ?? ""} ${p.last_name ?? ""}`
+        .trim()
+        .toLowerCase();
+      const email = (p.email ?? "").toLowerCase();
+      const phone = (p.phone ?? "").toLowerCase();
+      return (
+        name.includes(term) || email.includes(term) || phone.includes(term)
+      );
+    });
+  }, [createPatientSearch, patientOptions]);
+
+  async function handleSaveAppointment() {
+    if (savingCreate) return;
+
+    setCreateError(null);
+
+    if (!createPatientId) {
+      setCreateError("Please select a contact.");
+      return;
+    }
+
+    // Service is now optional - no validation needed
+
+    if (!bookingStatus) {
+      setCreateError("Please select a status.");
+      return;
+    }
+
+    if (doctorCalendars.length > 0 && !createDoctorCalendarId) {
+      setCreateError("Please select a doctor calendar.");
+      return;
+    }
+
+    if (!draftDate || !draftTime) {
+      setCreateError("Please select a date and time.");
+      return;
+    }
+
+    const startLocal = new Date(`${draftDate}T${draftTime}:00`);
+    if (Number.isNaN(startLocal.getTime())) {
+      setCreateError("Invalid date or time.");
+      return;
+    }
+
+    const durationMinutes = consultationDuration || DAY_VIEW_SLOT_MINUTES;
+    const endLocal = new Date(
+      startLocal.getTime() + durationMinutes * 60 * 1000,
+    );
+
+    const startIso = startLocal.toISOString();
+    const endIso = endLocal.toISOString();
+
+    try {
+      setSavingCreate(true);
+
+      const service = serviceOptions.find(
+        (option) => option.id === selectedServiceId,
+      );
+      const serviceName = service?.name ?? "";
+      const baseReason = serviceName || draftTitle || "Appointment";
+      const selectedCalendar = doctorCalendars.find(
+        (calendar) => calendar.id === createDoctorCalendarId,
+      );
+      const doctorName = selectedCalendar?.name?.trim() || "";
+      const doctorTag = doctorName ? ` [Doctor: ${doctorName}]` : "";
+
+      const reason = bookingStatus
+        ? `${baseReason}${doctorTag} [Status: ${bookingStatus}]`
+        : `${baseReason}${doctorTag}`;
+
+      const { data, error } = await supabaseClient
+        .from("appointments")
+        .insert({
+          contact_id: createPatientId,
+          patient_id: null,
+          start_time: startIso,
+          end_time: endIso,
+          reason,
+          location: draftLocation || null,
+          source: "manual",
+          attendee_ids: attendeeIds.length > 0 ? attendeeIds : [],
+        })
+        .select(
+          "id, patient_id, contact_id, provider_id, start_time, end_time, status, reason, location, patient:patients(id, first_name, last_name, email, phone), contact:contacts(id, first_name, last_name, email, phone), provider:providers(id, name)",
+        )
+        .single();
+
+      if (error || !data) {
+        setCreateError(error?.message ?? "Failed to create appointment.");
+        setSavingCreate(false);
+        return;
+      }
+
+      const inserted = data as unknown as CalendarAppointment;
+
+      // Focus calendar on the booked date so the new appointment is visible
+      const insertedStart = new Date(inserted.start_time);
+      if (!Number.isNaN(insertedStart.getTime())) {
+        setSelectedDate(insertedStart);
+        setRangeEndDate(null);
+        setVisibleMonth(
+          new Date(
+            insertedStart.getFullYear(),
+            insertedStart.getMonth(),
+            1,
+          ),
+        );
+      }
+
+      void sendAppointmentConfirmationEmail(inserted);
+
+      setAppointments((prev) => {
+        const next = [...prev, inserted];
+        next.sort((a, b) => {
+          const aTime = new Date(a.start_time).getTime();
+          const bTime = new Date(b.start_time).getTime();
+          return aTime - bTime;
+        });
+        return next;
+      });
+
+      setSavingCreate(false);
+      setCreateModalOpen(false);
+
+      setDraftTitle("");
+      setDraftDate("");
+      setDraftTime("");
+      setDraftLocation("");
+      setDraftDescription("");
+      setCreatePatientSearch("");
+      setCreatePatientId(null);
+      setCreatePatientName("");
+      setConsultationDuration(15);
+      setSelectedServiceId("");
+      setBookingStatus("");
+      setCreateError(null);
+      setCreateDoctorCalendarId("");
+      setAttendeeIds([]);
+      setAttendeeSearch("");
+    } catch {
+      setCreateError("Failed to create appointment.");
+      setSavingCreate(false);
+    }
+  }
+
+  function openEditModalForAppointment(appt: CalendarAppointment) {
+    setEditingAppointment(appt);
+    setEditError(null);
+    setSavingEdit(false);
+
+    const workflow = appointmentStatusToWorkflow(appt.status);
+    setEditWorkflowStatus(workflow);
+
+    const start = new Date(appt.start_time);
+    const end = appt.end_time ? new Date(appt.end_time) : null;
+
+    if (!Number.isNaN(start.getTime())) {
+      const year = start.getFullYear();
+      const month = `${start.getMonth() + 1}`.padStart(2, "0");
+      const day = `${start.getDate()}`.padStart(2, "0");
+      const hours = `${start.getHours()}`.padStart(2, "0");
+      const minutes = `${start.getMinutes()}`.padStart(2, "0");
+      setEditDate(`${year}-${month}-${day}`);
+      setEditTime(`${hours}:${minutes}`);
+    } else {
+      setEditDate("");
+      setEditTime("");
+    }
+
+    let durationMinutes = DAY_VIEW_SLOT_MINUTES;
+    if (!Number.isNaN(start.getTime()) && end && !Number.isNaN(end.getTime())) {
+      const diffMinutes = Math.max(
+        (end.getTime() - start.getTime()) / (60 * 1000),
+        DAY_VIEW_SLOT_MINUTES,
+      );
+      durationMinutes = diffMinutes >= 45 ? 45 : 15;
+    }
+    setEditConsultationDuration(durationMinutes);
+
+    setEditLocation(appt.location ?? "");
+
+    const { statusLabel } = getServiceAndStatusFromReason(appt.reason);
+    setEditBookingStatus(statusLabel ?? "");
+
+    setEditModalOpen(true);
+  }
+
+  async function handleSaveEditAppointment() {
+    if (!editingAppointment || savingEdit) return;
+
+    setEditError(null);
+
+    if (!editDate || !editTime) {
+      setEditError("Please select a date and time.");
+      return;
+    }
+
+    const startLocal = new Date(`${editDate}T${editTime}:00`);
+    if (Number.isNaN(startLocal.getTime())) {
+      setEditError("Invalid date or time.");
+      return;
+    }
+
+    const durationMinutes = editConsultationDuration || DAY_VIEW_SLOT_MINUTES;
+    const endLocal = new Date(
+      startLocal.getTime() + durationMinutes * 60 * 1000,
+    );
+
+    const startIso = startLocal.toISOString();
+    const endIso = endLocal.toISOString();
+    const nextStatus = workflowToAppointmentStatus(editWorkflowStatus);
+
+    try {
+      setSavingEdit(true);
+
+      const { data, error } = await supabaseClient
+        .from("appointments")
+        .update({
+          status: nextStatus,
+          start_time: startIso,
+          end_time: endIso,
+          location: editLocation || null,
+        })
+        .eq("id", editingAppointment.id)
+        .select(
+          "id, patient_id, provider_id, start_time, end_time, status, reason, location, patient:patients(id, first_name, last_name, email, phone), provider:providers(id, name)",
+        )
+        .single();
+
+      if (error || !data) {
+        setEditError(error?.message ?? "Failed to update appointment.");
+        setSavingEdit(false);
+        return;
+      }
+
+      const updated = data as unknown as CalendarAppointment;
+
+      setAppointments((prev) => {
+        if (updated.status === "cancelled") {
+          return prev.filter((appt) => appt.id !== updated.id);
+        }
+
+        const next = prev.map((appt) =>
+          appt.id === updated.id ? updated : appt,
+        );
+        next.sort((a, b) => {
+          const aTime = new Date(a.start_time).getTime();
+          const bTime = new Date(b.start_time).getTime();
+          return aTime - bTime;
+        });
+        return next;
+      });
+
+      setSavingEdit(false);
+      setEditModalOpen(false);
+      setEditingAppointment(null);
+    } catch {
+      setEditError("Failed to update appointment.");
+      setSavingEdit(false);
+    }
+  }
+
+  function goToToday() {
+    const now = new Date();
+    setVisibleMonth(new Date(now.getFullYear(), now.getMonth(), 1));
+  }
+
+  function goPrevMonth() {
+    setVisibleMonth((prev) =>
+      new Date(prev.getFullYear(), prev.getMonth() - 1, 1),
+    );
+  }
+
+  function goNextMonth() {
+    setVisibleMonth((prev) =>
+      new Date(prev.getFullYear(), prev.getMonth() + 1, 1),
+    );
+  }
+
+  function handleMiniDayMouseDown(date: Date) {
+    setSelectedDate(date);
+    setRangeEndDate(null);
+    setIsDraggingRange(true);
+    setView("day");
+  }
+
+  function handleMiniDayMouseEnter(date: Date) {
+    if (!isDraggingRange || !selectedDate) return;
+    setRangeEndDate(date);
+    setView("range");
+  }
+
+  function handleMonthDayClick(date: Date) {
+    setVisibleMonth(new Date(date.getFullYear(), date.getMonth(), 1));
+    setSelectedDate(date);
+    setRangeEndDate(null);
+    setView("day");
+  }
+
+  return (
+    <div className="flex h-[calc(100vh-96px)] gap-4 px-0 pb-4 pt-2 sm:px-1 lg:px-2">
+      {/* Left sidebar similar to Google Calendar */}
+      <aside className="hidden w-64 flex-shrink-0 flex-col rounded-3xl border border-slate-200/80 bg-white/95 p-3 text-xs text-slate-700 shadow-[0_18px_40px_rgba(15,23,42,0.10)] md:flex">
+        <div className="mb-3">
+          <button
+            type="button"
+            onClick={() => {
+              const baseDate = selectedDate ?? new Date();
+              const year = baseDate.getFullYear();
+              const month = `${baseDate.getMonth() + 1}`.padStart(2, "0");
+              const day = `${baseDate.getDate()}`.padStart(2, "0");
+              setDraftDate(`${year}-${month}-${day}`);
+              setDraftTime("");
+              setDraftTitle("");
+              setCreatePatientSearch("");
+              setCreatePatientId(null);
+              setCreatePatientName("");
+              setConsultationDuration(15);
+              setSelectedServiceId("");
+              setBookingStatus("physical");
+              setDraftLocation("");
+              setDraftMeetLink("");
+              setDraftDescription("");
+              const defaultCalendar =
+                doctorCalendars.find((calendar) => calendar.selected) ||
+                doctorCalendars[0] ||
+                null;
+              setCreateDoctorCalendarId(defaultCalendar?.id ?? "");
+              setCreateModalOpen(true);
+            }}
+            className="inline-flex w-full items-center justify-center rounded-full bg-sky-600 px-3 py-1.5 text-[11px] font-semibold text-white shadow-sm hover:bg-sky-700 btn-primary"
+          >
+            Create
+          </button>
+        </div>
+        {/* Mini month */}
+        <div className="mb-4 rounded-2xl border border-slate-200/80 bg-slate-50/80 p-2">
+          <div className="mb-2 flex items-center justify-between text-[11px] font-medium text-slate-700">
+            <button
+              type="button"
+              onClick={goPrevMonth}
+              className="inline-flex h-6 w-6 items-center justify-center rounded-full hover:bg-slate-100"
+              aria-label="Previous month"
+            >
+              <svg
+                className="h-3 w-3"
+                viewBox="0 0 20 20"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12 4 6 10l6 6" />
+              </svg>
+            </button>
+            <span>{formatMonthYear(visibleMonth)}</span>
+            <button
+              type="button"
+              onClick={goNextMonth}
+              className="inline-flex h-6 w-6 items-center justify-center rounded-full hover:bg-slate-100"
+              aria-label="Next month"
+            >
+              <svg
+                className="h-3 w-3"
+                viewBox="0 0 20 20"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="m8 4 6 6-6 6" />
+              </svg>
+            </button>
+          </div>
+          <div className="grid grid-cols-7 text-[9px] font-medium uppercase tracking-wide text-slate-500">
+            {["S", "M", "T", "W", "T", "F", "S"].map((label, index) => (
+              <div key={`${label}-${index}`} className="px-1 py-0.5 text-center">
+                {label}
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-7 text-[10px]">
+            {gridDates.map((date) => {
+              const ymd = formatYmd(date);
+              const isToday = ymd === todayYmd;
+              const isCurrentMonth = date.getMonth() === visibleMonthIndex;
+
+              // Highlight if inside selected range
+              const inRange = (() => {
+                if (!selectedDate) return false;
+                if (!rangeEndDate || view === "day") {
+                  return ymd === formatYmd(selectedDate);
+                }
+                const start = selectedDate < rangeEndDate ? selectedDate : rangeEndDate;
+                const end = selectedDate < rangeEndDate ? rangeEndDate : selectedDate;
+                const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+                return d >= start && d <= end;
+              })();
+
+              return (
+                <button
+                  key={ymd + "mini"}
+                  type="button"
+                  onMouseDown={() => handleMiniDayMouseDown(date)}
+                  onMouseEnter={() => handleMiniDayMouseEnter(date)}
+                  onClick={() =>
+                    setVisibleMonth(
+                      new Date(date.getFullYear(), date.getMonth(), 1),
+                    )
+                  }
+                  className={`flex h-7 w-7 items-center justify-center rounded-full text-[10px] ${
+                    isCurrentMonth ? "text-slate-700" : "text-slate-400"
+                  } ${
+                    isToday
+                      ? "bg-sky-600 text-white shadow-sm"
+                      : inRange
+                        ? "bg-sky-100 text-sky-800"
+                        : "hover:bg-slate-100"
+                  }`}
+                >
+                  {date.getDate()}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Staff calendars */}
+        <div className="space-y-2">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+            Staff Calendars
+          </p>
+          {doctorCalendars.length > 5 && (
+            <input
+              type="text"
+              value={staffSearch}
+              onChange={(e) => setStaffSearch(e.target.value)}
+              placeholder="Search staff..."
+              className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[11px] text-black placeholder:text-slate-400 focus:border-sky-400 focus:outline-none"
+            />
+          )}
+          <div className="max-h-64 overflow-y-auto space-y-1">
+            {providersLoading ? (
+              <p className="text-[10px] text-slate-400">Loading providers...</p>
+            ) : providersError ? (
+              <p className="text-[10px] text-red-600">{providersError}</p>
+            ) : doctorCalendars.length === 0 ? (
+              <p className="text-[10px] text-slate-400">No staff calendars yet.</p>
+            ) : (
+              doctorCalendars
+                .filter((c) => !staffSearch || c.name.toLowerCase().includes(staffSearch.toLowerCase()))
+                .map((calendar) => (
+                <label
+                  key={calendar.id}
+                  className="flex cursor-pointer items-center gap-2 text-[11px] text-slate-700"
+                >
+                  <input
+                    type="checkbox"
+                    checked={calendar.selected}
+                    onChange={() => handleToggleCalendarSelected(calendar.id)}
+                    className="h-3.5 w-3.5 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                  />
+                  <span className="inline-flex items-center gap-1">
+                    <span
+                      className={`h-2 w-2 rounded-sm ${calendar.color}`}
+                    />
+                    <span className="truncate">{calendar.name}</span>
+                  </span>
+                </label>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Booking pages / Other calendars placeholders */}
+        <div className="mt-4 space-y-2 text-[10px] text-slate-500">
+          <p className="font-semibold">Booking pages</p>
+          <p className="text-slate-400">Coming soon</p>
+        </div>
+        <div className="mt-4 space-y-2 text-[10px] text-slate-500">
+          <p className="font-semibold">Other calendars</p>
+          <p className="text-slate-400">Coming soon</p>
+        </div>
+      </aside>
+
+      {/* Main month view */}
+      <div className="flex min-w-0 flex-1 flex-col space-y-4">
+        {/* Calendar header controls */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-lg font-semibold text-slate-900">Calendar</h1>
+            <button
+              type="button"
+              onClick={goToToday}
+              className="inline-flex items-center rounded-full border border-slate-200/80 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+            >
+              Today
+            </button>
+            <div className="inline-flex items-center rounded-full border border-slate-200/80 bg-white px-1 py-0.5 text-slate-600 shadow-sm">
+              <button
+                type="button"
+                onClick={goPrevMonth}
+                className="inline-flex h-7 w-7 items-center justify-center rounded-full hover:bg-slate-50"
+                aria-label="Previous month"
+              >
+                <svg
+                  className="h-3 w-3"
+                  viewBox="0 0 20 20"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M12 4 6 10l6 6" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                onClick={goNextMonth}
+                className="inline-flex h-7 w-7 items-center justify-center rounded-full hover:bg-slate-50"
+                aria-label="Next month"
+              >
+                <svg
+                  className="h-3 w-3"
+                  viewBox="0 0 20 20"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="m8 4 6 6-6 6" />
+                </svg>
+              </button>
+            </div>
+            <span className="text-sm font-medium text-slate-800">
+              {view === "month" && formatMonthYear(visibleMonth)}
+              {view === "day" &&
+                selectedDate &&
+                selectedDate.toLocaleDateString(undefined, {
+                  weekday: "long",
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })}
+              {view === "range" && activeRangeDates.length > 0 && (
+                <>
+                  {activeRangeDates[0].toLocaleDateString(undefined, {
+                    month: "short",
+                    day: "numeric",
+                  })}
+                  {" – "}
+                  {activeRangeDates[activeRangeDates.length - 1].toLocaleDateString(
+                    undefined,
+                    {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    },
+                  )}
+                </>
+              )}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-slate-600">
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setViewMenuOpen((prev) => !prev)}
+                className="inline-flex items-center gap-1 rounded-full border border-slate-200/80 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+              >
+                {view === "month"
+                  ? "Month"
+                  : activeRangeDates.length === 1
+                    ? "Day"
+                    : "Week"}
+                <svg
+                  className="h-3 w-3 text-slate-500"
+                  viewBox="0 0 20 20"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.7"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="m6 8 4 4 4-4" />
+                </svg>
+              </button>
+              {viewMenuOpen ? (
+                <div className="absolute right-0 z-20 mt-1 min-w-[120px] rounded-xl border border-slate-200 bg-white py-1 text-xs shadow-lg">
+                  <button
+                    type="button"
+                    onClick={handleSelectDayView}
+                    className="block w-full px-3 py-1.5 text-left text-slate-700 hover:bg-slate-50"
+                  >
+                    Day
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSelectWeekView}
+                    className="block w-full px-3 py-1.5 text-left text-slate-700 hover:bg-slate-50"
+                  >
+                    Week
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSelectMonthView}
+                    className="block w-full px-3 py-1.5 text-left text-slate-700 hover:bg-slate-50"
+                  >
+                    Month
+                  </button>
+                </div>
+              ) : null}
+            </div>
+            <Link
+              href="/appointments/cancelled"
+              className="inline-flex items-center rounded-full border border-rose-200/80 bg-white px-3 py-1.5 text-xs font-medium text-rose-600 shadow-sm hover:bg-rose-50"
+            >
+              Cancelled
+            </Link>
+          </div>
+        </div>
+        {view === "month" ? (
+          <div className="flex-1 rounded-3xl border border-slate-200/80 bg-white/95 text-xs shadow-[0_18px_40px_rgba(15,23,42,0.10)]">
+            <div className="grid grid-cols-7 border-b border-slate-100 bg-slate-50/80 text-[11px] font-medium uppercase tracking-wide text-slate-500">
+              {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((label) => (
+                <div key={label} className="px-3 py-2">
+                  {label}
+                </div>
+              ))}
+            </div>
+            <div className="grid flex-1 grid-cols-7 text-[11px]">
+              {gridDates.map((date) => {
+                const ymd = formatYmd(date);
+                const isToday = ymd === todayYmd;
+                const isCurrentMonth = date.getMonth() === visibleMonthIndex;
+
+                // Highlight if inside selected range
+                const inRange = activeRangeDates.some(
+                  (rangeDate) => formatYmd(rangeDate) === ymd,
+                );
+
+                return (
+                  <div
+                    key={ymd}
+                    onClick={() => handleMonthDayClick(date)}
+                    onMouseDown={() => handleMiniDayMouseDown(date)}
+                    onMouseEnter={() => handleMiniDayMouseEnter(date)}
+                    className={`flex min-h-[96px] flex-col border-b border-r border-slate-100 px-2 py-1 text-left last:border-r-0 ${
+                      isCurrentMonth ? "bg-white" : "bg-slate-50/80 text-slate-400"
+                    } ${inRange ? "bg-sky-50" : ""}`}
+                  >
+                    <div className="mb-1 flex items-center justify-between text-[11px]">
+                      <span
+                        className={`inline-flex h-5 w-5 items-center justify-center rounded-full ${
+                          isToday ? "bg-sky-600 text-white" : "text-slate-700"
+                        }`}
+                      >
+                        {date.getDate()}
+                      </span>
+                    </div>
+                    <div className="space-y-0.5">
+                      {appointmentsByDay[ymd] &&
+                        appointmentsByDay[ymd].map((appt) => {
+                          const start = new Date(appt.start_time);
+                          const end = appt.end_time ? new Date(appt.end_time) : null;
+                          const timeLabel = formatTimeRangeLabel(start, end);
+                          const { serviceLabel } = getServiceAndStatusFromReason(
+                            appt.reason,
+                          );
+
+                          const patientName = `${appt.patient?.first_name ?? ""} ${
+                            appt.patient?.last_name ?? ""
+                          }`
+                            .trim()
+                            .replace(/\s+/g, " ");
+
+                          const doctorFromReason = getDoctorNameFromReason(appt.reason);
+                          const providerName = (appt.provider?.name ?? "").trim().toLowerCase();
+                          const doctorKey = (doctorFromReason ?? providerName).trim().toLowerCase();
+                          const doctorCalendar = doctorCalendars.find(
+                            (calendar) => calendar.name.trim().toLowerCase() === doctorKey,
+                          );
+                          const doctorColor = doctorCalendar?.color ?? "";
+
+                          return (
+                            <button
+                              key={appt.id}
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                openEditModalForAppointment(appt);
+                              }}
+                              className={`w-full rounded-md px-1 py-0.5 text-[10px] text-left ${getAppointmentStatusColorClasses(
+                                appt.status,
+                              )} ${doctorColor}`}
+                            >
+                              <div className="truncate font-medium text-slate-800">
+                                {patientName || serviceLabel}
+                              </div>
+                              <div className="truncate text-[10px] text-slate-500">
+                                {timeLabel} {serviceLabel ? `• ${serviceLabel}` : ""}
+                              </div>
+                            </button>
+                          );
+                        })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          <div className="flex-1 overflow-hidden rounded-3xl border border-slate-200/80 bg-white/95 text-xs shadow-[0_18px_40px_rgba(15,23,42,0.10)]">
+            <div className="flex h-full">
+              {/* Time axis */}
+              <div className="w-16 border-r border-slate-100 bg-slate-50/80">
+                {/* Spacer to align 8:00 AM label with first timeslot row */}
+                <div
+                  className="border-b border-slate-100"
+                  style={{ height: DAY_VIEW_SLOT_HEIGHT }}
+                />
+                {timeSlots.map((totalMinutes) => (
+                  <div
+                    key={totalMinutes}
+                    className="flex items-start justify-end pr-2 text-[10px] text-slate-400"
+                    style={{ height: DAY_VIEW_SLOT_HEIGHT }}
+                  >
+                    {formatTimeLabel(totalMinutes)}
+                  </div>
+                ))}
+              </div>
+              {/* Day columns */}
+              <div className="flex-1 overflow-auto">
+                <div className="min-w-full">
+                  {/* Header row for each day in the range */}
+                  <div className="flex border-b border-slate-100 bg-slate-50/80 text-[11px] font-medium text-slate-500">
+                    {activeRangeDates.map((date) => (
+                      <div
+                        key={formatYmd(date)}
+                        className="flex-1 px-2 py-2 text-center border-r border-slate-100 last:border-r-0"
+                      >
+                        <div className="text-[10px] uppercase tracking-wide text-slate-500">
+                          {date.toLocaleDateString(undefined, { weekday: "short" })}
+                        </div>
+                        <div className="text-sm font-semibold text-slate-800">
+                          {date.getDate()}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {/* Columns with vertical separators and appointments */}
+                  <div
+                    className="flex relative"
+                    style={{
+                      height:
+                        (DAY_VIEW_END_MINUTES - DAY_VIEW_START_MINUTES) *
+                        (DAY_VIEW_SLOT_HEIGHT / DAY_VIEW_SLOT_MINUTES),
+                    }}
+                  >
+                    {activeRangeDates.map((date) => {
+                      const ymd = formatYmd(date);
+                      const dayAppointments = appointmentsByDay[ymd] ?? [];
+
+                      return (
+                        <div
+                          key={ymd}
+                          className="relative flex-1 border-r border-slate-100 last:border-r-0"
+                        >
+                          {/* Horizontal slot lines / clickable empty timeslots */}
+                          {timeSlots.map((totalMinutes) => (
+                            <button
+                              key={totalMinutes}
+                              type="button"
+                              onClick={() => {
+                                const year = date.getFullYear();
+                                const month = `${date.getMonth() + 1}`.padStart(2, "0");
+                                const day = `${date.getDate()}`.padStart(2, "0");
+                                const hours = Math.floor(totalMinutes / 60);
+                                const minutes = totalMinutes % 60;
+                                const timeValue = `${hours.toString().padStart(2, "0")}:${minutes
+                                  .toString()
+                                  .padStart(2, "0")}`;
+
+                                setDraftDate(`${year}-${month}-${day}`);
+                                setDraftTime(timeValue);
+                                setDraftTitle("");
+                                setCreatePatientSearch("");
+                                setCreatePatientId(null);
+                                setCreatePatientName("");
+                                setConsultationDuration(15);
+                                setSelectedServiceId("");
+                                setBookingStatus("physical");
+                                setDraftLocation("");
+                                setDraftMeetLink("");
+                                setDraftDescription("");
+                                const defaultCalendar =
+                                  doctorCalendars.find((calendar) => calendar.selected) ||
+                                  doctorCalendars[0] ||
+                                  null;
+                                setCreateDoctorCalendarId(defaultCalendar?.id ?? "");
+                                setCreateModalOpen(true);
+                              }}
+                              className="block w-full border-t border-slate-100 text-left focus:outline-none"
+                              style={{ height: DAY_VIEW_SLOT_HEIGHT, background: "transparent" }}
+                            />
+                          ))}
+
+                          {dayAppointments.map((appt) => {
+                            const start = new Date(appt.start_time);
+                            if (Number.isNaN(start.getTime())) return null;
+
+                            const rawStartMinutes =
+                              start.getHours() * 60 + start.getMinutes();
+                            const topMinutes = Math.max(
+                              rawStartMinutes - DAY_VIEW_START_MINUTES,
+                              0,
+                            );
+
+                            let end = appt.end_time ? new Date(appt.end_time) : null;
+                            let endMinutes =
+                              end && !Number.isNaN(end.getTime())
+                                ? end.getHours() * 60 + end.getMinutes()
+                                : rawStartMinutes + DAY_VIEW_SLOT_MINUTES * 2;
+
+                            endMinutes = Math.min(endMinutes, DAY_VIEW_END_MINUTES);
+                            const durationMinutes = Math.max(
+                              endMinutes - rawStartMinutes,
+                              DAY_VIEW_SLOT_MINUTES,
+                            );
+
+                            const top =
+                              (topMinutes / DAY_VIEW_SLOT_MINUTES) *
+                              DAY_VIEW_SLOT_HEIGHT;
+                            const height =
+                              (durationMinutes / DAY_VIEW_SLOT_MINUTES) *
+                              DAY_VIEW_SLOT_HEIGHT;
+
+                            const { serviceLabel } = getServiceAndStatusFromReason(
+                              appt.reason,
+                            );
+                            const timeLabel = formatTimeRangeLabel(
+                              start,
+                              end && !Number.isNaN(end.getTime()) ? end : null,
+                            );
+
+                            const doctorFromReason = getDoctorNameFromReason(appt.reason);
+                            const providerName = (appt.provider?.name ?? "").trim().toLowerCase();
+                            const doctorKey = (doctorFromReason ?? providerName).trim().toLowerCase();
+                            const doctorCalendar = doctorCalendars.find(
+                              (calendar) => calendar.name.trim().toLowerCase() === doctorKey,
+                            );
+                            const doctorColor = doctorCalendar?.color ?? "";
+
+                            const patientName = `${appt.patient?.first_name ?? ""} ${
+                              appt.patient?.last_name ?? ""
+                            }`
+                              .trim()
+                              .replace(/\s+/g, " ");
+
+                            return (
+                              <button
+                                key={`${ymd}-${appt.id}`}
+                                type="button"
+                                onClick={() => openEditModalForAppointment(appt)}
+                                className={`absolute left-2 right-2 rounded-md px-2 py-1 text-[11px] text-left shadow-sm ${getAppointmentStatusColorClasses(
+                                  appt.status,
+                                )} ${doctorColor}`}
+                                style={{
+                                  top,
+                                  height,
+                                }}
+                              >
+                                <div className="truncate font-medium text-slate-800">
+                                  {patientName || serviceLabel}
+                                </div>
+                                <div className="truncate text-[10px] text-slate-600">
+                                  {timeLabel} {serviceLabel ? `• ${serviceLabel}` : ""}
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        {editModalOpen && editingAppointment ? (
+          <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm">
+            <div className="w-full max-w-md rounded-2xl border border-slate-200/80 bg-white/95 p-4 text-xs shadow-[0_24px_60px_rgba(15,23,42,0.75)]">
+              <div className="flex items-start justify-between gap-2">
+                <h2 className="text-sm font-semibold text-slate-900">Edit Meeting</h2>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (savingEdit) return;
+                    setEditModalOpen(false);
+                    setEditingAppointment(null);
+                  }}
+                  className="ml-2 inline-flex h-6 w-6 items-center justify-center rounded-full border border-slate-200/80 bg-white text-slate-500 shadow-sm hover:bg-slate-50"
+                >
+                  <span className="sr-only">Close</span>
+                  <svg
+                    className="h-3 w-3"
+                    viewBox="0 0 20 20"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M5 5l10 10" />
+                    <path d="M15 5L5 15" />
+                  </svg>
+                </button>
+              </div>
+              <div className="mt-3 space-y-3">
+                <div className="space-y-1">
+                  <p className="text-[11px] font-medium text-slate-600">Client</p>
+                  <p className="text-[11px] text-slate-800">
+                    {(() => {
+                      const p = editingAppointment.patient;
+                      const name = p
+                        ? `${p.first_name ?? ""} ${p.last_name ?? ""}`.trim() ||
+                          "Unknown client"
+                        : "Unknown client";
+                      return name;
+                    })()}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[11px] font-medium text-slate-600">Workflow status</p>
+                  <div className="inline-flex flex-wrap gap-1">
+                    {(["pending", "approved", "rescheduled", "cancelled"] as WorkflowStatus[]).map(
+                      (status) => (
+                        <button
+                          key={status}
+                          type="button"
+                          onClick={() => setEditWorkflowStatus(status)}
+                          className={`inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-medium shadow-sm ${
+                            editWorkflowStatus === status
+                              ? "bg-sky-600 text-white"
+                              : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                          }`}
+                        >
+                          {status.charAt(0).toUpperCase() + status.slice(1)}
+                        </button>
+                      ),
+                    )}
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[11px] font-medium text-slate-600">Date &amp; time</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="date"
+                      value={editDate}
+                      onChange={(event) => setEditDate(event.target.value)}
+                      className="w-full rounded-lg border border-slate-200 bg-slate-50/80 px-2 py-1.5 text-xs text-slate-900 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                    />
+                    <input
+                      type="time"
+                      value={editTime}
+                      onChange={(event) => setEditTime(event.target.value)}
+                      step={15 * 60}
+                      className="w-full rounded-lg border border-slate-200 bg-slate-50/80 px-2 py-1.5 text-xs text-slate-900 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[11px] font-medium text-slate-600">Consultation duration</p>
+                  <select
+                    value={editConsultationDuration}
+                    onChange={(event) =>
+                      setEditConsultationDuration(
+                        Number(event.target.value) || DAY_VIEW_SLOT_MINUTES,
+                      )
+                    }
+                    className="w-full rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-1.5 text-xs text-slate-900 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                  >
+                    <option value={15}>15 minutes</option>
+                    <option value={45}>45 minutes</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[11px] font-medium text-slate-600">Location</p>
+                  <input
+                    type="text"
+                    value={editLocation}
+                    onChange={(event) => setEditLocation(event.target.value)}
+                    placeholder="Enter location"
+                    className="w-full rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-1.5 text-xs text-slate-900 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[11px] font-medium text-slate-600">Meeting Type</p>
+                  <p className="text-[11px] text-slate-800">
+                    {editBookingStatus || "Physical"}
+                  </p>
+                </div>
+              </div>
+              {editError ? (
+                <p className="mt-2 text-[11px] text-red-600">{editError}</p>
+              ) : null}
+              <div className="mt-4 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (savingEdit) return;
+                    setEditModalOpen(false);
+                    setEditingAppointment(null);
+                  }}
+                  className="inline-flex items-center rounded-full border border-slate-200/80 bg-white px-3 py-1.5 text-[11px] font-medium text-slate-700 shadow-sm hover:bg-slate-50 btn-tertiary"
+                >
+                  Close
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleSaveEditAppointment()}
+                  disabled={savingEdit}
+                  className="inline-flex items-center rounded-full border border-sky-500/80 bg-sky-600 px-3 py-1.5 text-[11px] font-medium text-white shadow-sm hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60 btn-primary"
+                >
+                  Save changes
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+        {createModalOpen ? (
+          <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm">
+            <div className="w-full max-w-md rounded-2xl border border-slate-200/80 bg-white/95 p-4 text-xs shadow-[0_24px_60px_rgba(15,23,42,0.65)]">
+              <div className="flex items-start justify-between gap-2">
+                <h2 className="text-sm font-semibold text-slate-900">Add Meeting</h2>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (savingCreate) return;
+                    setCreateModalOpen(false);
+                  }}
+                  className="ml-2 inline-flex h-6 w-6 items-center justify-center rounded-full border border-slate-200/80 bg-white text-slate-500 shadow-sm hover:bg-slate-50"
+                >
+                  <span className="sr-only">Close</span>
+                  <svg
+                    className="h-3 w-3"
+                    viewBox="0 0 20 20"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M5 5l10 10" />
+                    <path d="M15 5L5 15" />
+                  </svg>
+                </button>
+              </div>
+              <div className="mt-3 space-y-3">
+                <div className="space-y-1">
+                  <p className="text-[11px] font-medium text-slate-600">Contact</p>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={createPatientSearch}
+                      onChange={(event) => {
+                        setCreatePatientSearch(event.target.value);
+                        setShowCreatePatientSuggestions(true);
+                        setCreatePatientId(null);
+                        setCreatePatientName("");
+                        setConsultationDuration(15);
+                      }}
+                      onFocus={() => setShowCreatePatientSuggestions(true)}
+                      placeholder="Select contact"
+                      className="w-full rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-1.5 text-xs text-slate-900 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                    />
+                    {showCreatePatientSuggestions ? (
+                      <div className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 text-xs shadow-lg">
+                        {patientOptionsLoading ? (
+                          <div className="px-3 py-1.5 text-[11px] text-slate-500">
+                            Loading contacts...
+                          </div>
+                        ) : filteredCreatePatientSuggestions.length === 0 ? (
+                          <div className="px-3 py-1.5 text-[11px] text-slate-500">
+                            No contacts found
+                          </div>
+                        ) : (
+                          filteredCreatePatientSuggestions.map((p) => {
+                            const name = `${p.first_name ?? ""} ${p.last_name ?? ""}`
+                              .trim() || "Unnamed contact";
+                            const details =
+                              p.email || p.phone || "No contact details";
+                            return (
+                              <button
+                                key={p.id}
+                                type="button"
+                                className="flex w-full flex-col items-start px-3 py-1.5 text-left hover:bg-slate-50"
+                                onClick={() => {
+                                  setCreatePatientId(p.id);
+                                  setCreatePatientName(name);
+                                  setCreatePatientSearch(name);
+                                  setShowCreatePatientSuggestions(false);
+                                  setConsultationDuration(15);
+                                  setDraftTitle(`Consultation for ${name}`);
+                                }}
+                              >
+                                <span className="text-[11px] font-medium text-slate-800">
+                                  {name}
+                                </span>
+                                <span className="text-[10px] text-slate-500">
+                                  {details}
+                                </span>
+                              </button>
+                            );
+                          })
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
+                  {patientOptionsError ? (
+                    <p className="text-[10px] text-red-600">
+                      {patientOptionsError}
+                    </p>
+                  ) : null}
+                </div>
+                <div className="space-y-1">
+                  <input
+                    type="text"
+                    value={draftTitle}
+                    onChange={(event) => setDraftTitle(event.target.value)}
+                    className="w-full border-b border-slate-200 bg-transparent px-0 pb-1 text-sm font-semibold text-slate-900 placeholder:text-slate-400 focus:border-sky-500 focus:outline-none"
+                    placeholder="Add title"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[11px] font-medium text-slate-600">User</p>
+                  <select
+                    value={createDoctorCalendarId}
+                    onChange={(event) => setCreateDoctorCalendarId(event.target.value)}
+                    className="w-full rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-1.5 text-xs text-slate-900 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                  >
+                    <option value="">
+                      {doctorCalendars.length === 0
+                        ? "No users available"
+                        : "Select user"}
+                    </option>
+                    {doctorCalendars.map((calendar) => (
+                      <option key={calendar.id} value={calendar.id}>
+                        {calendar.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[11px] font-medium text-slate-600">Date &amp; time</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="date"
+                      value={draftDate}
+                      onChange={(event) => {
+                        setDraftDate(event.target.value);
+                        setDraftTime("");
+                      }}
+                      className="w-full rounded-lg border border-slate-200 bg-slate-50/80 px-2 py-1.5 text-xs text-slate-900 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                    />
+                    <select
+                      value={draftTime}
+                      onChange={(event) => setDraftTime(event.target.value)}
+                      disabled={!draftDate || availableTimeOptions.length === 0}
+                      className="w-full rounded-lg border border-slate-200 bg-slate-50/80 px-2 py-1.5 text-xs text-slate-900 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 disabled:cursor-not-allowed disabled:bg-slate-50"
+                    >
+                      <option value="">
+                        {!draftDate
+                          ? "Select a date first"
+                          : availableTimeOptions.length === 0
+                            ? "No available times"
+                            : "Select time"}
+                      </option>
+                      {availableTimeOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[11px] font-medium text-slate-600">Meeting Type</p>
+                  <select
+                    value={bookingStatus}
+                    onChange={(event) => setBookingStatus(event.target.value)}
+                    className="w-full rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-1.5 text-xs text-slate-900 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                  >
+                    {MEETING_TYPE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {bookingStatus === "online" && (
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <p className="text-[11px] font-medium text-slate-600">Google Meet Link</p>
+                      <button
+                        type="button"
+                        onClick={() => setDraftMeetLink(generateGoogleMeetLink())}
+                        className="text-[10px] font-medium text-sky-600 hover:text-sky-700"
+                      >
+                        Generate Link
+                      </button>
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={draftMeetLink}
+                        onChange={(event) => setDraftMeetLink(event.target.value)}
+                        placeholder="https://meet.google.com/xxx-xxxx-xxx"
+                        className="flex-1 rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-1.5 text-xs text-slate-900 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                      />
+                      {draftMeetLink && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(draftMeetLink);
+                          }}
+                          className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[10px] font-medium text-slate-600 shadow-sm hover:bg-slate-50"
+                        >
+                          Copy
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+                <div className="space-y-1">
+                  <p className="text-[11px] font-medium text-slate-600">Location</p>
+                  <input
+                    type="text"
+                    value={draftLocation}
+                    onChange={(event) => setDraftLocation(event.target.value)}
+                    placeholder={bookingStatus === "online" ? "Optional for online meetings" : "Enter location"}
+                    className="w-full rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-1.5 text-xs text-slate-900 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[11px] font-medium text-slate-600">Consultation duration</p>
+                  <select
+                    value={consultationDuration}
+                    onChange={(event) =>
+                      setConsultationDuration(Number(event.target.value) || 15)
+                    }
+                    className="w-full rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-1.5 text-xs text-slate-900 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                  >
+                    <option value={15}>15 minutes</option>
+                    <option value={45}>45 minutes</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[11px] font-medium text-slate-600">Description</p>
+                  <textarea
+                    value={draftDescription}
+                    onChange={(event) => setDraftDescription(event.target.value)}
+                    rows={3}
+                    className="w-full rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2 text-xs text-slate-900 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                    placeholder="Add notes for this appointment"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[11px] font-medium text-slate-600">Members / Attendees</p>
+                  {attendeeIds.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mb-1">
+                      {attendeeIds.map((id) => {
+                        const user = providers.find((p) => p.id === id);
+                        return (
+                          <span key={id} className="inline-flex items-center gap-1 rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-medium text-sky-700">
+                            {user?.name || id}
+                            <button type="button" onClick={() => setAttendeeIds((prev) => prev.filter((x) => x !== id))} className="ml-0.5 hover:text-sky-900">×</button>
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={attendeeSearch}
+                      onChange={(e) => { setAttendeeSearch(e.target.value); setShowAttendeeSuggestions(true); }}
+                      onFocus={() => setShowAttendeeSuggestions(true)}
+                      placeholder="Search and add members..."
+                      className="w-full rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-1.5 text-xs text-slate-900 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                    />
+                    {showAttendeeSuggestions && attendeeSearch && (
+                      <div className="absolute z-20 mt-1 max-h-40 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 text-xs shadow-lg">
+                        {providers
+                          .filter((p) => (p.name || "").toLowerCase().includes(attendeeSearch.toLowerCase()) && !attendeeIds.includes(p.id))
+                          .slice(0, 8)
+                          .map((p) => (
+                            <button
+                              key={p.id}
+                              type="button"
+                              className="flex w-full items-center px-3 py-1.5 text-left hover:bg-slate-50"
+                              onClick={() => { setAttendeeIds((prev) => [...prev, p.id]); setAttendeeSearch(""); setShowAttendeeSuggestions(false); }}
+                            >
+                              <span className="text-[11px] font-medium text-slate-800">{p.name}</span>
+                            </button>
+                          ))}
+                        {providers.filter((p) => (p.name || "").toLowerCase().includes(attendeeSearch.toLowerCase()) && !attendeeIds.includes(p.id)).length === 0 && (
+                          <div className="px-3 py-1.5 text-[11px] text-slate-500">No users found</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[11px] font-medium text-slate-600">Company <span className="text-slate-400">(optional)</span></p>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={companySearch}
+                      onChange={(e) => {
+                        setCompanySearch(e.target.value);
+                        setShowCompanySuggestions(true);
+                        if (!e.target.value) setSelectedCompanyId(null);
+                      }}
+                      onFocus={() => setShowCompanySuggestions(true)}
+                      placeholder="Tag a company..."
+                      className="w-full rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-1.5 text-xs text-slate-900 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                    />
+                    {showCompanySuggestions && companySearch && (
+                      <div className="absolute z-20 mt-1 max-h-40 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 text-xs shadow-lg">
+                        {companyOptions
+                          .filter((c) => c.name.toLowerCase().includes(companySearch.toLowerCase()))
+                          .slice(0, 8)
+                          .map((company) => (
+                            <button
+                              key={company.id}
+                              type="button"
+                              className="flex w-full items-center px-3 py-1.5 text-left hover:bg-slate-50"
+                              onClick={() => {
+                                setSelectedCompanyId(company.id);
+                                setCompanySearch(company.name);
+                                setShowCompanySuggestions(false);
+                              }}
+                            >
+                              <span className="text-[11px] font-medium text-slate-800">{company.name}</span>
+                            </button>
+                          ))}
+                        {companyOptions.filter((c) => c.name.toLowerCase().includes(companySearch.toLowerCase())).length === 0 && (
+                          <div className="px-3 py-1.5 text-[11px] text-slate-500">No companies found</div>
+                        )}
+                      </div>
+                    )}
+                    {selectedCompanyId && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedCompanyId(null);
+                          setCompanySearch("");
+                        }}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      >
+                        <svg className="h-3 w-3" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 5l10 10M15 5L5 15"/></svg>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+              {createError ? (
+                <p className="mt-2 text-[11px] text-red-600">{createError}</p>
+              ) : null}
+              <div className="mt-4 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (savingCreate) return;
+                    setCreateModalOpen(false);
+                  }}
+                  className="inline-flex items-center rounded-full border border-slate-200/80 bg-white px-3 py-1.5 text-[11px] font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleSaveAppointment()}
+                  disabled={savingCreate}
+                  className="inline-flex items-center rounded-full border border-sky-500/80 bg-sky-600 px-3 py-1.5 text-[11px] font-medium text-white shadow-sm hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
