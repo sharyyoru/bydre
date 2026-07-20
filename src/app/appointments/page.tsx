@@ -294,10 +294,10 @@ async function sendAppointmentConfirmationEmail(
         <a href="${preConsultationUrl}">Pre Consultation Link</a>
       </p>
       <p>
-        <strong>Maison Toa</strong><br />
-        <strong>GENEVE</strong><br />
-        Rue du Rhône 17, 1204, Switzerland<br />
-        📞 0227322223 ✉️ info@aesthetics-ge.ch<br /><br />
+        <strong>DRE Homes</strong><br />
+        <strong>DUBAI</strong><br />
+        Dubai, UAE<br />
+        📞 +971 4 433 2156 ✉️ info@drehomes.com<br /><br />
         <strong>GSTAAD</strong><br />
         Gsteigstrasse 70, 3780, Switzerland<br />
         📞 +41 337 483 437 ✉️ info@aesthetics-ge.ch<br /><br />

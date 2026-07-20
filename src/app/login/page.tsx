@@ -7,15 +7,15 @@ export default function LoginPage() {
       <div className="w-full max-w-md rounded-3xl border border-white/70 bg-white/90 p-6 text-sm shadow-[0_22px_50px_rgba(15,23,42,0.18)] backdrop-blur-xl">
         <div className="mb-5 flex items-center justify-between gap-4">
           <Image
-            src="/logos/cream-logo.png"
+            src="/cream-logo.webp"
             alt="Cream logo"
             width={96}
             height={32}
             className="h-8 w-auto"
           />
           <Image
-            src="/logos/mutant-logo.avif"
-            alt="Maison Tōa logo"
+            src="/dre-logo.png"
+            alt="DRE logo"
             width={96}
             height={32}
             className="h-7 w-auto"

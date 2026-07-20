@@ -93,7 +93,7 @@ const translations: Record<Language, {
   submitErrorGeneric: string;
 }> = {
   en: {
-    brandTitle: "Maison Toa",
+    brandTitle: "DRE Homes",
     searchTitle: "Search",
     searchEmailLabel: "Email",
     searchButton: "Search",
@@ -171,7 +171,7 @@ const translations: Record<Language, {
     submitErrorGeneric: "Unexpected error submitting the form. Please try again.",
   },
   fr: {
-    brandTitle: "Maison Toa",
+    brandTitle: "DRE Homes",
     searchTitle: "Rechercher",
     searchEmailLabel: "Email",
     searchButton: "Rechercher",
@@ -1185,7 +1185,7 @@ export default function LeadForm() {
       <header className="flex items-center justify-between px-6 py-4">
         <div className="flex items-center gap-3">
           <Image
-            src="/logos/mutant-logo.avif"
+            src="/dre-logo.png"
             alt={t.brandTitle}
             width={40}
             height={40}

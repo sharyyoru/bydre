@@ -93,8 +93,8 @@ export function Sidebar({ mobile, collapsed = false, onToggle }: { mobile?: bool
           />
         ) : (
           <Image
-            src="/dre-logo.png"
-            alt="DreHomes"
+            src="/cream-logo.webp"
+            alt="Cream"
             width={120}
             height={120}
             className="w-[120px] h-auto rounded-xl bg-white mb-3 object-contain"

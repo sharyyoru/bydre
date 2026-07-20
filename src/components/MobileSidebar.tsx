@@ -288,7 +288,7 @@ export default function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
         {/* Header with logo and close button */}
         <div className="relative flex items-center justify-between px-4 py-4 border-b border-slate-200/50">
           <Image
-            src="/logos/cream-logo.png"
+            src="/cream-logo.webp"
             alt="Cream logo"
             width={100}
             height={24}

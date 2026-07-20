@@ -89,7 +89,7 @@ export default function RootLayout({
               
               <div className="relative mb-5 flex justify-center px-2">
                 <Image
-                  src="/logos/cream-logo.png"
+                  src="/cream-logo.webp"
                   alt="Cream logo"
                   width={120}
                   height={28}
@@ -132,8 +132,8 @@ export default function RootLayout({
                             className="inline-flex items-center"
                           >
                             <Image
-                              src="/logos/mutant-logo.avif"
-                              alt="Maison Tōa logo"
+                              src="/dre-logo.png"
+                              alt="DRE logo"
                               width={76}
                               height={28}
                               className="h-6 sm:h-7 w-auto"
