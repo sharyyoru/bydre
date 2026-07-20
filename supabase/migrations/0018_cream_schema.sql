@@ -87,11 +87,7 @@ alter table if exists projects
 alter table if exists projects
   add column if not exists project_type text check (project_type in ('social_media', 'website', 'branding'));
 
--- Link to social media calendar (social_projects)
-alter table if exists projects
-  add column if not exists social_calendar_id uuid references social_projects(id) on delete set null;
-
-create index if not exists projects_social_calendar_id_idx on projects(social_calendar_id);
+-- Link to social media calendar (social_projects) - added later after social_projects table exists
 
 -- agents
 create table if not exists agents (
@@ -1012,6 +1008,12 @@ create table if not exists social_projects (
 );
 
 create index if not exists social_projects_company_id_idx on social_projects(company_id);
+
+-- Add social_calendar_id foreign key to projects (now that social_projects exists)
+alter table if exists projects
+  add column if not exists social_calendar_id uuid references social_projects(id) on delete set null;
+
+create index if not exists projects_social_calendar_id_idx on projects(social_calendar_id);
 
 -- Subscriptions and verification tracking for social projects
 alter table if exists social_projects
