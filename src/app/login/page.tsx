@@ -23,10 +23,10 @@ export default function LoginPage() {
         </div>
         <div className="mb-5 space-y-1 text-center">
           <h1 className="text-base font-semibold text-slate-900">
-            Sign in to your CRM
+            Cream CRM - Sign In
           </h1>
           <p className="text-xs text-slate-500">
-            Use the credentials provided by your administrator.
+            Enter your credentials to access the workspace.
           </p>
         </div>
         <LoginForm />
