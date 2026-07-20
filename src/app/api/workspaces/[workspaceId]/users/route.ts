@@ -12,7 +12,7 @@ function adminClient() {
 }
 
 async function authorize(workspaceId: string) {
-  const supabase = createServerClient()
+  const supabase = await createServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
