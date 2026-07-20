@@ -1,9 +1,11 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { AppShell } from "@/components/app-shell"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { AutoCopySettings } from "@/components/workspace-settings/auto-copy-settings"
 
 type Member = {
   user_id: string
@@ -12,6 +14,8 @@ type Member = {
 }
 
 export default function SettingsPage() {
+  const params = useParams()
+  const workspaceId = params.id as string
   const [members, setMembers] = useState<Member[]>([])
 
   useEffect(() => {
@@ -32,24 +36,27 @@ export default function SettingsPage() {
   return (
     <AppShell>
       <h1 className="text-2xl font-bold text-[#0A1628] mb-6">Workspace settings</h1>
-      <Card className="rounded-2xl border-border/60">
-        <CardHeader>
-          <CardTitle>Members</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ul className="space-y-2">
-            {members.map((m) => (
-              <li key={m.user_id} className="flex items-center justify-between py-2 border-b last:border-0">
-                <span className="text-sm font-medium">
-                  {m.profiles?.full_name || m.profiles?.email}
-                </span>
-                <span className="text-xs text-muted-foreground capitalize">{m.role}</span>
-              </li>
-            ))}
-          </ul>
-          {members.length === 0 && <p className="text-sm text-muted-foreground">No members found.</p>}
-        </CardContent>
-      </Card>
+      <div className="space-y-6">
+        <AutoCopySettings workspaceId={workspaceId} />
+        <Card className="rounded-2xl border-border/60">
+          <CardHeader>
+            <CardTitle>Members</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2">
+              {members.map((m) => (
+                <li key={m.user_id} className="flex items-center justify-between py-2 border-b last:border-0">
+                  <span className="text-sm font-medium">
+                    {m.profiles?.full_name || m.profiles?.email}
+                  </span>
+                  <span className="text-xs text-muted-foreground capitalize">{m.role}</span>
+                </li>
+              ))}
+            </ul>
+            {members.length === 0 && <p className="text-sm text-muted-foreground">No members found.</p>}
+          </CardContent>
+        </Card>
+      </div>
     </AppShell>
   )
 }
