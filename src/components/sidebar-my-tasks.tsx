@@ -70,7 +70,7 @@ export function SidebarMyTasks() {
         const itemIds = assigneeData.map(a => a.item_id)
         console.log("Item IDs:", itemIds)
 
-        // Get all items assigned to current user
+        // Get all items assigned to current user (without large values field)
         const { data: assignedItems, error: itemsError } = await supabase
           .from("items")
           .select(`
@@ -80,8 +80,7 @@ export function SidebarMyTasks() {
             due_date,
             status_id,
             priority,
-            boards(name),
-            values
+            boards(name)
           `)
           .in("id", itemIds)
           .is("archived_at", null)
@@ -100,29 +99,15 @@ export function SidebarMyTasks() {
           return
         }
 
-        // Get status and priority columns to map values
-        const { data: columns } = await supabase
-          .from("columns")
-          .select("id, board_id, name, type, settings")
-          .in("type", ["status", "priority"])
-
-        console.log("Columns:", columns)
-
-        // Build task list with status and priority
+        // Build task list with status and priority from item fields
         const myTasks: MyTask[] = assignedItems.map((item: any) => {
-          const statusCol = columns?.find(c => c.board_id === item.board_id && c.type === "status")
-          const priorityCol = columns?.find(c => c.board_id === item.board_id && c.type === "priority")
-
-          const statusValue = statusCol ? item.values?.[statusCol.id] : item.status_id
-          const priorityValue = priorityCol ? item.values?.[priorityCol.id] : item.priority
-
           return {
             id: item.id,
             title: item.title,
             board_id: item.board_id,
             board_name: item.boards?.name || "Unknown",
-            status: statusValue || "not_started",
-            priority: priorityValue || "medium",
+            status: item.status_id || "not_started",
+            priority: item.priority || "medium",
             due_date: item.due_date,
           }
         })
