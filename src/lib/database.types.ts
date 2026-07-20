@@ -307,6 +307,29 @@ export interface Database {
           created_at?: string
         }
       }
+      task_assignees: {
+        Row: {
+          id: string
+          item_id: string
+          user_id: string
+          role: "shooter" | "editor" | "reviewer" | "other"
+          assigned_at: string
+        }
+        Insert: {
+          id?: string
+          item_id: string
+          user_id: string
+          role?: "shooter" | "editor" | "reviewer" | "other"
+          assigned_at?: string
+        }
+        Update: {
+          id?: string
+          item_id?: string
+          user_id?: string
+          role?: "shooter" | "editor" | "reviewer" | "other"
+          assigned_at?: string
+        }
+      }
     }
   }
 }

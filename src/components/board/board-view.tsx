@@ -18,6 +18,7 @@ import {
 import { CellEditor } from "./columns/cell-editor"
 import { ColumnDefinitionDialog } from "./columns/column-definition-dialog"
 import { ItemDetailDrawer } from "./item-detail-drawer"
+import { ItemRowTwoLine } from "./item-row-two-line"
 import { KanbanView } from "./views/kanban-view"
 import { AutomationBuilder } from "../automations/automation-builder"
 import { ActivityLog } from "../activity/activity-log"
@@ -473,87 +474,55 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
                     </tr>
                   </thead>
                   <tbody>
-                    {(filteredItems[group.id] || []).slice(0, visibleItemCounts[group.id] || ITEMS_PER_BATCH).map((item) => (
+                    {(filteredItems[group.id] || []).slice(0, visibleItemCounts[group.id] || ITEMS_PER_BATCH).map((item, itemIndex) => (
                       <Fragment key={item.id}>
-                        <tr
-                          key={item.id}
-                          className="border-t border-border/40 hover:bg-muted/20 cursor-pointer"
-                          onClick={() => setSelectedItem(item)}
-                        >
-                          <td className="min-w-[260px] px-4 py-3 font-medium text-[#0A1628]">
-                            <div className="flex items-center gap-2">
-                              <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-muted-foreground hover:text-[#0A1628]" aria-label={`View ${item.title}`} onClick={(event) => { event.stopPropagation(); setSelectedItem(item) }}><Eye className="h-4 w-4" /></Button>
-                              <Input
-                                key={`${item.id}-${item.title}`}
-                                defaultValue={item.title}
-                                onBlur={(e) => {
-                                  if (e.target.value !== item.title) updateItemTitle(item.id, e.target.value)
-                                }}
-                                onClick={(e) => e.stopPropagation()}
-                                className="h-7 w-full min-w-0 border-transparent bg-transparent px-0 hover:bg-white focus:bg-white focus:border-border"
-                              />
-                            </div>
-                          </td>
-                          {visibleColumns.map((column) => (
-                            <td
-                              key={column.id}
-                              className="px-4 py-3"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              {isNotesColumn(column) ? (
-                                <NotesPreview value={item.values?.[column.id]} onOpen={() => setSelectedItem(item)} />
-                              ) : (
-                                <CellEditor
-                                  column={column}
-                                  item={item}
-                                  members={members}
-                                  onChange={(value) => handleCellChange(item, column, value)}
-                                />
-                              )}
-                            </td>
-                          ))}
-                          <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}><Button variant="outline" size="sm" onClick={() => setSelectedItem(item)}>View</Button></td>
-                        </tr>
-                        {item.sub_items?.map((sub) => (
-                          <tr
-                            key={sub.id}
-                            className="border-t border-dashed border-border/30 hover:bg-muted/20 cursor-pointer bg-muted/10"
-                            onClick={() => setSelectedItem(sub)}
-                          >
-                            <td className="min-w-[260px] px-4 py-2 pl-10 font-medium text-[#0A1628]">
-                              <div className="flex items-center gap-2">
-                                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-muted-foreground hover:text-[#0A1628]" aria-label={`View ${sub.title}`} onClick={(event) => { event.stopPropagation(); setSelectedItem(sub) }}><Eye className="h-4 w-4" /></Button>
-                                <Input
-                                  key={`${sub.id}-${sub.title}`}
-                                  defaultValue={sub.title}
-                                  onBlur={(e) => {
-                                    if (e.target.value !== sub.title) updateItemTitle(sub.id, e.target.value)
-                                  }}
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="h-7 w-full min-w-0 border-transparent bg-transparent px-0 hover:bg-white focus:bg-white focus:border-border"
-                                />
-                              </div>
-                            </td>
-                            {visibleColumns.map((column) => (
-                              <td
-                                key={column.id}
-                                className="px-4 py-2"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                {isNotesColumn(column) ? (
-                                  <NotesPreview value={sub.values?.[column.id]} onOpen={() => setSelectedItem(sub)} />
-                                ) : (
-                                  <CellEditor
-                                    column={column}
-                                    item={sub}
-                                    members={members}
-                                    onChange={(value) => handleCellChange(sub, column, value)}
+                        <ItemRowTwoLine
+                          item={item}
+                          visibleColumns={visibleColumns}
+                          members={members}
+                          onTitleChange={(title) => updateItemTitle(item.id, title)}
+                          onCellChange={(columnId, value) => handleCellChange(item, visibleColumns.find(c => c.id === columnId)!, value)}
+                          onViewClick={() => setSelectedItem(item)}
+                          rowIndex={itemIndex}
+                        />
+                        {item.sub_items?.map((sub, subIndex) => (
+                          <Fragment key={sub.id}>
+                            <tr className="border-t border-dashed border-border/30 hover:bg-muted/20 cursor-pointer bg-muted/10">
+                              <td className="min-w-[260px] px-4 py-2 pl-10 font-medium text-[#0A1628]">
+                                <div className="flex items-center gap-2">
+                                  <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-muted-foreground hover:text-[#0A1628]" aria-label={`View ${sub.title}`} onClick={(event) => { event.stopPropagation(); setSelectedItem(sub) }}><Eye className="h-4 w-4" /></Button>
+                                  <Input
+                                    key={`${sub.id}-${sub.title}`}
+                                    defaultValue={sub.title}
+                                    onBlur={(e) => {
+                                      if (e.target.value !== sub.title) updateItemTitle(sub.id, e.target.value)
+                                    }}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="h-7 w-full min-w-0 border-transparent bg-transparent px-0 hover:bg-white focus:bg-white focus:border-border"
                                   />
-                                )}
+                                </div>
                               </td>
-                            ))}
-                            <td className="px-4 py-2" onClick={(e) => e.stopPropagation()}><Button variant="outline" size="sm" onClick={() => setSelectedItem(sub)}>View</Button></td>
-                          </tr>
+                              {visibleColumns.map((column) => (
+                                <td
+                                  key={column.id}
+                                  className="px-4 py-2"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {isNotesColumn(column) ? (
+                                    <NotesPreview value={sub.values?.[column.id]} onOpen={() => setSelectedItem(sub)} />
+                                  ) : (
+                                    <CellEditor
+                                      column={column}
+                                      item={sub}
+                                      members={members}
+                                      onChange={(value) => handleCellChange(sub, column, value)}
+                                    />
+                                  )}
+                                </td>
+                              ))}
+                              <td className="px-4 py-2" onClick={(e) => e.stopPropagation()}><Button variant="outline" size="sm" onClick={() => setSelectedItem(sub)}>View</Button></td>
+                            </tr>
+                          </Fragment>
                         ))}
                       </Fragment>
                     ))}
