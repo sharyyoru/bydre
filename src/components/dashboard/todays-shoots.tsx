@@ -107,23 +107,39 @@ export function TodaysShootsReport({ workspaceSlug }: { workspaceSlug: string })
         const shootTime = typeof shootTimeValue === 'string' ? shootTimeValue : null
         
         // Check if shoot is today
-        if (shootTime && shootTime >= todayStr && shootTime < tomorrowStr) {
-          const locationValue = itemValues.find(v => v.column_id === locationCol?.id)?.value
-          const crewValue = itemValues.find(v => v.column_id === crewCol?.id)?.value
+        if (shootTime) {
+          // Parse the shoot time - handle both formats: "dd/mm/yyyy hh:mm am/pm" and ISO format
+          let shootDate: Date | null = null
           
-          const assignees = (item as any).item_assignees || []
-          const owner = assignees[0]?.profiles
+          // Try parsing as ISO format first (YYYY-MM-DD)
+          if (shootTime.includes('-')) {
+            shootDate = new Date(shootTime)
+          } else if (shootTime.includes('/')) {
+            // Parse "dd/mm/yyyy hh:mm am/pm" format
+            const parts = shootTime.split(' ')
+            const datePart = parts[0] // "dd/mm/yyyy"
+            const [day, month, year] = datePart.split('/').map(Number)
+            shootDate = new Date(year, month - 1, day)
+          }
           
-          shootItems.push({
-            id: item.id,
-            title: item.title,
-            shoot_time: shootTime,
-            location: typeof locationValue === 'string' ? locationValue : null,
-            crew: typeof crewValue === 'string' ? crewValue : null,
-            owner_name: owner?.full_name || null,
-            owner_email: owner?.email || null,
-            board_id: item.board_id
-          })
+          if (shootDate && shootDate >= today && shootDate < tomorrow) {
+            const locationValue = itemValues.find(v => v.column_id === locationCol?.id)?.value
+            const crewValue = itemValues.find(v => v.column_id === crewCol?.id)?.value
+            
+            const assignees = (item as any).item_assignees || []
+            const owner = assignees[0]?.profiles
+            
+            shootItems.push({
+              id: item.id,
+              title: item.title,
+              shoot_time: shootTime,
+              location: typeof locationValue === 'string' ? locationValue : null,
+              crew: typeof crewValue === 'string' ? crewValue : null,
+              owner_name: owner?.full_name || null,
+              owner_email: owner?.email || null,
+              board_id: item.board_id
+            })
+          }
         }
       }
 

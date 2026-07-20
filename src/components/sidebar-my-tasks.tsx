@@ -29,7 +29,10 @@ export function SidebarMyTasks() {
 
       // Get current user
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      if (!user) {
+        console.log("No user logged in")
+        return
+      }
 
       // Get workspace slug
       const { data: workspace } = await supabase
@@ -42,21 +45,48 @@ export function SidebarMyTasks() {
         setWorkspaceSlug((workspace as { slug: string }).slug)
       }
 
+      // Get all items assigned to current user via item_assignees
+      const { data: assigneeData, error: assigneeError } = await supabase
+        .from("item_assignees")
+        .select("item_id")
+        .eq("user_id", user.id)
+
+      if (assigneeError) {
+        console.error("Error fetching assignees:", assigneeError)
+        return
+      }
+
+      if (!assigneeData || assigneeData.length === 0) {
+        setTasks([])
+        return
+      }
+
+      const itemIds = assigneeData.map(a => a.item_id)
+
       // Get all items assigned to current user
-      const { data: assignedItems } = await supabase
+      const { data: assignedItems, error: itemsError } = await supabase
         .from("items")
         .select(`
           id,
           title,
           board_id,
+          due_date,
           boards(name),
           values
         `)
-        .eq("item_assignees.user_id", user.id)
+        .in("id", itemIds)
         .is("archived_at", null)
         .is("parent_id", null)
 
-      if (!assignedItems) return
+      if (itemsError) {
+        console.error("Error fetching assigned items:", itemsError)
+        return
+      }
+
+      if (!assignedItems || assignedItems.length === 0) {
+        setTasks([])
+        return
+      }
 
       // Get status and priority columns to map values
       const { data: columns } = await supabase
