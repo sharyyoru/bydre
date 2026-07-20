@@ -18,6 +18,7 @@ type MyTask = {
 
 export function SidebarMyTasks() {
   const [tasks, setTasks] = useState<MyTask[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string | null>(null)
   const [priorityFilter, setPriorityFilter] = useState<string | null>(null)
@@ -25,95 +26,120 @@ export function SidebarMyTasks() {
 
   useEffect(() => {
     const fetchMyTasks = async () => {
-      const supabase = createClient()
+      try {
+        const supabase = createClient()
 
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        console.log("No user logged in")
-        return
-      }
-
-      // Get workspace slug
-      const { data: workspace } = await supabase
-        .from("workspaces")
-        .select("slug")
-        .limit(1)
-        .single()
-
-      if (workspace) {
-        setWorkspaceSlug((workspace as { slug: string }).slug)
-      }
-
-      // Get all items assigned to current user via item_assignees
-      const { data: assigneeData, error: assigneeError } = await supabase
-        .from("item_assignees")
-        .select("item_id")
-        .eq("user_id", user.id)
-
-      if (assigneeError) {
-        console.error("Error fetching assignees:", assigneeError)
-        return
-      }
-
-      if (!assigneeData || assigneeData.length === 0) {
-        setTasks([])
-        return
-      }
-
-      const itemIds = assigneeData.map(a => a.item_id)
-
-      // Get all items assigned to current user
-      const { data: assignedItems, error: itemsError } = await supabase
-        .from("items")
-        .select(`
-          id,
-          title,
-          board_id,
-          due_date,
-          boards(name),
-          values
-        `)
-        .in("id", itemIds)
-        .is("archived_at", null)
-        .is("parent_id", null)
-
-      if (itemsError) {
-        console.error("Error fetching assigned items:", itemsError)
-        return
-      }
-
-      if (!assignedItems || assignedItems.length === 0) {
-        setTasks([])
-        return
-      }
-
-      // Get status and priority columns to map values
-      const { data: columns } = await supabase
-        .from("columns")
-        .select("id, board_id, name, type, settings")
-        .in("type", ["status", "priority"])
-
-      // Build task list with status and priority
-      const myTasks: MyTask[] = assignedItems.map((item: any) => {
-        const statusCol = columns?.find(c => c.board_id === item.board_id && c.type === "status")
-        const priorityCol = columns?.find(c => c.board_id === item.board_id && c.type === "priority")
-
-        const statusValue = statusCol ? item.values?.[statusCol.id] : null
-        const priorityValue = priorityCol ? item.values?.[priorityCol.id] : "medium"
-
-        return {
-          id: item.id,
-          title: item.title,
-          board_id: item.board_id,
-          board_name: item.boards?.name || "Unknown",
-          status: statusValue || "not_started",
-          priority: priorityValue || "medium",
-          due_date: item.due_date,
+        // Get current user
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+          console.log("No user logged in")
+          setLoading(false)
+          return
         }
-      })
 
-      setTasks(myTasks)
+        console.log("Current user:", user.id)
+
+        // Get workspace slug
+        const { data: workspace } = await supabase
+          .from("workspaces")
+          .select("slug")
+          .limit(1)
+          .single()
+
+        if (workspace) {
+          setWorkspaceSlug((workspace as { slug: string }).slug)
+        }
+
+        // Get all items assigned to current user via item_assignees
+        const { data: assigneeData, error: assigneeError } = await supabase
+          .from("item_assignees")
+          .select("item_id")
+          .eq("user_id", user.id)
+
+        console.log("Assignee data:", assigneeData, "Error:", assigneeError)
+
+        if (assigneeError) {
+          console.error("Error fetching assignees:", assigneeError)
+          setLoading(false)
+          return
+        }
+
+        if (!assigneeData || assigneeData.length === 0) {
+          console.log("No assignments found")
+          setTasks([])
+          setLoading(false)
+          return
+        }
+
+        const itemIds = assigneeData.map(a => a.item_id)
+        console.log("Item IDs:", itemIds)
+
+        // Get all items assigned to current user
+        const { data: assignedItems, error: itemsError } = await supabase
+          .from("items")
+          .select(`
+            id,
+            title,
+            board_id,
+            due_date,
+            status_id,
+            priority,
+            boards(name),
+            values
+          `)
+          .in("id", itemIds)
+          .is("archived_at", null)
+          .is("parent_id", null)
+
+        console.log("Assigned items:", assignedItems, "Error:", itemsError)
+
+        if (itemsError) {
+          console.error("Error fetching assigned items:", itemsError)
+          setLoading(false)
+          return
+        }
+
+        if (!assignedItems || assignedItems.length === 0) {
+          console.log("No items found")
+          setTasks([])
+          setLoading(false)
+          return
+        }
+
+        // Get status and priority columns to map values
+        const { data: columns } = await supabase
+          .from("columns")
+          .select("id, board_id, name, type, settings")
+          .in("type", ["status", "priority"])
+
+        console.log("Columns:", columns)
+
+        // Build task list with status and priority
+        const myTasks: MyTask[] = assignedItems.map((item: any) => {
+          const statusCol = columns?.find(c => c.board_id === item.board_id && c.type === "status")
+          const priorityCol = columns?.find(c => c.board_id === item.board_id && c.type === "priority")
+
+          const statusValue = statusCol ? item.values?.[statusCol.id] : item.status_id
+          const priorityValue = priorityCol ? item.values?.[priorityCol.id] : item.priority
+
+          return {
+            id: item.id,
+            title: item.title,
+            board_id: item.board_id,
+            board_name: item.boards?.name || "Unknown",
+            status: statusValue || "not_started",
+            priority: priorityValue || "medium",
+            due_date: item.due_date,
+          }
+        })
+
+        console.log("Final tasks:", myTasks)
+        setTasks(myTasks)
+      } catch (err) {
+        console.error("Error in fetchMyTasks:", err)
+      } finally {
+        setLoading(false)
+      }
     }
 
     fetchMyTasks()
@@ -170,61 +196,63 @@ export function SidebarMyTasks() {
       </div>
 
       {/* Filters */}
-      <div className="space-y-2">
-        {statuses.length > 0 && (
-          <div>
-            <p className="text-xs font-medium text-muted-foreground mb-1">Status</p>
-            <div className="flex flex-wrap gap-1">
-              <button
-                onClick={() => setStatusFilter(null)}
-                className={`text-xs px-2 py-1 rounded border transition-colors ${
-                  !statusFilter ? "bg-[#D4AF37]/20 border-[#D4AF37]" : "border-border hover:bg-muted"
-                }`}
-              >
-                All
-              </button>
-              {statuses.map(status => (
+      {tasks.length > 0 && (
+        <div className="space-y-2">
+          {statuses.length > 0 && (
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-1">Status</p>
+              <div className="flex flex-wrap gap-1">
                 <button
-                  key={status}
-                  onClick={() => setStatusFilter(status)}
+                  onClick={() => setStatusFilter(null)}
                   className={`text-xs px-2 py-1 rounded border transition-colors ${
-                    statusFilter === status ? "bg-[#D4AF37]/20 border-[#D4AF37]" : "border-border hover:bg-muted"
+                    !statusFilter ? "bg-[#D4AF37]/20 border-[#D4AF37]" : "border-border hover:bg-muted"
                   }`}
                 >
-                  {status}
+                  All
                 </button>
-              ))}
+                {statuses.map(status => (
+                  <button
+                    key={status}
+                    onClick={() => setStatusFilter(status)}
+                    className={`text-xs px-2 py-1 rounded border transition-colors ${
+                      statusFilter === status ? "bg-[#D4AF37]/20 border-[#D4AF37]" : "border-border hover:bg-muted"
+                    }`}
+                  >
+                    {status}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {priorities.length > 0 && (
-          <div>
-            <p className="text-xs font-medium text-muted-foreground mb-1">Priority</p>
-            <div className="flex flex-wrap gap-1">
-              <button
-                onClick={() => setPriorityFilter(null)}
-                className={`text-xs px-2 py-1 rounded border transition-colors ${
-                  !priorityFilter ? "bg-[#D4AF37]/20 border-[#D4AF37]" : "border-border hover:bg-muted"
-                }`}
-              >
-                All
-              </button>
-              {priorities.map(priority => (
+          {priorities.length > 0 && (
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-1">Priority</p>
+              <div className="flex flex-wrap gap-1">
                 <button
-                  key={priority}
-                  onClick={() => setPriorityFilter(priority)}
+                  onClick={() => setPriorityFilter(null)}
                   className={`text-xs px-2 py-1 rounded border transition-colors ${
-                    priorityFilter === priority ? "bg-[#D4AF37]/20 border-[#D4AF37]" : "border-border hover:bg-muted"
+                    !priorityFilter ? "bg-[#D4AF37]/20 border-[#D4AF37]" : "border-border hover:bg-muted"
                   }`}
                 >
-                  <span className={getPriorityColor(priority)}>●</span> {priority}
+                  All
                 </button>
-              ))}
+                {priorities.map(priority => (
+                  <button
+                    key={priority}
+                    onClick={() => setPriorityFilter(priority)}
+                    className={`text-xs px-2 py-1 rounded border transition-colors ${
+                      priorityFilter === priority ? "bg-[#D4AF37]/20 border-[#D4AF37]" : "border-border hover:bg-muted"
+                    }`}
+                  >
+                    <span className={getPriorityColor(priority)}>●</span> {priority}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
       {/* Task List */}
       <div className="space-y-1 max-h-96 overflow-y-auto">
