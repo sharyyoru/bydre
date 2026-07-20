@@ -215,11 +215,18 @@ export function TodaysShootsReport({ workspaceSlug }: { workspaceSlug: string })
                   <div className="flex-1 min-w-0 space-y-1">
                     <div className="flex items-start justify-between gap-2">
                       <h4 className="font-medium text-sm text-[#0A1628]">{shoot.title}</h4>
-                      {shoot.shoot_time && (
-                        <span className="text-xs font-medium text-[#0A1628] whitespace-nowrap">
-                          {format(new Date(shoot.shoot_time), "h:mm a")}
-                        </span>
-                      )}
+                      <div className="flex flex-col items-end gap-0.5">
+                        {shoot.shoot_time && (
+                          <>
+                            <span className="text-xs font-medium text-[#0A1628] whitespace-nowrap">
+                              {format(new Date(shoot.shoot_time), "h:mm a")}
+                            </span>
+                            <span className="text-xs text-muted-foreground whitespace-nowrap">
+                              {format(new Date(shoot.shoot_time), "MMM d, yyyy")}
+                            </span>
+                          </>
+                        )}
+                      </div>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       {shoot.location && (

@@ -18,6 +18,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Wrench,
+  ListTodo,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -141,6 +142,18 @@ export function Sidebar({ mobile, collapsed = false, onToggle }: { mobile?: bool
             >
               <Users className="h-4 w-4" />
               {!collapsed && "Users"}
+            </Button>
+          </Link>
+
+          <Link href={`/workspace/${workspaceId || "drehomes"}/my-tasks`}>
+            <Button
+              variant="ghost"
+              className={`w-full justify-start gap-3 text-white/80 hover:bg-white/10 hover:text-white ${
+                pathname.includes("/my-tasks") ? "bg-white/10 text-white" : ""
+              }`}
+            >
+              <ListTodo className="h-4 w-4" />
+              {!collapsed && "My Tasks"}
             </Button>
           </Link>
 

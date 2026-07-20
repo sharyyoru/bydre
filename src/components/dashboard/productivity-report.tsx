@@ -147,9 +147,11 @@ export function ProductivityReport() {
                     <span>{name}</span>
                     <span>{count} tasks</span>
                   </div>
-                  <div className="h-2 rounded-full bg-muted">
-                    <div className="h-2 rounded-full bg-[#D4AF37]" style={{ width: `${maxCount > 0 ? Math.max(12, (count / maxCount) * 100) : 0}%` }} />
-                  </div>
+                  {count > 0 && (
+                    <div className="h-2 rounded-full bg-muted">
+                      <div className="h-2 rounded-full bg-[#D4AF37]" style={{ width: `${maxCount > 0 ? Math.max(12, (count / maxCount) * 100) : 0}%` }} />
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
