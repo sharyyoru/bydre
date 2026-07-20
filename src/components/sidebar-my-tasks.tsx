@@ -18,7 +18,6 @@ type MyTask = {
 
 export function SidebarMyTasks() {
   const [tasks, setTasks] = useState<MyTask[]>([])
-  const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string | null>(null)
   const [priorityFilter, setPriorityFilter] = useState<string | null>(null)
@@ -33,7 +32,6 @@ export function SidebarMyTasks() {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) {
           console.log("No user logged in")
-          setLoading(false)
           return
         }
 
@@ -60,14 +58,12 @@ export function SidebarMyTasks() {
 
         if (assigneeError) {
           console.error("Error fetching assignees:", assigneeError)
-          setLoading(false)
           return
         }
 
         if (!assigneeData || assigneeData.length === 0) {
           console.log("No assignments found")
           setTasks([])
-          setLoading(false)
           return
         }
 
@@ -95,14 +91,12 @@ export function SidebarMyTasks() {
 
         if (itemsError) {
           console.error("Error fetching assigned items:", itemsError)
-          setLoading(false)
           return
         }
 
         if (!assignedItems || assignedItems.length === 0) {
           console.log("No items found")
           setTasks([])
-          setLoading(false)
           return
         }
 
@@ -137,8 +131,6 @@ export function SidebarMyTasks() {
         setTasks(myTasks)
       } catch (err) {
         console.error("Error in fetchMyTasks:", err)
-      } finally {
-        setLoading(false)
       }
     }
 
