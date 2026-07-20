@@ -280,11 +280,85 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
     fetchAll()
   }
 
+  const createShootFromApproval = async (item: BoardItem) => {
+    const supabase = createClient()
+    // Find the Shoots board in the same workspace
+    const { data: shootsBoard } = await supabase
+      .from("boards")
+      .select("id")
+      .eq("workspace_id", board.workspace_id)
+      .eq("type", "shoots")
+      .is("archived_at", null)
+      .limit(1)
+      .maybeSingle()
+    if (!shootsBoard) return
+    const shootsBoardId = (shootsBoard as { id: string }).id
+
+    // Avoid duplicates: skip if a shoot with the same title already exists
+    const { data: existing } = await supabase
+      .from("items")
+      .select("id")
+      .eq("board_id", shootsBoardId)
+      .eq("title", item.title)
+      .limit(1)
+    if (existing && existing.length > 0) return
+
+    // Destination group (create one if the Shoots board has none)
+    let { data: group } = await supabase
+      .from("groups")
+      .select("id")
+      .eq("board_id", shootsBoardId)
+      .is("archived_at", null)
+      .order("position", { ascending: true })
+      .limit(1)
+      .maybeSingle()
+    if (!group) {
+      const { data: newGroup } = await supabase
+        .from("groups")
+        .insert({ board_id: shootsBoardId, name: "Shoots", color: "#3B82F6", position: 0 })
+        .select("id")
+        .single()
+      group = newGroup
+    }
+    if (!group) return
+
+    const { data: user } = await supabase.auth.getUser()
+    const { data: newItem, error } = await supabase
+      .from("items")
+      .insert({
+        board_id: shootsBoardId,
+        group_id: (group as { id: string }).id,
+        title: item.title,
+        type: "shoot",
+        priority: item.priority,
+        created_by: user.user?.id,
+        position: 0,
+      })
+      .select("id")
+      .single()
+    if (error || !newItem) return
+
+    // Notify admins that a shooter needs to be assigned
+    await supabase.from("workflow_notifications").insert({
+      workspace_id: board.workspace_id,
+      item_id: (newItem as { id: string }).id,
+      notification_type: "assign_shooter",
+    })
+    toast.success(`Added "${item.title}" to Shoots — assign a shooter`)
+  }
+
   const handleCellChange = (item: BoardItem, column: ColumnDefinition, value: any) => {
     if (column.type === "people") {
       updateAssignees(item.id, value || [])
-    } else {
-      updateItemValue(item.id, column.id, value)
+      return
+    }
+    updateItemValue(item.id, column.id, value)
+    // When a content item is approved, add it to the Shoots board
+    if (board.type === "content" && approvalColumn && column.id === approvalColumn.id) {
+      const approvedOption = approvalOptions.find((option) => option.name.toLowerCase() === "approved")
+      if (approvedOption && value === approvedOption.id) {
+        createShootFromApproval(item)
+      }
     }
   }
 

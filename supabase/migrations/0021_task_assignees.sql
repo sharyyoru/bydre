@@ -17,6 +17,7 @@ CREATE INDEX IF NOT EXISTS idx_task_assignees_role ON public.task_assignees(role
 ALTER TABLE public.task_assignees ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policy: Users can view assignees for items in their workspace
+DROP POLICY IF EXISTS "Users can view task assignees in their workspace" ON public.task_assignees;
 CREATE POLICY "Users can view task assignees in their workspace"
   ON public.task_assignees
   FOR SELECT
@@ -31,6 +32,7 @@ CREATE POLICY "Users can view task assignees in their workspace"
   );
 
 -- RLS Policy: Workspace admins can manage assignees
+DROP POLICY IF EXISTS "Workspace admins can manage task assignees" ON public.task_assignees;
 CREATE POLICY "Workspace admins can manage task assignees"
   ON public.task_assignees
   FOR ALL

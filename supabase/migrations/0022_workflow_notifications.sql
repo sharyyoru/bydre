@@ -21,6 +21,7 @@ CREATE INDEX IF NOT EXISTS idx_workflow_notifications_type ON public.workflow_no
 ALTER TABLE public.workflow_notifications ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policy: Workspace admins can view notifications
+DROP POLICY IF EXISTS "Workspace admins can view workflow notifications" ON public.workflow_notifications;
 CREATE POLICY "Workspace admins can view workflow notifications"
   ON public.workflow_notifications
   FOR SELECT
@@ -34,6 +35,7 @@ CREATE POLICY "Workspace admins can view workflow notifications"
   );
 
 -- RLS Policy: Workspace admins can manage notifications
+DROP POLICY IF EXISTS "Workspace admins can manage workflow notifications" ON public.workflow_notifications;
 CREATE POLICY "Workspace admins can manage workflow notifications"
   ON public.workflow_notifications
   FOR ALL
