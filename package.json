@@ -9,7 +9,8 @@
     "lint": "next lint",
     "seed:user": "node --env-file=.env.local scripts/seed-user.mjs",
     "import:trello": "node --env-file=.env.local scripts/import-trello-marketing.mjs",
-    "reassign:marketing": "node --env-file=.env.local scripts/reassign-imported-marketing-work.mjs"
+    "reassign:marketing": "node --env-file=.env.local scripts/reassign-imported-marketing-work.mjs",
+    "seed:strategy": "node --env-file=.env.local scripts/seed-strategy-content.mjs"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Progress } from "@/components/ui/progress"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Star } from "lucide-react"
+import { Star, Eye } from "lucide-react"
 import type { BoardItem } from "@/lib/board/columns"
 
 export function CellRenderer({
@@ -76,15 +76,18 @@ export function CellRenderer({
 
     case "url": {
       if (!value) return <span className="text-muted-foreground">—</span>
+      const href = /^(https?:\/\/)/i.test(String(value)) ? String(value) : `https://${value}`
       return (
         <a
-          href={value}
+          href={href}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-sm text-[#D4AF37] hover:underline truncate"
+          className="inline-flex items-center gap-1 text-sm text-[#D4AF37] hover:underline"
           onClick={(e) => e.stopPropagation()}
+          aria-label="Visit link"
         >
-          Link
+          <Eye className="h-4 w-4" />
+          Visit
         </a>
       )
     }
