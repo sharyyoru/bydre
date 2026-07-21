@@ -31,8 +31,8 @@ export function BoardTable({
     <div className="overflow-x-auto">
       <table className="w-full min-w-max border-collapse text-sm">
         <thead>
-          <tr className="border-b border-border/60 bg-muted/30 text-left">
-            <th className="px-3 py-2 font-medium text-muted-foreground min-w-[280px]">Name</th>
+          <tr className="border-b border-border/60 bg-muted text-left">
+            <th className="sticky left-0 z-20 bg-muted px-3 py-2 font-medium text-muted-foreground min-w-[280px] shadow-[inset_-1px_0_0_rgba(0,0,0,0.08)]">Name</th>
             {visibleColumns.map((column) => (
               <th key={column.id} className={`px-3 py-2 font-medium text-muted-foreground ${columnWidthClass(column)}`}>
                 {column.name}

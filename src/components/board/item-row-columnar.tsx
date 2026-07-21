@@ -67,15 +67,17 @@ export function ItemRowColumnar({
   onMoveToGroup: (groupId: string) => void
   onDelete: () => void
 }) {
-  const bgColor = rowIndex % 2 === 0 ? "bg-white" : "bg-gray-50/60"
+  const bgColor = rowIndex % 2 === 0 ? "bg-white" : "bg-gray-50"
 
   return (
     <tr
-      className={`border-t border-border/40 hover:bg-muted/20 ${bgColor}`}
+      className={`border-t border-border/40 ${bgColor}`}
       style={{ borderLeft: `4px solid ${priorityColor(item.priority)}` }}
     >
-      {/* Name */}
-      <td className={`px-3 py-2 ${isSubItem ? "pl-9" : ""}`}>
+      {/* Name (sticky on horizontal scroll) */}
+      <td
+        className={`sticky left-0 z-10 px-3 py-2 ${bgColor} shadow-[inset_-1px_0_0_rgba(0,0,0,0.08)] ${isSubItem ? "pl-9" : ""}`}
+      >
         <div className="flex items-center gap-2 min-w-[240px]">
           <Button
             variant="ghost"
