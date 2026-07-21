@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Calendar as CalendarIcon, ArrowLeft } from "lucide-react"
-import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isSameMonth } from "date-fns"
+import { format, parseISO, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isSameMonth } from "date-fns"
 import { ColumnDefinition } from "@/lib/board/columns"
 
 type Item = {
@@ -75,15 +75,24 @@ export function CalendarView({ workspaceId, board }: { workspaceId: string; boar
   const dateColumn = dateColumns.find((column) => column.id === dateColumnId)
 
   const days = eachDayOfInterval({
-    start: startOfMonth(currentMonth),
-    end: endOfMonth(currentMonth),
+    start: startOfWeek(startOfMonth(currentMonth), { weekStartsOn: 0 }),
+    end: endOfWeek(endOfMonth(currentMonth), { weekStartsOn: 0 }),
   })
 
   const visibleItems = useMemo(() => items.filter((item) => item.title.toLowerCase().includes(query.toLowerCase())), [items, query])
   const updateUrl = (key: string, value: string) => { const next = new URLSearchParams(window.location.search); if (value) next.set(key, value); else next.delete(key); router.replace(`${pathname}${next.size ? `?${next}` : ""}`) }
+  const parseItemDate = (raw: unknown): Date | null => {
+    if (!raw) return null
+    const value = typeof raw === "string" ? raw : String(raw)
+    const parsed = parseISO(value)
+    return isNaN(parsed.getTime()) ? null : parsed
+  }
   const itemsForDay = (day: Date) =>
     dateColumnId
-      ? visibleItems.filter((item) => item.values?.[dateColumnId] && isSameDay(parseISO(item.values[dateColumnId]), day))
+      ? visibleItems.filter((item) => {
+          const date = parseItemDate(item.values?.[dateColumnId])
+          return date ? isSameDay(date, day) : false
+        })
       : []
 
   const priorityColor = (p: string) => {
