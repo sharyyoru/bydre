@@ -1,6 +1,6 @@
 "use client"
 
-import { Fragment, useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
@@ -8,16 +8,18 @@ import { AppShell } from "@/components/app-shell"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
-import { Plus, Calendar as CalendarIcon, ChevronDown, ChevronRight, LayoutGrid, Table as TableIcon, History, Trash2 } from "lucide-react"
+import { Plus, Calendar as CalendarIcon, ChevronDown, ChevronRight, LayoutGrid, Table as TableIcon, History, Trash2, ArrowUpDown } from "lucide-react"
 import {
   ColumnDefinition,
   BoardItem,
   BoardGroup,
   Profile,
+  priorityRank,
+  resolveAutoMoveGroupId,
 } from "@/lib/board/columns"
 import { ColumnDefinitionDialog } from "./columns/column-definition-dialog"
 import { ItemDetailDrawer } from "./item-detail-drawer"
-import { ItemRowTwoLine } from "./item-row-two-line"
+import { BoardTable } from "./board-table"
 import { WorkflowNotificationsPanel } from "./workflow-notifications-panel"
 import { KanbanView } from "./views/kanban-view"
 import { AutomationBuilder } from "../automations/automation-builder"
@@ -61,6 +63,8 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
   const [selectedPriorities, setSelectedPriorities] = useState<string[]>(() => searchParams.get("priority")?.split(",").filter(Boolean) || [])
   const [selectedOwners, setSelectedOwners] = useState<string[]>(() => searchParams.get("owner")?.split(",").filter(Boolean) || [])
   const [selectedApprovals, setSelectedApprovals] = useState<string[]>(() => searchParams.get("approval")?.split(",").filter(Boolean) || [])
+  const [sortKey, setSortKey] = useState<string>(() => searchParams.get("sort") || "position")
+  const [sortDir, setSortDir] = useState<string>(() => searchParams.get("dir") || "asc")
   const [groupDialogOpen, setGroupDialogOpen] = useState(false)
   const [groupsPage, setGroupsPage] = useState(() => Math.max(1, Number(searchParams.get("groupsPage")) || 1))
   const GROUPS_PER_PAGE = 5
@@ -269,6 +273,34 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
     fetchAll()
   }
 
+  const moveItemToGroup = async (itemId: string, groupId: string, options?: { silent?: boolean }) => {
+    const supabase = createClient()
+    const { error } = await supabase.from("items").update({ group_id: groupId, position: 0 }).eq("id", itemId)
+    // Keep sub-items with their parent
+    await supabase.from("items").update({ group_id: groupId }).eq("parent_id", itemId)
+    if (error) {
+      toast.error(`Failed to move item: ${error.message}`)
+      return
+    }
+    if (!options?.silent) {
+      const target = groups.find((g) => g.id === groupId)
+      toast.success(target ? `Moved to ${target.name}` : "Item moved")
+    }
+    fetchAll()
+  }
+
+  const deleteItem = async (item: BoardItem) => {
+    if (!window.confirm(`Delete "${item.title}"? This cannot be undone.`)) return
+    const supabase = createClient()
+    const { error } = await supabase.from("items").delete().eq("id", item.id)
+    if (error) {
+      toast.error(`Failed to delete item: ${error.message}`)
+      return
+    }
+    toast.success("Item deleted")
+    fetchAll()
+  }
+
   const updateAssignees = async (itemId: string, userIds: string[]) => {
     const supabase = createClient()
     await supabase.from("item_assignees").delete().eq("item_id", itemId)
@@ -360,6 +392,13 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
         createShootFromApproval(item)
       }
     }
+    // Auto-move to a matching group when Status changes (e.g. Done → Done group).
+    if (column.type === "status" && value) {
+      const targetGroupId = resolveAutoMoveGroupId(statusColumn, value, groups)
+      if (targetGroupId && targetGroupId !== item.group_id) {
+        moveItemToGroup(item.id, targetGroupId, { silent: true })
+      }
+    }
   }
 
   const deleteGroup = async (group: BoardGroup) => {
@@ -424,6 +463,44 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
     }
     return Object.fromEntries(Object.entries(items).map(([groupId, groupItems]) => [groupId, groupItems.filter(matches).map((item) => ({ ...item, sub_items: item.sub_items.filter(matches) }))])) as Record<string, BoardItem[]>
   }, [items, searchQuery, dateRange, selectedStatuses, selectedPriorities, selectedOwners, selectedApprovals, statusColumn, approvalColumn, visibleColumns])
+
+  const sortedItems = useMemo(() => {
+    if (sortKey === "position") return filteredItems
+    const dir = sortDir === "desc" ? -1 : 1
+    const statusIndex = (item: BoardItem) => {
+      if (!statusColumn) return Number.MAX_SAFE_INTEGER
+      const options = (statusColumn.settings?.options || []) as { id: string }[]
+      const idx = options.findIndex((o) => o.id === item.values?.[statusColumn.id])
+      return idx === -1 ? Number.MAX_SAFE_INTEGER : idx
+    }
+    const keyValue = (item: BoardItem): number | string => {
+      switch (sortKey) {
+        case "title": return (item.title || "").toLowerCase()
+        case "due_date": return item.due_date ? new Date(item.due_date).getTime() : Number.MAX_SAFE_INTEGER
+        case "priority": return priorityRank[item.priority] ?? 99
+        case "status": return statusIndex(item)
+        case "created_at": return item.created_at ? new Date(item.created_at).getTime() : 0
+        default: return item.position
+      }
+    }
+    const compare = (a: BoardItem, b: BoardItem) => {
+      const av = keyValue(a); const bv = keyValue(b)
+      if (av < bv) return -1 * dir
+      if (av > bv) return 1 * dir
+      return 0
+    }
+    return Object.fromEntries(Object.entries(filteredItems).map(([groupId, groupItems]) => [groupId, [...groupItems].sort(compare)])) as Record<string, BoardItem[]>
+  }, [filteredItems, sortKey, sortDir, statusColumn])
+
+  const setSort = (key: string) => {
+    if (key === sortKey) {
+      const nextDir = sortDir === "asc" ? "desc" : "asc"
+      setSortDir(nextDir); updateFilterUrl("dir", nextDir === "asc" ? "" : nextDir)
+    } else {
+      setSortKey(key); setSortDir("asc")
+      updateFilterUrl("sort", key === "position" ? "" : key); updateFilterUrl("dir", "")
+    }
+  }
   const toggleGroup = (groupId: string) => setCollapsedGroups((current) => current.includes(groupId) ? current.filter((id) => id !== groupId) : [...current, groupId])
 
   return (
@@ -467,6 +544,31 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
               <DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" size="sm">Priority{selectedPriorities.length ? ` (${selectedPriorities.length})` : ""}</Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuLabel>Filter priority</DropdownMenuLabel><DropdownMenuSeparator />{["low", "medium", "high", "urgent"].map((priority) => <DropdownMenuCheckboxItem key={priority} checked={selectedPriorities.includes(priority)} onCheckedChange={() => toggleMultiFilter("priority", priority, selectedPriorities, setSelectedPriorities)} className="capitalize">{priority}</DropdownMenuCheckboxItem>)}{selectedPriorities.length > 0 && <><DropdownMenuSeparator /><DropdownMenuCheckboxItem checked={false} onSelect={(event) => { event.preventDefault(); setSelectedPriorities([]); updateFilterUrl("priority", "") }}>Clear priority filters</DropdownMenuCheckboxItem></>}</DropdownMenuContent></DropdownMenu>
               <DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" size="sm">Owner{selectedOwners.length ? ` (${selectedOwners.length})` : ""}</Button></DropdownMenuTrigger><DropdownMenuContent align="end" className="max-h-80 overflow-y-auto"><DropdownMenuLabel>Filter owner</DropdownMenuLabel><DropdownMenuSeparator /><DropdownMenuCheckboxItem checked={selectedOwners.includes("unassigned")} onCheckedChange={() => toggleMultiFilter("owner", "unassigned", selectedOwners, setSelectedOwners)}>Unassigned</DropdownMenuCheckboxItem>{members.map((member) => <DropdownMenuCheckboxItem key={member.id} checked={selectedOwners.includes(member.id)} onCheckedChange={() => toggleMultiFilter("owner", member.id, selectedOwners, setSelectedOwners)}>{member.full_name || member.email}</DropdownMenuCheckboxItem>)}{selectedOwners.length > 0 && <><DropdownMenuSeparator /><DropdownMenuCheckboxItem checked={false} onSelect={(event) => { event.preventDefault(); setSelectedOwners([]); updateFilterUrl("owner", "") }}>Clear owner filters</DropdownMenuCheckboxItem></>}</DropdownMenuContent></DropdownMenu>
               {approvalColumn && <DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" size="sm">Approval{selectedApprovals.length ? ` (${selectedApprovals.length})` : ""}</Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuLabel>Filter approval</DropdownMenuLabel><DropdownMenuSeparator />{approvalOptions.map((option) => <DropdownMenuCheckboxItem key={option.id} checked={selectedApprovals.includes(option.id)} onCheckedChange={() => toggleMultiFilter("approval", option.id, selectedApprovals, setSelectedApprovals)}><span className="mr-2 h-2 w-2 rounded-full" style={{ backgroundColor: option.color || "#6B7280" }} />{option.name}</DropdownMenuCheckboxItem>)}{selectedApprovals.length > 0 && <><DropdownMenuSeparator /><DropdownMenuCheckboxItem checked={false} onSelect={(event) => { event.preventDefault(); setSelectedApprovals([]); updateFilterUrl("approval", "") }}>Clear approval filters</DropdownMenuCheckboxItem></>}</DropdownMenuContent></DropdownMenu>}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm"><ArrowUpDown className="h-4 w-4 mr-2" />Sort{sortKey !== "position" ? ` · ${sortDir === "asc" ? "↑" : "↓"}` : ""}</Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>Sort by</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {[
+                    { key: "position", label: "Manual (default)" },
+                    { key: "title", label: "Name" },
+                    { key: "due_date", label: "Due date" },
+                    { key: "priority", label: "Priority" },
+                    { key: "status", label: "Status" },
+                    { key: "created_at", label: "Created" },
+                  ].map((option) => (
+                    <DropdownMenuCheckboxItem
+                      key={option.key}
+                      checked={sortKey === option.key}
+                      onCheckedChange={() => setSort(option.key)}
+                    >
+                      {option.label}{sortKey === option.key && option.key !== "position" ? (sortDir === "asc" ? " ↑" : " ↓") : ""}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Dialog>
                 <DialogTrigger asChild><Button variant="outline" size="sm"><History className="h-4 w-4 mr-2" />Activity</Button></DialogTrigger>
                 <DialogContent className="sm:max-w-2xl"><DialogHeader><DialogTitle>Board activity</DialogTitle></DialogHeader><ActivityLog boardId={board.id} /></DialogContent>
@@ -535,52 +637,21 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
               </div>
 
               {!collapsedGroups.includes(group.id) && <div>
-                <table className="w-full text-sm">
-                  <tbody>
-                    {(filteredItems[group.id] || []).slice(0, visibleItemCounts[group.id] || ITEMS_PER_BATCH).map((item, itemIndex) => (
-                      <Fragment key={item.id}>
-                        <ItemRowTwoLine
-                          item={item}
-                          visibleColumns={visibleColumns}
-                          members={members}
-                          totalColumns={1}
-                          onTitleChange={(title) => updateItemTitle(item.id, title)}
-                          onCellChange={(columnId, value) => handleCellChange(item, visibleColumns.find(c => c.id === columnId)!, value)}
-                          onViewClick={() => setSelectedItem(item)}
-                          rowIndex={itemIndex}
-                        />
-                        {item.sub_items?.map((sub) => (
-                          <ItemRowTwoLine
-                            key={sub.id}
-                            item={sub}
-                            visibleColumns={visibleColumns}
-                            members={members}
-                            totalColumns={1}
-                            isSubItem
-                            onTitleChange={(title) => updateItemTitle(sub.id, title)}
-                            onCellChange={(columnId, value) => handleCellChange(sub, visibleColumns.find(c => c.id === columnId)!, value)}
-                            onViewClick={() => setSelectedItem(sub)}
-                            rowIndex={itemIndex}
-                          />
-                        ))}
-                      </Fragment>
-                    ))}
-                    {(filteredItems[group.id] || []).length === 0 && (
-                      <tr>
-                        <td
-                          colSpan={visibleColumns.length + 2}
-                          className="px-4 py-6 text-center text-sm text-muted-foreground"
-                        >
-                          No items yet. Click Add item to create one.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-                {(filteredItems[group.id] || []).length > (visibleItemCounts[group.id] || ITEMS_PER_BATCH) && (
+                <BoardTable
+                  items={(sortedItems[group.id] || []).slice(0, visibleItemCounts[group.id] || ITEMS_PER_BATCH)}
+                  visibleColumns={visibleColumns}
+                  members={members}
+                  groups={groups}
+                  onTitleChange={updateItemTitle}
+                  onCellChange={(item, columnId, value) => handleCellChange(item, visibleColumns.find((c) => c.id === columnId)!, value)}
+                  onViewClick={setSelectedItem}
+                  onMoveToGroup={(itemId, groupId) => moveItemToGroup(itemId, groupId)}
+                  onDelete={deleteItem}
+                />
+                {(sortedItems[group.id] || []).length > (visibleItemCounts[group.id] || ITEMS_PER_BATCH) && (
                   <div className="flex items-center justify-between border-t border-border/40 bg-muted/10 px-4 py-3">
-                    <p className="text-xs text-muted-foreground">Showing {Math.min(visibleItemCounts[group.id] || ITEMS_PER_BATCH, (filteredItems[group.id] || []).length)} of {(filteredItems[group.id] || []).length} items</p>
-                    <Button variant="outline" size="sm" onClick={() => showMoreItems(group.id)}>Show {Math.min(ITEMS_PER_BATCH, (filteredItems[group.id] || []).length - (visibleItemCounts[group.id] || ITEMS_PER_BATCH))} more</Button>
+                    <p className="text-xs text-muted-foreground">Showing {Math.min(visibleItemCounts[group.id] || ITEMS_PER_BATCH, (sortedItems[group.id] || []).length)} of {(sortedItems[group.id] || []).length} items</p>
+                    <Button variant="outline" size="sm" onClick={() => showMoreItems(group.id)}>Show {Math.min(ITEMS_PER_BATCH, (sortedItems[group.id] || []).length - (visibleItemCounts[group.id] || ITEMS_PER_BATCH))} more</Button>
                   </div>
                 )}
               </div>}
@@ -614,6 +685,8 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
           item={selectedItem}
           columns={columns}
           members={members}
+          groups={groups}
+          onMoveToGroup={(itemId, groupId) => moveItemToGroup(itemId, groupId)}
           open={!!selectedItem}
           onOpenChange={(open: boolean) => {
             if (!open) {

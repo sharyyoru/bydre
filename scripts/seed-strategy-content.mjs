@@ -18,18 +18,41 @@ const workspaceArg = process.argv.find((a) => a.startsWith("--workspace="))?.spl
 const wilsonArg = process.argv.find((a) => a.startsWith("--wilson="))?.split("=")[1]
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+const adminEmail = process.env.SEED_ADMIN_EMAIL
+const adminPassword = process.env.SEED_ADMIN_PASSWORD
 
-if (!url || !serviceKey || !workspaceArg) {
+if (!url || !workspaceArg) {
   console.error(
     "Usage: node scripts/seed-strategy-content.mjs --workspace=<slug|id> [--wilson=<email|name>] [--commit]\n" +
-      "Requires env NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY"
+      "Requires env NEXT_PUBLIC_SUPABASE_URL plus either SUPABASE_SERVICE_ROLE_KEY,\n" +
+      "or (NEXT_PUBLIC_SUPABASE_ANON_KEY + SEED_ADMIN_EMAIL + SEED_ADMIN_PASSWORD)."
   )
   process.exit(1)
 }
 
-const supabase = createClient(url, serviceKey, {
-  auth: { autoRefreshToken: false, persistSession: false },
-})
+// Prefer service role; fall back to admin login via the anon key (RLS allows admins).
+async function getClient() {
+  if (serviceKey) {
+    const c = createClient(url, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } })
+    const { error } = await c.from("workspaces").select("id").limit(1)
+    if (!error) return { client: c, mode: "service_role" }
+    console.warn(`Service role key rejected (${error.message}). Trying admin login...`)
+  }
+  if (anonKey && adminEmail && adminPassword) {
+    const c = createClient(url, anonKey, { auth: { autoRefreshToken: false, persistSession: false } })
+    const { error } = await c.auth.signInWithPassword({ email: adminEmail, password: adminPassword })
+    if (error) throw new Error(`Admin login failed: ${error.message}`)
+    return { client: c, mode: `admin-login (${adminEmail})` }
+  }
+  throw new Error(
+    "No usable credentials. Provide a valid SUPABASE_SERVICE_ROLE_KEY, or set " +
+      "SEED_ADMIN_EMAIL + SEED_ADMIN_PASSWORD (with NEXT_PUBLIC_SUPABASE_ANON_KEY) in .env.local."
+  )
+}
+
+const { client: supabase, mode: authMode } = await getClient()
+console.log(`Auth mode: ${authMode}`)
 
 const LANGUAGES = "Arabic, Russian, Turkish, German, Spanish, French & Italian (English base)"
 const LOCALIZATION =

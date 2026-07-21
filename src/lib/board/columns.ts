@@ -157,6 +157,65 @@ export function priorityClass(value: string) {
   }
 }
 
+// Solid, high-contrast pill styling for prominent priority display.
+export function prioritySolidClass(value: string) {
+  switch (value) {
+    case "low":
+      return "bg-slate-500 text-white"
+    case "medium":
+      return "bg-blue-600 text-white"
+    case "high":
+      return "bg-[#D4AF37] text-[#0A1628]"
+    case "urgent":
+      return "bg-red-600 text-white"
+    default:
+      return "bg-muted text-muted-foreground"
+  }
+}
+
+// Hex color used for the row left-border accent.
+export function priorityColor(value: string) {
+  return getPriorityOption(value)?.color || "transparent"
+}
+
+// Lower rank = higher priority (used for sorting).
+export const priorityRank: Record<string, number> = {
+  urgent: 0,
+  high: 1,
+  medium: 2,
+  low: 3,
+}
+
+const DONE_GROUP_RE = /done|complete|published|closed|post-?production/i
+const TODO_GROUP_RE = /to ?do|backlog|sprint|idea|not started|pre-?production/i
+
+/**
+ * Resolves the group an item should auto-move to when its Status changes.
+ * Conservative: only returns a group id when a name match is found, else null.
+ */
+export function resolveAutoMoveGroupId(
+  statusColumn: ColumnDefinition | undefined,
+  newValue: string,
+  groups: BoardGroup[]
+): string | null {
+  if (!statusColumn || !newValue) return null
+  const options = (statusColumn.settings?.options || []) as ColumnOption[]
+  if (!options.length) return null
+  const index = options.findIndex((o) => o.id === newValue)
+  if (index === -1) return null
+  const option = options[index]
+  const isDone = index === options.length - 1 || DONE_GROUP_RE.test(option.name)
+  const isTodo = index === 0 || TODO_GROUP_RE.test(option.name)
+
+  const byName = (re: RegExp) => groups.find((g) => re.test(g.name))?.id || null
+  // Prefer a group whose name matches the exact status option name.
+  const exact = groups.find((g) => g.name.toLowerCase() === option.name.toLowerCase())?.id || null
+
+  if (isDone) return exact || byName(DONE_GROUP_RE)
+  if (isTodo) return exact || byName(TODO_GROUP_RE)
+  return exact
+}
+
 export function formatCurrency(value: number | null, currency = "USD") {
   if (value === null || value === undefined) return ""
   return new Intl.NumberFormat("en-US", {

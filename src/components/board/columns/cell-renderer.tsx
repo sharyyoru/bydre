@@ -7,7 +7,7 @@ import {
   getDropdownOption,
   getLabelOptions,
   getPriorityOption,
-  priorityClass,
+  prioritySolidClass,
   formatCurrency,
   computeProgress,
 } from "@/lib/board/columns"
@@ -44,7 +44,7 @@ export function CellRenderer({
     case "priority": {
       const p = getPriorityOption(value || "medium")
       if (!p) return <span className="text-muted-foreground">—</span>
-      return <Badge className={`border-0 capitalize ${priorityClass(p.id)}`}>{p.name}</Badge>
+      return <Badge className={`border-0 capitalize ${prioritySolidClass(p.id)}`}>{p.name}</Badge>
     }
 
     case "people": {

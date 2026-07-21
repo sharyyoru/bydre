@@ -27,7 +27,9 @@ import { Mention, MentionsInput } from "react-mentions"
 import {
   ColumnDefinition,
   BoardItem,
+  BoardGroup,
   Profile,
+  resolveAutoMoveGroupId,
 } from "@/lib/board/columns"
 import { CellEditor } from "./columns/cell-editor"
 import { ActivityLog } from "../activity/activity-log"
@@ -44,6 +46,8 @@ export function ItemDetailDrawer({
   item,
   columns,
   members,
+  groups = [],
+  onMoveToGroup,
   open,
   onOpenChange,
   onItemChanged,
@@ -51,6 +55,8 @@ export function ItemDetailDrawer({
   item: BoardItem
   columns: ColumnDefinition[]
   members: Profile[]
+  groups?: BoardGroup[]
+  onMoveToGroup?: (itemId: string, groupId: string) => void
   open: boolean
   onOpenChange: (open: boolean) => void
   onItemChanged?: () => void
@@ -245,8 +251,16 @@ export function ItemDetailDrawer({
   const handleCellChange = (column: ColumnDefinition, value: any) => {
     if (column.type === "people") {
       updateAssignees(value || [])
-    } else {
-      updateItemValue(column.id, value)
+      return
+    }
+    updateItemValue(column.id, value)
+    if (column.type === "status" && value && onMoveToGroup) {
+      const statusColumn = columns.find((c) => c.type === "status")
+      const targetGroupId = resolveAutoMoveGroupId(statusColumn, value, groups)
+      if (targetGroupId && targetGroupId !== localItem.group_id) {
+        onMoveToGroup(item.id, targetGroupId)
+        setLocalItem((p) => ({ ...p, group_id: targetGroupId }))
+      }
     }
   }
 
@@ -316,6 +330,21 @@ export function ItemDetailDrawer({
 
         <div className={`space-y-6 py-6 ${expanded ? "mx-auto w-full max-w-3xl" : ""}`}>
           <div className="flex flex-wrap items-center justify-end gap-2">
+            {groups.length > 1 && onMoveToGroup && (
+              <div className="flex items-center gap-2">
+                <FolderInput className="h-4 w-4 text-muted-foreground" />
+                <Select value={localItem.group_id} onValueChange={(groupId) => { onMoveToGroup(item.id, groupId); setLocalItem((p) => ({ ...p, group_id: groupId })) }}>
+                  <SelectTrigger className="h-9 w-44">
+                    <SelectValue placeholder="Move to group" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {groups.map((g) => (
+                      <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             {boards.length > 0 && (
               <div className="flex items-center gap-2">
                 <FolderInput className="h-4 w-4 text-muted-foreground" />

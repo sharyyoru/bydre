@@ -6,6 +6,8 @@ import {
   ColumnDefinition,
   BoardItem,
   priorityOptions,
+  getPriorityOption,
+  prioritySolidClass,
 } from "@/lib/board/columns"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -60,21 +62,26 @@ export function CellEditor({
         </Select>
       )
 
-    case "priority":
+    case "priority": {
+      const current = getPriorityOption(value || "medium")
       return (
         <Select value={value || "medium"} onValueChange={(v) => onChange(v)}>
-          <SelectTrigger className="w-32 h-8">
-            <SelectValue />
+          <SelectTrigger className="h-8 w-28 border-0 bg-transparent px-0 shadow-none focus:ring-0">
+            <Badge className={`border-0 capitalize ${prioritySolidClass(current?.id || "medium")}`}>
+              {current?.name || "Medium"}
+            </Badge>
           </SelectTrigger>
           <SelectContent>
             {priorityOptions.map((p) => (
               <SelectItem key={p.id} value={p.id}>
+                <span className="inline-block w-2 h-2 rounded-full mr-2" style={{ backgroundColor: p.color }} />
                 {p.name}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
       )
+    }
 
     case "people": {
       const selected = (item.assignees || []).map((a) => a.user_id)
