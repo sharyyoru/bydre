@@ -19,6 +19,8 @@ import {
   ChevronsRight,
   Wrench,
   ListTodo,
+  Radar,
+  Plug,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -154,6 +156,32 @@ export function Sidebar({ mobile, collapsed = false, onToggle }: { mobile?: bool
             >
               <ListTodo className="h-4 w-4" />
               {!collapsed && "My Tasks"}
+            </Button>
+          </Link>
+
+          {!collapsed && <p className="text-xs font-semibold text-white/40 uppercase tracking-wider px-3 mt-6 mb-2">Intelligence</p>}
+
+          <Link href={`/workspace/${workspaceId || "drehomes"}/social-monitor`}>
+            <Button
+              variant="ghost"
+              className={`w-full justify-start gap-3 text-white/80 hover:bg-white/10 hover:text-white ${
+                pathname.includes("/social-monitor") ? "bg-white/10 text-white" : ""
+              }`}
+            >
+              <Radar className="h-4 w-4" />
+              {!collapsed && "Social Monitor"}
+            </Button>
+          </Link>
+
+          <Link href={`/workspace/${workspaceId || "drehomes"}/api-settings`}>
+            <Button
+              variant="ghost"
+              className={`w-full justify-start gap-3 text-white/80 hover:bg-white/10 hover:text-white ${
+                pathname.includes("/api-settings") ? "bg-white/10 text-white" : ""
+              }`}
+            >
+              <Plug className="h-4 w-4" />
+              {!collapsed && "API Settings"}
             </Button>
           </Link>
 
