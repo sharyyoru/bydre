@@ -21,6 +21,7 @@ import {
   ListTodo,
   Radar,
   Plug,
+  Compass,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -156,6 +157,18 @@ export function Sidebar({ mobile, collapsed = false, onToggle }: { mobile?: bool
             >
               <ListTodo className="h-4 w-4" />
               {!collapsed && "My Tasks"}
+            </Button>
+          </Link>
+
+          <Link href={`/workspace/${workspaceId || "drehomes"}/strategy`}>
+            <Button
+              variant="ghost"
+              className={`w-full justify-start gap-3 text-white/80 hover:bg-white/10 hover:text-white ${
+                pathname.includes("/strategy") ? "bg-white/10 text-white" : ""
+              }`}
+            >
+              <Compass className="h-4 w-4" />
+              {!collapsed && "Strategy"}
             </Button>
           </Link>
 
