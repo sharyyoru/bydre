@@ -504,7 +504,7 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
   const toggleGroup = (groupId: string) => setCollapsedGroups((current) => current.includes(groupId) ? current.filter((id) => id !== groupId) : [...current, groupId])
 
   return (
-    <AppShell>
+    <AppShell fullWidth>
       <div className="space-y-4">
         <div className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">

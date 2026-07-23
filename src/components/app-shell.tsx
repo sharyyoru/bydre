@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Menu } from "lucide-react"
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({ children, fullWidth = false }: { children: React.ReactNode; fullWidth?: boolean }) {
   const [open, setOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
   useEffect(() => setCollapsed(localStorage.getItem("bydre-sidebar-collapsed") === "true"), [])
@@ -30,7 +30,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </Sheet>
       </div>
       <main className={`pt-16 min-h-screen transition-[padding] ${collapsed ? "lg:pl-16" : "lg:pl-64"}`}>
-        <div className="p-4 sm:p-6 max-w-7xl mx-auto">{children}</div>
+        <div className={`p-4 sm:p-6 mx-auto ${fullWidth ? "max-w-none" : "max-w-7xl"}`}>{children}</div>
       </main>
     </div>
   )
