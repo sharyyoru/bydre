@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useLayoutEffect, useRef, useState } from "react"
 import {
   ColumnDefinition,
   BoardItem,
@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 
 const UNASSIGNED = "__unassigned__"
+const PER_BATCH = 20
 
 /**
  * Kanban grouped by person — each team member is a column holding the items
@@ -37,10 +38,31 @@ export function PeopleKanbanView({
   const allItems = Object.values(items).flat()
   const [dragOver, setDragOver] = useState<string | null>(null)
   const [draggingId, setDraggingId] = useState<string | null>(null)
+  const [visibleCounts, setVisibleCounts] = useState<Record<string, number>>({})
+
+  // Newest-first so the initial 20 shown per column are the most recent items.
+  const byNewest = (a: BoardItem, b: BoardItem) =>
+    new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
 
   const itemsFor = (userId: string) => {
-    if (userId === UNASSIGNED) return allItems.filter((it) => (it.assignees?.length || 0) === 0)
-    return allItems.filter((it) => (it.assignees || []).some((a) => a.user_id === userId))
+    const filtered =
+      userId === UNASSIGNED
+        ? allItems.filter((it) => (it.assignees?.length || 0) === 0)
+        : allItems.filter((it) => (it.assignees || []).some((a) => a.user_id === userId))
+    return [...filtered].sort(byNewest)
+  }
+
+  // Synced top/bottom horizontal scrollbars.
+  const topRef = useRef<HTMLDivElement>(null)
+  const bodyRef = useRef<HTMLDivElement>(null)
+  const [contentWidth, setContentWidth] = useState(0)
+  const syncing = useRef(false)
+
+  const mirrorScroll = (from: HTMLDivElement | null, to: HTMLDivElement | null) => {
+    if (!from || !to || syncing.current) return
+    syncing.current = true
+    to.scrollLeft = from.scrollLeft
+    syncing.current = false
   }
 
   // Only show member columns that have at least one item, plus every member is
@@ -60,10 +82,33 @@ export function PeopleKanbanView({
     setDragOver(null)
   }
 
+  // Recompute the top spacer width whenever columns or visible counts change.
+  useLayoutEffect(() => {
+    const measure = () => setContentWidth(bodyRef.current?.scrollWidth || 0)
+    measure()
+    const ro = new ResizeObserver(measure)
+    if (bodyRef.current) ro.observe(bodyRef.current)
+    return () => ro.disconnect()
+  }, [columnsToRender.length, visibleCounts, allItems.length])
+
   return (
-    <div className="flex gap-4 overflow-x-auto pb-4">
+    <div>
+      {/* Top synced scrollbar */}
+      <div
+        ref={topRef}
+        onScroll={() => mirrorScroll(topRef.current, bodyRef.current)}
+        className="overflow-x-auto"
+      >
+        <div style={{ width: contentWidth, height: 1 }} />
+      </div>
+      <div
+        ref={bodyRef}
+        onScroll={() => mirrorScroll(bodyRef.current, topRef.current)}
+        className="flex gap-4 overflow-x-auto pb-4"
+      >
       {columnsToRender.map((col) => {
         const colItems = itemsFor(col.id)
+        const shown = colItems.slice(0, visibleCounts[col.id] || PER_BATCH)
         const isOver = dragOver === col.id
         return (
           <div
@@ -96,7 +141,7 @@ export function PeopleKanbanView({
               </span>
             </div>
             <div className="flex flex-col gap-2 min-h-[40px]">
-              {colItems.map((item) => (
+              {shown.map((item) => (
                 <PersonCard
                   key={`${col.id}-${item.id}`}
                   item={item}
@@ -116,9 +161,29 @@ export function PeopleKanbanView({
                 </p>
               )}
             </div>
+            {colItems.length > shown.length && (
+              <div className="flex flex-col items-center gap-1 pt-1">
+                <span className="text-[11px] text-muted-foreground">
+                  Showing {shown.length} of {colItems.length}
+                </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setVisibleCounts((c) => ({
+                      ...c,
+                      [col.id]: (c[col.id] || PER_BATCH) + PER_BATCH,
+                    }))
+                  }
+                  className="w-full rounded-lg border border-border/60 bg-background px-2 py-1.5 text-xs font-medium text-[#0A1628] hover:bg-muted transition-colors"
+                >
+                  Show {Math.min(PER_BATCH, colItems.length - shown.length)} more
+                </button>
+              </div>
+            )}
           </div>
         )
       })}
+      </div>
     </div>
   )
 }
