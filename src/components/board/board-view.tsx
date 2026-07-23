@@ -8,7 +8,7 @@ import { AppShell } from "@/components/app-shell"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
-import { Plus, Calendar as CalendarIcon, ChevronDown, ChevronRight, LayoutGrid, Table as TableIcon, History, Trash2, ArrowUpDown } from "lucide-react"
+import { Plus, Calendar as CalendarIcon, ChevronDown, ChevronRight, LayoutGrid, Table as TableIcon, History, Trash2, ArrowUpDown, Users } from "lucide-react"
 import {
   ColumnDefinition,
   BoardItem,
@@ -22,6 +22,7 @@ import { ItemDetailDrawer } from "./item-detail-drawer"
 import { BoardTable } from "./board-table"
 import { WorkflowNotificationsPanel } from "./workflow-notifications-panel"
 import { KanbanView } from "./views/kanban-view"
+import { PeopleKanbanView } from "./views/people-kanban-view"
 import { AutomationBuilder } from "../automations/automation-builder"
 import { ActivityLog } from "../activity/activity-log"
 import {
@@ -54,7 +55,7 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
   const [isAdmin, setIsAdmin] = useState(false)
   const [newGroupName, setNewGroupName] = useState("")
   const [selectedItem, setSelectedItem] = useState<BoardItem | null>(null)
-  const [activeView, setActiveView] = useState("table")
+  const [activeView, setActiveView] = useState(() => searchParams.get("view") || "table")
   const [collapsedGroups, setCollapsedGroups] = useState<string[]>([])
   const [visibleGroupIds, setVisibleGroupIds] = useState<string[]>(() => searchParams.get("group") ? [searchParams.get("group")!] : [])
   const [searchQuery, setSearchQuery] = useState(() => searchParams.get("q") || "")
@@ -501,6 +502,10 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
       updateFilterUrl("sort", key === "position" ? "" : key); updateFilterUrl("dir", "")
     }
   }
+  const changeView = (view: string) => {
+    setActiveView(view)
+    updateFilterUrl("view", view === "table" ? "" : view)
+  }
   const toggleGroup = (groupId: string) => setCollapsedGroups((current) => current.includes(groupId) ? current.filter((id) => id !== groupId) : [...current, groupId])
 
   return (
@@ -517,7 +522,7 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
                 variant={activeView === "table" ? "secondary" : "ghost"}
                 size="sm"
                 className="h-8"
-                onClick={() => setActiveView("table")}
+                onClick={() => changeView("table")}
               >
                 <TableIcon className="h-4 w-4 mr-1" /> Table
               </Button>
@@ -525,9 +530,17 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
                 variant={activeView === "kanban" ? "secondary" : "ghost"}
                 size="sm"
                 className="h-8"
-                onClick={() => setActiveView("kanban")}
+                onClick={() => changeView("kanban")}
               >
                 <LayoutGrid className="h-4 w-4 mr-1" /> Kanban
+              </Button>
+              <Button
+                variant={activeView === "people" ? "secondary" : "ghost"}
+                size="sm"
+                className="h-8"
+                onClick={() => changeView("people")}
+              >
+                <Users className="h-4 w-4 mr-1" /> By Person
               </Button>
               <Link href={`/workspace/${params.id}/calendar/${board.id}`}>
                 <Button variant="ghost" size="sm" className="h-8">
@@ -676,6 +689,16 @@ export function BoardView({ workspaceId, board }: { workspaceId: string; board: 
             onItemClick={setSelectedItem}
             onStatusChange={(itemId: string, columnId: string, value: string) => updateItemValue(itemId, columnId, value)}
             onAssigneesChange={updateAssignees}
+          />
+        )}
+
+        {activeView === "people" && (
+          <PeopleKanbanView
+            columns={columns}
+            items={visibleGroupIds.length ? Object.fromEntries(Object.entries(filteredItems).filter(([groupId]) => visibleGroupIds.includes(groupId))) : filteredItems}
+            members={members}
+            onItemClick={setSelectedItem}
+            onReassign={updateAssignees}
           />
         )}
       </div>
