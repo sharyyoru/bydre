@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { Plug, KeyRound, Check, Trash2, Copy, Plus } from "lucide-react"
 
-type Provider = "gemini" | "dubai_pulse" | "serpapi" | "youtube"
+type Provider = "gemini" | "dubai_pulse" | "serpapi" | "youtube" | "meta" | "tiktok"
 
 interface CredentialStatus {
   provider: Provider
@@ -30,7 +30,9 @@ const PROVIDER_META: Record<Provider, { label: string; hint: string; hasBaseUrl?
   gemini: { label: "Google Gemini", hint: "LLM for arbitrage analysis & content generation" },
   dubai_pulse: { label: "Dubai Pulse / DLD", hint: "Market transaction data", hasBaseUrl: true },
   serpapi: { label: "SerpApi", hint: "Google Trends search volume & velocity" },
-  youtube: { label: "YouTube Data API v3", hint: "YouTube engagement signals" },
+  youtube: { label: "YouTube Data API v3", hint: "YouTube Shorts publishing & engagement signals" },
+  meta: { label: "Meta Graph API (Instagram/Facebook)", hint: "Reels publishing & insights (long-lived token)" },
+  tiktok: { label: "TikTok Content API", hint: "Short-video publishing & analytics" },
 }
 
 export function ApiSettings({ workspaceId }: { workspaceId: string }) {

@@ -1,4 +1,10 @@
-export type IntegrationProvider = "gemini" | "dubai_pulse" | "serpapi" | "youtube"
+export type IntegrationProvider =
+  | "gemini"
+  | "dubai_pulse"
+  | "serpapi"
+  | "youtube"
+  | "meta"
+  | "tiktok"
 
 export type RegistrationType = "off_plan" | "ready"
 export type SentimentPlatform = "google_trends" | "youtube"

@@ -11,6 +11,8 @@ const ENV_FALLBACK: Record<IntegrationProvider, string | undefined> = {
   dubai_pulse: process.env.DUBAI_PULSE_API_KEY,
   serpapi: process.env.SERPAPI_API_KEY,
   youtube: process.env.YOUTUBE_API_KEY,
+  meta: process.env.META_ACCESS_TOKEN,
+  tiktok: process.env.TIKTOK_ACCESS_TOKEN,
 }
 
 /**

@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin"
 import { maskSecret } from "@/lib/social-monitor/credentials"
 import { requireWorkspaceAdmin } from "../_helpers"
 
-const PROVIDERS = ["gemini", "dubai_pulse", "serpapi", "youtube"] as const
+const PROVIDERS = ["gemini", "dubai_pulse", "serpapi", "youtube", "meta", "tiktok"] as const
 
 /** GET — masked list of configured credentials for a workspace. */
 export async function GET(request: NextRequest) {
