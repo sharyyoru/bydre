@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { Plug, KeyRound, Check, Trash2, Copy, Plus } from "lucide-react"
+import { createClient } from "@/lib/supabase/client"
+import { resolveWorkspaceId } from "@/lib/workspace-client"
 
 type Provider = "gemini" | "dubai_pulse" | "serpapi" | "youtube" | "meta" | "tiktok"
 
@@ -35,7 +37,8 @@ const PROVIDER_META: Record<Provider, { label: string; hint: string; hasBaseUrl?
   tiktok: { label: "TikTok Content API", hint: "Short-video publishing & analytics" },
 }
 
-export function ApiSettings({ workspaceId }: { workspaceId: string }) {
+export function ApiSettings({ workspaceId: workspaceIdentifier }: { workspaceId: string }) {
+  const [workspaceId, setWorkspaceId] = useState<string | null>(null)
   const [creds, setCreds] = useState<CredentialStatus[]>([])
   const [secrets, setSecrets] = useState<Record<string, string>>({})
   const [baseUrls, setBaseUrls] = useState<Record<string, string>>({})
@@ -72,7 +75,18 @@ export function ApiSettings({ workspaceId }: { workspaceId: string }) {
     }
   }
 
+  // Resolve the URL identifier (slug or UUID) to the canonical workspace UUID
+  // before any API call — routes filter on the UUID column.
   useEffect(() => {
+    const supabase = createClient()
+    resolveWorkspaceId(supabase, workspaceIdentifier).then((id) => {
+      if (id) setWorkspaceId(id)
+      else setLoading(false)
+    })
+  }, [workspaceIdentifier])
+
+  useEffect(() => {
+    if (!workspaceId) return
     loadCreds()
     loadTokens()
     // eslint-disable-next-line react-hooks/exhaustive-deps

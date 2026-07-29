@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
+import { resolveWorkspaceId } from "@/lib/workspace-client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -49,7 +50,8 @@ function fileToBase64(file: File): Promise<{ bytes: string; mimeType: string }> 
   })
 }
 
-export function VeoStudio({ workspaceId }: { workspaceId: string }) {
+export function VeoStudio({ workspaceId: workspaceIdentifier }: { workspaceId: string }) {
+  const [workspaceId, setWorkspaceId] = useState<string | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
   const [tab, setTab] = useState("image")
   const [history, setHistory] = useState<MediaGeneration[]>([])
@@ -72,7 +74,14 @@ export function VeoStudio({ workspaceId }: { workspaceId: string }) {
   const fileRef = useRef<HTMLInputElement>(null)
   const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // Resolve slug/UUID identifier to the canonical workspace UUID first.
   useEffect(() => {
+    const supabase = createClient()
+    resolveWorkspaceId(supabase, workspaceIdentifier).then((id) => setWorkspaceId(id))
+  }, [workspaceIdentifier])
+
+  useEffect(() => {
+    if (!workspaceId) return
     const supabase = createClient()
     supabase.auth.getUser().then(({ data: auth }) => {
       if (!auth.user) return
@@ -87,6 +96,7 @@ export function VeoStudio({ workspaceId }: { workspaceId: string }) {
   }, [workspaceId])
 
   const loadHistory = useCallback(async () => {
+    if (!workspaceId) return
     const res = await fetch(`/api/veo/generations?workspace_id=${workspaceId}`)
     if (res.ok) setHistory((await res.json()).generations || [])
   }, [workspaceId])

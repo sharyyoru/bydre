@@ -1,6 +1,8 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
+import { createClient } from "@/lib/supabase/client"
+import { resolveWorkspaceId } from "@/lib/workspace-client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -74,7 +76,8 @@ interface LeaderRow {
 const PLATFORMS: Platform[] = ["instagram", "facebook", "tiktok", "youtube"]
 const num = (n: number | null | undefined) => (n == null ? "—" : Intl.NumberFormat().format(n))
 
-export function ReelsHub({ workspaceId }: { workspaceId: string }) {
+export function ReelsHub({ workspaceId: workspaceIdentifier }: { workspaceId: string }) {
+  const [workspaceId, setWorkspaceId] = useState<string | null>(null)
   const [accounts, setAccounts] = useState<Account[]>([])
   const [posts, setPosts] = useState<Post[]>([])
   const [tasks, setTasks] = useState<Task[]>([])
@@ -94,7 +97,13 @@ export function ReelsHub({ workspaceId }: { workspaceId: string }) {
   const [aUsername, setAUsername] = useState("")
   const [aExternalId, setAExternalId] = useState("")
 
+  useEffect(() => {
+    const supabase = createClient()
+    resolveWorkspaceId(supabase, workspaceIdentifier).then((id) => setWorkspaceId(id))
+  }, [workspaceIdentifier])
+
   const load = useCallback(async () => {
+    if (!workspaceId) return
     const [accRes, postRes, advRes] = await Promise.all([
       fetch(`/api/reels/accounts?workspace_id=${workspaceId}`),
       fetch(`/api/reels/posts?workspace_id=${workspaceId}`),
