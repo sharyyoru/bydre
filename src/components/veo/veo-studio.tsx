@@ -37,14 +37,37 @@ import {
 } from "@/lib/veo/types"
 
 const POLL_MS = 10_000
+const MAX_FRAME_DIM = 1280
+
+/**
+ * Downscale a data URL to a JPEG under MAX_FRAME_DIM px so the first-frame
+ * payload stays well under the serverless request-body limit (avoids HTTP 413).
+ */
+function downscaleToBase64(dataUrl: string): Promise<{ bytes: string; mimeType: string }> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => {
+      const scale = Math.min(1, MAX_FRAME_DIM / Math.max(img.width, img.height))
+      const w = Math.round(img.width * scale)
+      const h = Math.round(img.height * scale)
+      const canvas = document.createElement("canvas")
+      canvas.width = w
+      canvas.height = h
+      const ctx = canvas.getContext("2d")
+      if (!ctx) return reject(new Error("Canvas not supported"))
+      ctx.drawImage(img, 0, 0, w, h)
+      const out = canvas.toDataURL("image/jpeg", 0.85)
+      resolve({ bytes: out.split(",")[1] || "", mimeType: "image/jpeg" })
+    }
+    img.onerror = () => reject(new Error("Failed to load image"))
+    img.src = dataUrl
+  })
+}
 
 function fileToBase64(file: File): Promise<{ bytes: string; mimeType: string }> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
-    reader.onload = () => {
-      const result = reader.result as string
-      resolve({ bytes: result.split(",")[1] || "", mimeType: file.type || "image/png" })
-    }
+    reader.onload = () => downscaleToBase64(reader.result as string).then(resolve, reject)
     reader.onerror = reject
     reader.readAsDataURL(file)
   })
@@ -131,8 +154,9 @@ export function VeoStudio({ workspaceId: workspaceIdentifier }: { workspaceId: s
     }
   }
 
-  const applyAsFirstFrame = (img: GeneratedImage) => {
-    setFirstFrame({ bytes: img.bytes, mimeType: img.mimeType })
+  const applyAsFirstFrame = async (img: GeneratedImage) => {
+    const scaled = await downscaleToBase64(`data:${img.mimeType};base64,${img.bytes}`)
+    setFirstFrame(scaled)
     setTab("video")
     toast.success("Image set as video first frame")
   }
@@ -460,6 +484,7 @@ export function VeoStudio({ workspaceId: workspaceIdentifier }: { workspaceId: s
 function errorMessage(j: { error?: string; code?: string }, status: number): string {
   if (j.code === "not_configured") return "Add your Google (Gemini) API key in API Settings first."
   if (j.code === "billing" || status === 403) return "Veo/Imagen require a paid Google API tier with access enabled."
+  if (status === 413) return "First-frame image is too large — try a smaller image."
   if (status === 429) return "Rate limit or quota exceeded — try again shortly."
   return j.error || "Generation failed"
 }
