@@ -191,6 +191,10 @@ export function DreAgent({ workspaceId: workspaceIdentifier }: { workspaceId: st
             )
             setStreaming(false)
             abortRef.current = null
+            // Reflect the model that actually worked (fallback may have kicked in).
+            if (payload.model && isChatModel(payload.model) && payload.model !== model) {
+              setModel(payload.model)
+            }
             loadConversations()
           },
           onError: (message, code) => {

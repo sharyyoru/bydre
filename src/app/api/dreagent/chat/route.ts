@@ -122,8 +122,11 @@ export async function POST(request: NextRequest) {
 
   // Validate credential + start generation up-front so config errors are plain JSON.
   let sdkStream: AsyncIterable<unknown>
+  let usedModel = model
   try {
-    sdkStream = (await streamChat({ workspaceId, model, grounding, turns })) as AsyncIterable<unknown>
+    const started = await streamChat({ workspaceId, model, grounding, turns })
+    sdkStream = started.stream
+    usedModel = started.model
   } catch (err) {
     if (err instanceof DreNotConfiguredError) {
       return NextResponse.json(
@@ -189,14 +192,14 @@ export async function POST(request: NextRequest) {
             role: "model",
             content: fullText,
             sources,
-            model,
+            model: usedModel,
           })
           .select("id")
           .single()
         modelMessageId = (modelRow as { id: string } | null)?.id || null
 
         // Bump updated_at (+ set title on the first exchange).
-        const update: Record<string, unknown> = { model }
+        const update: Record<string, unknown> = { model: usedModel }
         if (isFirst && userTurn?.content) update.title = userTurn.content.slice(0, 60)
         await supabase
           .from("dreagent_conversations")
@@ -210,7 +213,7 @@ export async function POST(request: NextRequest) {
             user_message_id: userMessageId,
             model_message_id: modelMessageId,
             sources,
-            model,
+            model: usedModel,
             title: (update.title as string) || undefined,
           })
         )
@@ -224,7 +227,7 @@ export async function POST(request: NextRequest) {
             role: "model",
             content: fullText,
             sources,
-            model,
+            model: usedModel,
           })
         }
         controller.enqueue(

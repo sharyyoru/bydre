@@ -50,22 +50,43 @@ export interface StreamChatParams {
 }
 
 /**
- * Start a streaming generation. Returns the SDK async iterable of response
- * chunks. Throws DreApiError / DreNotConfiguredError on failure to start.
+ * Fallback model chain. Google API keys differ in which models they can call
+ * (e.g. some reject 2.5, some reject 2.0), so on a model-availability error we
+ * transparently try the next candidate until one starts.
  */
-export async function streamChat(params: StreamChatParams) {
+const FALLBACK_MODELS = [
+  "gemini-2.0-flash",
+  "gemini-flash-latest",
+  "gemini-2.5-flash",
+  "gemini-2.0-flash-001",
+  "gemini-1.5-flash",
+]
+
+/**
+ * Start a streaming generation, falling back across model names on
+ * model-availability errors. Returns the SDK async iterable + the model that
+ * actually worked. Throws DreApiError / DreNotConfiguredError otherwise.
+ */
+export async function streamChat(params: StreamChatParams): Promise<{ stream: AsyncIterable<unknown>; model: string }> {
   const ai = await getClient(params.workspaceId)
-  try {
-    const stream = await ai.models.generateContentStream({
-      model: params.model,
-      contents: buildContents(params.turns),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      config: (params.grounding ? { tools: [{ googleSearch: {} }] } : {}) as any,
-    })
-    return stream
-  } catch (err) {
-    throw toApiError(err, "Chat generation failed to start")
+  const contents = buildContents(params.turns)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const config = (params.grounding ? { tools: [{ googleSearch: {} }] } : {}) as any
+
+  const candidates = Array.from(new Set([params.model, ...FALLBACK_MODELS]))
+  let lastError: DreApiError | null = null
+
+  for (const model of candidates) {
+    try {
+      const stream = (await ai.models.generateContentStream({ model, contents, config })) as AsyncIterable<unknown>
+      return { stream, model }
+    } catch (err) {
+      lastError = toApiError(err, "Chat generation failed to start")
+      // Only keep trying other models when it's an availability problem.
+      if (lastError.code !== "model") throw lastError
+    }
   }
+  throw lastError || new DreApiError("No available Gemini model for this API key", 400, "model")
 }
 
 /** Merge grounding source links out of a streamed chunk (dedup by uri). */
