@@ -78,35 +78,54 @@ export interface StartVideoParams {
   image?: { bytes: string; mimeType: string }
 }
 
+/**
+ * Stable fallback model. Veo 3 preview is heavily quota-throttled / requires
+ * allowlisting on many keys, whereas Veo 2 has broadly usable quota.
+ */
+const VIDEO_FALLBACK_MODEL = "veo-2.0-generate-001"
+
+/** Whether a Veo error should trigger a fallback to another model. */
+function shouldFallbackVideo(err: VeoApiError): boolean {
+  return err.status === 429 || /not.?found|not available|no longer|unsupported/i.test(err.message)
+}
+
 /** Start a Veo video generation. Returns the long-running operation name. */
 export async function startVideo(
   params: StartVideoParams
 ): Promise<{ operationName: string; model: string }> {
   const { ai } = await getClient(params.workspaceId)
-  const model = params.model || DEFAULT_VIDEO_MODEL
-  try {
-    const request: Record<string, unknown> = {
-      model,
-      prompt: params.prompt,
-      config: {
-        aspectRatio: params.aspectRatio || "16:9",
-        ...(params.resolution ? { resolution: params.resolution } : {}),
-        ...(params.negativePrompt ? { negativePrompt: params.negativePrompt } : {}),
-        numberOfVideos: 1,
-      },
+  const primary = params.model || DEFAULT_VIDEO_MODEL
+  const attempts = Array.from(new Set([primary, VIDEO_FALLBACK_MODEL]))
+  let lastError: VeoApiError | null = null
+
+  for (const model of attempts) {
+    const isPrimary = model === primary
+    try {
+      const request: Record<string, unknown> = {
+        model,
+        prompt: params.prompt,
+        config: {
+          aspectRatio: params.aspectRatio || "16:9",
+          // resolution (e.g. 1080p) is a Veo 3 feature; skip it on the fallback.
+          ...(params.resolution && isPrimary ? { resolution: params.resolution } : {}),
+          ...(params.negativePrompt ? { negativePrompt: params.negativePrompt } : {}),
+          numberOfVideos: 1,
+        },
+      }
+      if (params.image?.bytes) {
+        request.image = { imageBytes: params.image.bytes, mimeType: params.image.mimeType }
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const operation = await ai.models.generateVideos(request as any)
+      const operationName = (operation as { name?: string }).name
+      if (!operationName) throw new VeoApiError("No operation name returned", 502)
+      return { operationName, model }
+    } catch (err) {
+      lastError = err instanceof VeoApiError ? err : toApiError(err, "Video generation failed to start")
+      if (!shouldFallbackVideo(lastError)) throw lastError
     }
-    if (params.image?.bytes) {
-      request.image = { imageBytes: params.image.bytes, mimeType: params.image.mimeType }
-    }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const operation = await ai.models.generateVideos(request as any)
-    const operationName = (operation as { name?: string }).name
-    if (!operationName) throw new VeoApiError("No operation name returned", 502)
-    return { operationName, model }
-  } catch (err) {
-    if (err instanceof VeoApiError) throw err
-    throw toApiError(err, "Video generation failed to start")
   }
+  throw lastError || new VeoApiError("Video generation failed to start", 502)
 }
 
 export interface VideoPollResult {
