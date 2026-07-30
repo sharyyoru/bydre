@@ -25,6 +25,7 @@ import {
   Clapperboard,
   Sparkles,
   Bot,
+  CalendarClock,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -248,6 +249,20 @@ export function Sidebar({ mobile, collapsed = false, onToggle }: { mobile?: bool
             >
               <Bot className="h-4 w-4" />
               {!collapsed && "DreAgent"}
+            </Button>
+          </Link>
+
+          {!collapsed && <p className="text-xs font-semibold text-white/40 uppercase tracking-wider px-3 mt-6 mb-2">People</p>}
+
+          <Link href={`/workspace/${workspaceId || "drehomes"}/attendance`}>
+            <Button
+              variant="ghost"
+              className={`w-full justify-start gap-3 text-white/80 hover:bg-white/10 hover:text-white ${
+                pathname.includes("/attendance") ? "bg-white/10 text-white" : ""
+              }`}
+            >
+              <CalendarClock className="h-4 w-4" />
+              {!collapsed && "Attendance"}
             </Button>
           </Link>
 
