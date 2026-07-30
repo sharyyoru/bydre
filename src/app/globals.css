@@ -129,3 +129,75 @@
   height: 0;
   pointer-events: none;
 }
+
+/* DreAgent chat markdown */
+.dreagent-prose > *:first-child {
+  margin-top: 0;
+}
+.dreagent-prose > *:last-child {
+  margin-bottom: 0;
+}
+.dreagent-inline-code {
+  background: #eef1f5;
+  color: #0a1628;
+  padding: 0.1rem 0.35rem;
+  border-radius: 0.35rem;
+  font-size: 0.85em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.dreagent-prose pre code.hljs {
+  background: transparent;
+  padding: 0;
+}
+
+/* Compact highlight.js dark theme (github-dark subset) */
+.hljs {
+  color: #e6edf3;
+}
+.hljs-comment,
+.hljs-quote {
+  color: #8b949e;
+  font-style: italic;
+}
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal,
+.hljs-type {
+  color: #ff7b72;
+}
+.hljs-string,
+.hljs-meta .hljs-string,
+.hljs-regexp {
+  color: #a5d6ff;
+}
+.hljs-number,
+.hljs-symbol,
+.hljs-bullet {
+  color: #79c0ff;
+}
+.hljs-title,
+.hljs-title.function_,
+.hljs-section {
+  color: #d2a8ff;
+}
+.hljs-attr,
+.hljs-attribute,
+.hljs-variable,
+.hljs-template-variable {
+  color: #ffa657;
+}
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class {
+  color: #7ee787;
+}
+.hljs-built_in,
+.hljs-builtin-name {
+  color: #ffa657;
+}
+.hljs-emphasis {
+  font-style: italic;
+}
+.hljs-strong {
+  font-weight: 700;
+}
