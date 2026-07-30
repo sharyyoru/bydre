@@ -1,11 +1,11 @@
 export type ChatModel = "gemini-2.5-flash" | "gemini-2.5-pro" | "gemini-2.0-flash"
 
-export const DEFAULT_MODEL: ChatModel = "gemini-2.5-flash"
+export const DEFAULT_MODEL: ChatModel = "gemini-2.0-flash"
 
 export const DREAGENT_MODELS: { value: ChatModel; label: string; hint: string }[] = [
-  { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash", hint: "Fast, great for most tasks" },
-  { value: "gemini-2.5-pro", label: "Gemini 2.5 Pro", hint: "Deeper reasoning (needs quota)" },
-  { value: "gemini-2.0-flash", label: "Gemini 2.0 Flash", hint: "Legacy fast model" },
+  { value: "gemini-2.0-flash", label: "Gemini 2.0 Flash", hint: "Fast, broadly available" },
+  { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash", hint: "Newer, needs model access" },
+  { value: "gemini-2.5-pro", label: "Gemini 2.5 Pro", hint: "Deeper reasoning (needs access)" },
 ]
 
 export function isChatModel(v: unknown): v is ChatModel {

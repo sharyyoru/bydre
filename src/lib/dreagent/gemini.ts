@@ -13,7 +13,8 @@ export function toApiError(err: unknown, fallback: string): DreApiError {
   const msg = err instanceof Error ? err.message : fallback
   let status = 502
   let code = "error"
-  if (/403|permission|not allowed|billing|paid/i.test(msg)) { status = 403; code = "billing" }
+  if (/404|not.?found|no longer available|not available|unsupported/i.test(msg)) { status = 400; code = "model" }
+  else if (/403|permission|not allowed|billing|paid/i.test(msg)) { status = 403; code = "billing" }
   else if (/429|quota|rate|resource.?exhausted/i.test(msg)) { status = 429; code = "quota" }
   else if (/400|invalid/i.test(msg)) { status = 400; code = "invalid" }
   return new DreApiError(msg, status, code)

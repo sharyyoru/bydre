@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS public.dreagent_conversations (
   workspace_id uuid NOT NULL REFERENCES public.workspaces(id) ON DELETE CASCADE,
   created_by uuid REFERENCES public.profiles(id) ON DELETE SET NULL,
   title text NOT NULL DEFAULT 'New chat',
-  model text NOT NULL DEFAULT 'gemini-2.5-flash',
+  model text NOT NULL DEFAULT 'gemini-2.0-flash',
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );

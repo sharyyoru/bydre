@@ -198,6 +198,7 @@ export function DreAgent({ workspaceId: workspaceIdentifier }: { workspaceId: st
             setStreaming(false)
             abortRef.current = null
             if (code === "not_configured") toast.error("Add your Google (Gemini) API key in API Settings first.")
+            else if (code === "model") toast.error("That model isn't available for your API key — try Gemini 2.0 Flash.")
             else if (code === "billing") toast.error("This model needs a paid Google API tier / quota.")
             else if (code === "quota") toast.error("Rate limit or quota exceeded — try again shortly.")
             else toast.error(message || "Generation failed")
