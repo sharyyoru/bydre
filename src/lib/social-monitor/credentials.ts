@@ -13,6 +13,8 @@ const ENV_FALLBACK: Record<IntegrationProvider, string | undefined> = {
   youtube: process.env.YOUTUBE_API_KEY,
   meta: process.env.META_ACCESS_TOKEN,
   tiktok: process.env.TIKTOK_ACCESS_TOKEN,
+  geniemap: undefined,
+  google_maps: undefined,
 }
 
 /**

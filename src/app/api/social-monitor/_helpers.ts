@@ -33,6 +33,38 @@ export async function requireWorkspaceAdmin(workspaceId: string): Promise<
   return { userId: user.id }
 }
 
+/**
+ * Verify the current user is a member of the given workspace (any role).
+ * Returns { userId } on success or a NextResponse error to return early.
+ */
+export async function requireWorkspaceMember(workspaceId: string): Promise<
+  { userId: string } | { error: NextResponse }
+> {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) }
+  }
+
+  const { data: member } = await supabase
+    .from("workspace_members")
+    .select("role")
+    .eq("workspace_id", workspaceId)
+    .eq("user_id", user.id)
+    .maybeSingle()
+
+  if (!member) {
+    return {
+      error: NextResponse.json({ error: "Workspace access required" }, { status: 403 }),
+    }
+  }
+
+  return { userId: user.id }
+}
+
 export function notConfigured(provider: string) {
   return NextResponse.json(
     {

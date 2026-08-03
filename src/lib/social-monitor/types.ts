@@ -5,6 +5,8 @@ export type IntegrationProvider =
   | "youtube"
   | "meta"
   | "tiktok"
+  | "geniemap"
+  | "google_maps"
 
 export type RegistrationType = "off_plan" | "ready"
 export type SentimentPlatform = "google_trends" | "youtube"

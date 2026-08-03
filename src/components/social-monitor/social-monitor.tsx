@@ -8,9 +8,11 @@ import { MarketPulse } from "./market-pulse"
 import { SentimentTracker } from "./sentiment-tracker"
 import { ArbitrageEngine } from "./arbitrage-engine"
 import { ContentPipeline } from "./content-pipeline"
+import { OffplanProjects } from "./offplan-projects"
 
 const TABS = [
   { value: "market", label: "Market Pulse" },
+  { value: "offplan", label: "Off-plan Projects" },
   { value: "sentiment", label: "Sentiment Tracker" },
   { value: "arbitrage", label: "Arbitrage Engine" },
   { value: "pipeline", label: "Content Pipeline" },
@@ -52,6 +54,9 @@ export function SocialMonitor({ workspaceId }: { workspaceId: string }) {
 
         <TabsContent value="market">
           <MarketPulse workspaceId={workspaceId} />
+        </TabsContent>
+        <TabsContent value="offplan">
+          <OffplanProjects workspaceId={workspaceId} />
         </TabsContent>
         <TabsContent value="sentiment">
           <SentimentTracker workspaceId={workspaceId} />
