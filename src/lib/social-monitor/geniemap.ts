@@ -75,6 +75,7 @@ export async function fetchGenieMapProjects(
   let offset = 0
   let allProjects: GenieMapProjectInput[] = []
   let hasMore = true
+  let totalFromApi: number | null = null
 
   while (hasMore) {
     const url = new URL(`${baseUrl}/projects`)
@@ -103,18 +104,36 @@ export async function fetchGenieMapProjects(
       throw new Error(`GenieMap request failed: ${res.status} ${res.statusText}`)
     }
 
-    const json = (await res.json()) as unknown
-    const batch = normalizeGenieMapProjects(json, params.workspaceId)
-    allProjects = allProjects.concat(batch)
+    const json = (await res.json()) as Record<string, unknown>
+    
+    // Check for total count in response metadata
+    if (totalFromApi === null) {
+      totalFromApi = (json.total as number) ?? (json.count as number) ?? (json.totalCount as number) ?? null
+      if (totalFromApi) {
+        console.log(`GenieMap API reports ${totalFromApi} total projects`)
+      }
+    }
 
-    // If we got fewer than pageSize, we've reached the end
-    if (batch.length < pageSize) {
+    const batch = normalizeGenieMapProjects(json, params.workspaceId)
+    console.log(`GenieMap: Fetched batch at offset ${offset}, got ${batch.length} projects`)
+    
+    allProjects = allProjects.concat(batch)
+    offset += pageSize
+
+    // Check if we should continue:
+    // 1. If API gives total count, use that
+    // 2. Otherwise, if batch < pageSize, we're done
+    // 3. Also stop if batch is empty to prevent infinite loop
+    if (batch.length === 0) {
       hasMore = false
+    } else if (totalFromApi !== null) {
+      hasMore = allProjects.length < totalFromApi
     } else {
-      offset += pageSize
+      hasMore = batch.length >= pageSize
     }
   }
 
+  console.log(`GenieMap: Total fetched ${allProjects.length} projects`)
   return allProjects
 }
 
