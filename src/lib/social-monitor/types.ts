@@ -1,7 +1,6 @@
 export type IntegrationProvider =
   | "gemini"
   | "dubai_pulse"
-  | "serpapi"
   | "youtube"
   | "meta"
   | "tiktok"

@@ -28,17 +28,19 @@ export async function POST(request: NextRequest) {
       periodEnd: period_end,
     }
 
-    // Run both providers; if one is unconfigured, still ingest the other.
+    // Run both providers; if one fails, still try the other.
     const rows: any[] = []
     const warnings: string[] = []
 
+    // Google Trends - free, no API key needed
     try {
       rows.push(...(await fetchTrends(params)))
     } catch (e) {
-      if (e instanceof NotConfiguredError) warnings.push("serpapi not configured")
-      else throw e
+      console.error("Google Trends error:", e)
+      warnings.push("google_trends fetch failed")
     }
 
+    // YouTube - requires API key
     try {
       rows.push(...(await fetchYouTube(params)))
     } catch (e) {

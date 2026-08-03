@@ -102,7 +102,7 @@ export function SentimentTracker({ workspaceId }: { workspaceId: string }) {
     })
     setRefreshing(false)
     if (res.status === 501) {
-      toast.error("SerpApi/YouTube not configured — add keys in API Settings")
+      toast.error("YouTube not configured — add key in API Settings (Google Trends is free)")
       return
     }
     if (res.ok) {
@@ -282,7 +282,7 @@ function EmptyState() {
   return (
     <div className="py-12 text-center text-muted-foreground">
       <TrendingUp className="mx-auto mb-3 h-8 w-8 opacity-50" />
-      <p>No sentiment data yet. Add a manual entry or connect SerpApi/YouTube in API Settings.</p>
+      <p>No sentiment data yet. Add a manual entry or click Refresh to fetch Google Trends data (free, no API key needed).</p>
     </div>
   )
 }
