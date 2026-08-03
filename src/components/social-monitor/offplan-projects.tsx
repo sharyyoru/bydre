@@ -96,12 +96,36 @@ export function OffplanProjects({ workspaceId: workspaceIdentifier }: { workspac
   const load = async () => {
     if (!workspaceId) return
     const supabase = createClient()
-    const { data } = await supabase
-      .from("geniemap_projects")
-      .select("*")
-      .eq("workspace_id", workspaceId)
-      .order("name", { ascending: true })
-    setProjects((data || []) as GenieMapProject[])
+    
+    // Fetch all projects using pagination (Supabase default limit is 1000)
+    let allData: GenieMapProject[] = []
+    let from = 0
+    const pageSize = 1000
+    let hasMore = true
+
+    while (hasMore) {
+      const { data, error } = await supabase
+        .from("geniemap_projects")
+        .select("*")
+        .eq("workspace_id", workspaceId)
+        .order("name", { ascending: true })
+        .range(from, from + pageSize - 1)
+
+      if (error) {
+        console.error("Error loading projects:", error)
+        break
+      }
+
+      if (data && data.length > 0) {
+        allData = allData.concat(data as GenieMapProject[])
+        from += pageSize
+        hasMore = data.length === pageSize
+      } else {
+        hasMore = false
+      }
+    }
+
+    setProjects(allData)
     setLoading(false)
   }
 
