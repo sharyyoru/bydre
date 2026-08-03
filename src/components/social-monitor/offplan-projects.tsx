@@ -19,6 +19,7 @@ import {
   Search,
 } from "lucide-react"
 import { formatAED, formatNumber } from "@/lib/social-monitor/format"
+import { resolveWorkspaceId } from "@/lib/workspace-client"
 import { ProjectMap } from "./project-map"
 
 interface GenieMapProject {
@@ -51,7 +52,8 @@ interface GenieMapProject {
 
 type ViewMode = "table" | "map"
 
-export function OffplanProjects({ workspaceId }: { workspaceId: string }) {
+export function OffplanProjects({ workspaceId: workspaceIdentifier }: { workspaceId: string }) {
+  const [workspaceId, setWorkspaceId] = useState<string | null>(null)
   const [projects, setProjects] = useState<GenieMapProject[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -63,7 +65,17 @@ export function OffplanProjects({ workspaceId }: { workspaceId: string }) {
   const [developerFilter, setDeveloperFilter] = useState<string>("all")
   const [districtFilter, setDistrictFilter] = useState<string>("all")
 
+  // Resolve workspace slug to UUID
+  useEffect(() => {
+    const supabase = createClient()
+    resolveWorkspaceId(supabase, workspaceIdentifier).then((id) => {
+      if (id) setWorkspaceId(id)
+      else setLoading(false)
+    })
+  }, [workspaceIdentifier])
+
   const load = async () => {
+    if (!workspaceId) return
     const supabase = createClient()
     const { data } = await supabase
       .from("geniemap_projects")
@@ -75,6 +87,7 @@ export function OffplanProjects({ workspaceId }: { workspaceId: string }) {
   }
 
   useEffect(() => {
+    if (!workspaceId) return
     load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workspaceId])
@@ -356,7 +369,7 @@ export function OffplanProjects({ workspaceId }: { workspaceId: string }) {
             {loading ? (
               <p className="text-sm text-muted-foreground">Loading…</p>
             ) : filtered.length ? (
-              <ProjectMap projects={filtered} workspaceId={workspaceId} />
+              <ProjectMap projects={filtered} workspaceId={workspaceId!} />
             ) : (
               <EmptyState />
             )}
