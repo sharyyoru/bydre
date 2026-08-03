@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { fetchGenieMapProjects } from "@/lib/social-monitor/geniemap"
 import { NotConfiguredError } from "@/lib/social-monitor/types"
-import { requireWorkspaceAdmin, notConfigured } from "../../_helpers"
+import { requireWorkspaceMember, notConfigured } from "../../_helpers"
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const auth = await requireWorkspaceAdmin(workspace_id)
+    const auth = await requireWorkspaceMember(workspace_id)
     if ("error" in auth) return auth.error
 
     const rows = await fetchGenieMapProjects({
