@@ -162,13 +162,21 @@ function normalizeGenieMapProjects(
 
       const developer = r.developer || {}
       const district = r.district || r.location || {}
+      
+      // GenieMap uses `point` with `lat` and `lon` (string values)
+      const point = r.point || {}
       const coords = r.coordinates || r.location || {}
+      
+      // Parse unitPriceRange and unitAreaRange (GenieMap format: { from, to })
+      const priceRange = r.unitPriceRange || {}
+      const areaRange = r.unitAreaRange || {}
 
-      const unitTypes: GenieMapUnitType[] = Array.isArray(r.unit_types || r.units)
-        ? (r.unit_types || r.units).map((u: any) => ({
-            type: u.type || u.unit_type || "Unknown",
-            layout: u.layout || u.unit_layout || "",
-            beds: Number(u.beds || u.bedrooms || 0),
+      // Parse unitTypes or unitLayouts for bedroom info
+      const unitTypes: GenieMapUnitType[] = Array.isArray(r.unitTypes || r.unit_types || r.units || r.unitLayouts)
+        ? (r.unitTypes || r.unit_types || r.units || r.unitLayouts).map((u: any) => ({
+            type: u.name || u.type || u.unit_type || "Unknown",
+            layout: u.layout || u.unit_layout || u.name || "",
+            beds: Number(u.beds || u.bedrooms || extractBedsFromName(u.name) || 0),
             baths: Number(u.baths || u.bathrooms || 0),
             area: Number(u.area || u.size || 0),
             price: Number(u.price || u.starting_price || 0),
@@ -176,6 +184,29 @@ function normalizeGenieMapProjects(
         : []
 
       const status = parseStatus(r.status)
+      
+      // Extract price values (GenieMap uses unitPriceRange.from/to)
+      const priceMin = priceRange.from ?? r.price_min ?? r.priceMin ?? r.starting_price ?? null
+      const priceMax = priceRange.to ?? r.price_max ?? r.priceMax ?? null
+      
+      // Extract area values (GenieMap uses unitAreaRange.from/to)
+      const areaMin = areaRange.from ?? r.area_min ?? r.areaMin ?? r.min_area ?? null
+      const areaMax = areaRange.to ?? r.area_max ?? r.areaMax ?? r.max_area ?? null
+      
+      // Calculate price per sqft if we have price and area
+      let pricePerSqft = r.price_per_sqft ?? r.pricePerSqFt ?? r.price_psf ?? null
+      if (!pricePerSqft && priceMin && areaMin && areaMin > 0) {
+        pricePerSqft = Math.round(priceMin / areaMin)
+      }
+      
+      // Extract coordinates (GenieMap uses point.lat/point.lon as strings)
+      const lat = parseFloat(point.lat) || coords.lat || coords.latitude || r.lat || r.latitude || null
+      const lng = parseFloat(point.lon) || parseFloat(point.lng) || coords.lng || coords.longitude || r.lng || r.longitude || null
+      
+      // Extract image URL (GenieMap uses images array)
+      const images = r.images || []
+      const imageUrl = (Array.isArray(images) && images.length > 0 ? images[0] : null) 
+        ?? r.image_url ?? r.imageUrl ?? r.thumbnail ?? r.cover_image ?? null
 
       return {
         workspace_id: workspaceId,
@@ -186,22 +217,30 @@ function normalizeGenieMapProjects(
         district_name: district.name || r.district_name || r.area || null,
         district_id: district.id || r.district_id || null,
         status,
-        price_min: r.price_min ?? r.priceMin ?? r.starting_price ?? null,
-        price_max: r.price_max ?? r.priceMax ?? null,
-        price_per_sqft: r.price_per_sqft ?? r.pricePerSqFt ?? r.price_psf ?? calculatePricePerSqft(r),
-        area_min: r.area_min ?? r.areaMin ?? r.min_area ?? null,
-        area_max: r.area_max ?? r.areaMax ?? r.max_area ?? null,
+        price_min: priceMin,
+        price_max: priceMax,
+        price_per_sqft: pricePerSqft,
+        area_min: areaMin,
+        area_max: areaMax,
         handover_date: parseDate(r.handover_date ?? r.handoverDate ?? r.handover),
         service_charge: r.service_charge ?? r.serviceCharge ?? null,
         eoi_amount: r.eoi ?? r.eoi_amount ?? r.eoiAmount ?? null,
         unit_types: unitTypes,
-        latitude: coords.lat ?? coords.latitude ?? r.lat ?? r.latitude ?? null,
-        longitude: coords.lng ?? coords.longitude ?? r.lng ?? r.longitude ?? null,
-        image_url: r.image_url ?? r.imageUrl ?? r.thumbnail ?? r.cover_image ?? null,
+        latitude: lat,
+        longitude: lng,
+        image_url: imageUrl,
         raw: r,
       } as GenieMapProjectInput
     })
     .filter((row): row is GenieMapProjectInput => row !== null && row.name !== "Unknown")
+}
+
+// Extract bedroom count from layout name like "1 BR", "2 BR", "Studio"
+function extractBedsFromName(name: string | undefined): number {
+  if (!name) return 0
+  if (name.toLowerCase().includes("studio")) return 0
+  const match = name.match(/(\d+)\s*BR/i)
+  return match ? parseInt(match[1], 10) : 0
 }
 
 function parseStatus(status: unknown): "available" | "sold_out" | "launch" | null {
@@ -222,21 +261,3 @@ function parseDate(date: unknown): string | null {
   return null
 }
 
-function calculatePricePerSqft(r: any): number | null {
-  // Try to calculate from unit types if available
-  const units = r.unit_types || r.units || []
-  if (Array.isArray(units) && units.length > 0) {
-    const validUnits = units.filter((u: any) => u.price > 0 && u.area > 0)
-    if (validUnits.length > 0) {
-      const total = validUnits.reduce((sum: number, u: any) => sum + (u.price / u.area), 0)
-      return Math.round(total / validUnits.length)
-    }
-  }
-  // Try from price and area ranges
-  const price = r.price_min ?? r.priceMin ?? r.starting_price
-  const area = r.area_min ?? r.areaMin ?? r.min_area
-  if (price && area && area > 0) {
-    return Math.round(price / area)
-  }
-  return null
-}
