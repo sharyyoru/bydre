@@ -26,6 +26,7 @@ import {
   Sparkles,
   Bot,
   CalendarClock,
+  Palette,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -225,6 +226,18 @@ export function Sidebar({ mobile, collapsed = false, onToggle }: { mobile?: bool
             >
               <Wrench className="h-4 w-4" />
               {!collapsed && "Collage Maker"}
+            </Button>
+          </Link>
+
+          <Link href={`/workspace/${workspaceId || "drehomes"}/creative-studio`}>
+            <Button
+              variant="ghost"
+              className={`w-full justify-start gap-3 text-white/80 hover:bg-white/10 hover:text-white ${
+                pathname.includes("/creative-studio") ? "bg-white/10 text-white" : ""
+              }`}
+            >
+              <Palette className="h-4 w-4" />
+              {!collapsed && "Creative Studio"}
             </Button>
           </Link>
 

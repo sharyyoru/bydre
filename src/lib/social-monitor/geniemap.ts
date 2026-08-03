@@ -31,6 +31,11 @@ export interface GenieMapProjectInput {
   latitude: number | null
   longitude: number | null
   image_url: string | null
+  images: string[]
+  documents: string[]
+  description: string | null
+  amenities: string[]
+  payment_plans: Record<string, unknown>[]
   raw: Record<string, unknown>
 }
 
@@ -203,10 +208,26 @@ function normalizeGenieMapProjects(
       const lat = parseFloat(point.lat) || coords.lat || coords.latitude || r.lat || r.latitude || null
       const lng = parseFloat(point.lon) || parseFloat(point.lng) || coords.lng || coords.longitude || r.lng || r.longitude || null
       
-      // Extract image URL (GenieMap uses images array)
-      const images = r.images || []
-      const imageUrl = (Array.isArray(images) && images.length > 0 ? images[0] : null) 
-        ?? r.image_url ?? r.imageUrl ?? r.thumbnail ?? r.cover_image ?? null
+      // Extract images array (GenieMap provides array of image URLs)
+      const imagesArr: string[] = Array.isArray(r.images) ? r.images.filter((i: unknown) => typeof i === 'string') : []
+      const imageUrl = imagesArr.length > 0 ? imagesArr[0] 
+        : r.image_url ?? r.imageUrl ?? r.thumbnail ?? r.cover_image ?? null
+      
+      // Extract documents (PDFs, brochures)
+      const documentsArr: string[] = Array.isArray(r.documents) ? r.documents.filter((d: unknown) => typeof d === 'string') : []
+      
+      // Extract description
+      const description = typeof r.description === 'string' ? r.description 
+        : (typeof r.description === 'object' && r.description?.en) ? r.description.en 
+        : null
+      
+      // Extract amenities
+      const amenitiesArr: string[] = Array.isArray(r.amenities) 
+        ? r.amenities.map((a: any) => a.name || a.title || String(a)).filter(Boolean)
+        : []
+      
+      // Extract payment plans
+      const paymentPlans: Record<string, unknown>[] = Array.isArray(r.paymentPlans) ? r.paymentPlans : []
 
       return {
         workspace_id: workspaceId,
@@ -229,6 +250,11 @@ function normalizeGenieMapProjects(
         latitude: lat,
         longitude: lng,
         image_url: imageUrl,
+        images: imagesArr,
+        documents: documentsArr,
+        description,
+        amenities: amenitiesArr,
+        payment_plans: paymentPlans,
         raw: r,
       } as GenieMapProjectInput
     })

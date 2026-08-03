@@ -14,6 +14,7 @@ const ENV_FALLBACK: Record<IntegrationProvider, string | undefined> = {
   tiktok: process.env.TIKTOK_ACCESS_TOKEN,
   geniemap: undefined,
   google_maps: undefined,
+  canva: process.env.CANVA_API_KEY,
 }
 
 /**

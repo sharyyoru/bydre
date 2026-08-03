@@ -10,7 +10,7 @@ import { Plug, KeyRound, Check, Trash2, Copy, Plus } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { resolveWorkspaceId } from "@/lib/workspace-client"
 
-type Provider = "gemini" | "dubai_pulse" | "youtube" | "meta" | "tiktok" | "geniemap" | "google_maps"
+type Provider = "gemini" | "dubai_pulse" | "youtube" | "meta" | "tiktok" | "geniemap" | "google_maps" | "canva"
 
 interface CredentialStatus {
   provider: Provider
@@ -36,6 +36,7 @@ const PROVIDER_META: Record<Provider, { label: string; hint: string; hasBaseUrl?
   tiktok: { label: "TikTok Content API", hint: "Short-video publishing & analytics" },
   geniemap: { label: "GenieMap", hint: "Off-plan project inventory & availability", hasBaseUrl: true },
   google_maps: { label: "Google Maps", hint: "Map visualization for off-plan projects" },
+  canva: { label: "Canva Connect", hint: "Design templates & creative assets export" },
 }
 
 export function ApiSettings({ workspaceId: workspaceIdentifier }: { workspaceId: string }) {
