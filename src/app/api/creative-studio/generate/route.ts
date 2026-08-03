@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
 
     // Get branding if personal
     let agentName: string | undefined
-    let companyName = "DreHomes"
+    const companyName = "DreHomes"
 
     if (branding_type === "personal") {
       // Could fetch agent branding here if needed

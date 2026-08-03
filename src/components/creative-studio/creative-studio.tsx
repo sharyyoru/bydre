@@ -7,7 +7,6 @@ import { toast } from "sonner"
 import { Sparkles, Settings, Download, ExternalLink, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ProjectSelector } from "./project-selector"
 import { TemplatePicker } from "./template-picker"
 import { CanvasPreview } from "./canvas-preview"
@@ -18,8 +17,7 @@ import {
   ContentStyle, 
   GenieMapProject, 
   GeneratedContent,
-  AgentBranding,
-  TEMPLATE_CONFIGS 
+  AgentBranding
 } from "@/lib/creative-studio/types"
 
 export function CreativeStudio({ workspaceId: workspaceIdentifier }: { workspaceId: string }) {
