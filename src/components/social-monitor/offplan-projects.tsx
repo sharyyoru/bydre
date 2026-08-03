@@ -21,7 +21,14 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  X,
+  ChevronDown,
 } from "lucide-react"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 import { formatAED, formatNumber } from "@/lib/social-monitor/format"
 import { resolveWorkspaceId } from "@/lib/workspace-client"
 import { ProjectMap } from "./project-map"
@@ -72,8 +79,26 @@ export function OffplanProjects({ workspaceId: workspaceIdentifier }: { workspac
   const [developerFilter, setDeveloperFilter] = useState<string>("all")
   const [districtFilter, setDistrictFilter] = useState<string>("all")
   
+  // Searchable dropdown state
+  const [developerSearch, setDeveloperSearch] = useState("")
+  const [districtSearch, setDistrictSearch] = useState("")
+  const [developerOpen, setDeveloperOpen] = useState(false)
+  const [districtOpen, setDistrictOpen] = useState(false)
+  
   // Pagination
   const [page, setPage] = useState(1)
+
+  // Check if any filters are active
+  const hasActiveFilters = search || statusFilter !== "all" || developerFilter !== "all" || districtFilter !== "all"
+
+  // Clear all filters
+  const clearFilters = () => {
+    setSearch("")
+    setStatusFilter("all")
+    setDeveloperFilter("all")
+    setDistrictFilter("all")
+    setPage(1)
+  }
 
   // Debounce search input
   useEffect(() => {
@@ -141,10 +166,22 @@ export function OffplanProjects({ workspaceId: workspaceIdentifier }: { workspac
     return Array.from(set).sort() as string[]
   }, [projects])
 
+  // Filtered developers for searchable dropdown
+  const filteredDevelopers = useMemo(() => {
+    if (!developerSearch) return developers
+    return developers.filter(d => d.toLowerCase().includes(developerSearch.toLowerCase()))
+  }, [developers, developerSearch])
+
   const districts = useMemo(() => {
     const set = new Set(projects.map((p) => p.district_name).filter(Boolean))
     return Array.from(set).sort() as string[]
   }, [projects])
+
+  // Filtered districts for searchable dropdown
+  const filteredDistricts = useMemo(() => {
+    if (!districtSearch) return districts
+    return districts.filter(d => d.toLowerCase().includes(districtSearch.toLowerCase()))
+  }, [districts, districtSearch])
 
   // Smart search - searches across multiple fields
   const matchesSearch = useCallback((p: GenieMapProject, query: string) => {
@@ -182,16 +219,33 @@ export function OffplanProjects({ workspaceId: workspaceIdentifier }: { workspac
     setPage(1)
   }, [statusFilter, developerFilter, districtFilter])
 
+  // Helper to get price per sqft (from field or calculate from price/area)
+  const getPricePerSqft = (p: GenieMapProject): number | null => {
+    if (p.price_per_sqft && p.price_per_sqft > 0) return p.price_per_sqft
+    // Calculate from price_min and area_min if available
+    if (p.price_min && p.area_min && p.area_min > 0) {
+      return p.price_min / p.area_min
+    }
+    // Try from unit_types
+    if (p.unit_types && p.unit_types.length > 0) {
+      const validUnits = p.unit_types.filter(u => u.price > 0 && u.area > 0)
+      if (validUnits.length > 0) {
+        const avg = validUnits.reduce((sum, u) => sum + (u.price / u.area), 0) / validUnits.length
+        return avg
+      }
+    }
+    return null
+  }
+
   // KPIs
   const kpis = useMemo(() => {
     const total = filtered.length
-    const avgPricePerSqft =
-      filtered.filter((p) => p.price_per_sqft).length > 0
-        ? filtered
-            .filter((p) => p.price_per_sqft)
-            .reduce((s, p) => s + (p.price_per_sqft || 0), 0) /
-          filtered.filter((p) => p.price_per_sqft).length
-        : 0
+    
+    // Calculate avg price per sqft dynamically
+    const pricesPerSqft = filtered.map(getPricePerSqft).filter((v): v is number => v !== null && v > 0)
+    const avgPricePerSqft = pricesPerSqft.length > 0
+      ? pricesPerSqft.reduce((s, v) => s + v, 0) / pricesPerSqft.length
+      : 0
 
     const now = new Date()
     const sixMonths = new Date(now.getTime() + 6 * 30 * 24 * 60 * 60 * 1000)
@@ -285,30 +339,93 @@ export function OffplanProjects({ workspaceId: workspaceIdentifier }: { workspac
             <option value="launch">Launching</option>
             <option value="sold_out">Sold Out</option>
           </select>
-          <select
-            className="h-10 rounded-md border bg-background px-3 text-sm max-w-[180px]"
-            value={developerFilter}
-            onChange={(e) => setDeveloperFilter(e.target.value)}
-          >
-            <option value="all">All Developers</option>
-            {developers.map((d) => (
-              <option key={d} value={d}>
-                {d}
-              </option>
-            ))}
-          </select>
-          <select
-            className="h-10 rounded-md border bg-background px-3 text-sm max-w-[180px]"
-            value={districtFilter}
-            onChange={(e) => setDistrictFilter(e.target.value)}
-          >
-            <option value="all">All Districts</option>
-            {districts.map((d) => (
-              <option key={d} value={d}>
-                {d}
-              </option>
-            ))}
-          </select>
+          {/* Searchable Developer Dropdown */}
+          <Popover open={developerOpen} onOpenChange={setDeveloperOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="h-10 w-[180px] justify-between text-sm font-normal">
+                <span className="truncate">
+                  {developerFilter === "all" ? "All Developers" : developerFilter}
+                </span>
+                <ChevronDown className="h-4 w-4 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[220px] p-2" align="start">
+              <Input
+                placeholder="Search developers..."
+                value={developerSearch}
+                onChange={(e) => setDeveloperSearch(e.target.value)}
+                className="mb-2 h-8"
+              />
+              <div className="max-h-[200px] overflow-y-auto">
+                <button
+                  className="w-full text-left px-2 py-1.5 text-sm rounded hover:bg-muted"
+                  onClick={() => { setDeveloperFilter("all"); setDeveloperOpen(false); setDeveloperSearch(""); }}
+                >
+                  All Developers
+                </button>
+                {filteredDevelopers.map((d) => (
+                  <button
+                    key={d}
+                    className={`w-full text-left px-2 py-1.5 text-sm rounded hover:bg-muted truncate ${developerFilter === d ? "bg-muted font-medium" : ""}`}
+                    onClick={() => { setDeveloperFilter(d); setDeveloperOpen(false); setDeveloperSearch(""); }}
+                  >
+                    {d}
+                  </button>
+                ))}
+                {filteredDevelopers.length === 0 && (
+                  <p className="text-sm text-muted-foreground px-2 py-1.5">No developers found</p>
+                )}
+              </div>
+            </PopoverContent>
+          </Popover>
+          
+          {/* Searchable District Dropdown */}
+          <Popover open={districtOpen} onOpenChange={setDistrictOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="h-10 w-[180px] justify-between text-sm font-normal">
+                <span className="truncate">
+                  {districtFilter === "all" ? "All Districts" : districtFilter}
+                </span>
+                <ChevronDown className="h-4 w-4 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[220px] p-2" align="start">
+              <Input
+                placeholder="Search districts..."
+                value={districtSearch}
+                onChange={(e) => setDistrictSearch(e.target.value)}
+                className="mb-2 h-8"
+              />
+              <div className="max-h-[200px] overflow-y-auto">
+                <button
+                  className="w-full text-left px-2 py-1.5 text-sm rounded hover:bg-muted"
+                  onClick={() => { setDistrictFilter("all"); setDistrictOpen(false); setDistrictSearch(""); }}
+                >
+                  All Districts
+                </button>
+                {filteredDistricts.map((d) => (
+                  <button
+                    key={d}
+                    className={`w-full text-left px-2 py-1.5 text-sm rounded hover:bg-muted truncate ${districtFilter === d ? "bg-muted font-medium" : ""}`}
+                    onClick={() => { setDistrictFilter(d); setDistrictOpen(false); setDistrictSearch(""); }}
+                  >
+                    {d}
+                  </button>
+                ))}
+                {filteredDistricts.length === 0 && (
+                  <p className="text-sm text-muted-foreground px-2 py-1.5">No districts found</p>
+                )}
+              </div>
+            </PopoverContent>
+          </Popover>
+          
+          {/* Clear Filters */}
+          {hasActiveFilters && (
+            <Button variant="ghost" size="sm" onClick={clearFilters} className="h-10 px-2 text-muted-foreground">
+              <X className="h-4 w-4 mr-1" />
+              Clear
+            </Button>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <div className="flex rounded-md border">
