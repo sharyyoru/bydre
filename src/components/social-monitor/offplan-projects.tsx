@@ -137,14 +137,13 @@ export function OffplanProjects({ workspaceId: workspaceIdentifier }: { workspac
 
   // Apply filters
   const filtered = useMemo(() => {
-    let result = projects.filter((p) => {
+    return projects.filter((p) => {
       if (!matchesSearch(p, debouncedSearch)) return false
       if (statusFilter !== "all" && p.status !== statusFilter) return false
       if (developerFilter !== "all" && p.developer_name !== developerFilter) return false
       if (districtFilter !== "all" && p.district_name !== districtFilter) return false
       return true
     })
-    return result
   }, [projects, debouncedSearch, statusFilter, developerFilter, districtFilter, matchesSearch])
 
   // Pagination calculations
