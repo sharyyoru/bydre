@@ -54,6 +54,7 @@ export interface FetchProjectsParams {
 /**
  * Fetch off-plan projects from GenieMap API.
  * Requires base_url in config and API key in secret.
+ * Automatically paginates to fetch ALL projects (limit=1000 per request).
  */
 export async function fetchGenieMapProjects(
   params: FetchProjectsParams
@@ -69,35 +70,52 @@ export async function fetchGenieMapProjects(
     )
   }
 
-  const url = new URL(`${baseUrl}/projects`)
   const f = params.filters || {}
-  
-  if (f.districtId) url.searchParams.set("districtId", String(f.districtId))
-  if (f.developerId) url.searchParams.set("developerId", String(f.developerId))
-  if (f.minPrice) url.searchParams.set("minPrice", String(f.minPrice))
-  if (f.maxPrice) url.searchParams.set("maxPrice", String(f.maxPrice))
-  if (f.minPricePerSqFt) url.searchParams.set("minPricePerSqFt", String(f.minPricePerSqFt))
-  if (f.maxPricePerSqFt) url.searchParams.set("maxPricePerSqFt", String(f.maxPricePerSqFt))
-  if (f.status) url.searchParams.set("status", f.status)
-  if (f.handoverFrom) url.searchParams.set("handoverFrom", f.handoverFrom)
-  if (f.handoverTo) url.searchParams.set("handoverTo", f.handoverTo)
-  if (f.limit) url.searchParams.set("limit", String(f.limit))
-  if (f.offset) url.searchParams.set("offset", String(f.offset))
+  const pageSize = 1000 // Max allowed by API
+  let offset = 0
+  let allProjects: GenieMapProjectInput[] = []
+  let hasMore = true
 
-  const res = await fetch(url.toString(), {
-    headers: {
-      Authorization: `Bearer ${cred.secret}`,
-      Accept: "application/json",
-    },
-    cache: "no-store",
-  })
+  while (hasMore) {
+    const url = new URL(`${baseUrl}/projects`)
+    
+    if (f.districtId) url.searchParams.set("districtId", String(f.districtId))
+    if (f.developerId) url.searchParams.set("developerId", String(f.developerId))
+    if (f.minPrice) url.searchParams.set("minPrice", String(f.minPrice))
+    if (f.maxPrice) url.searchParams.set("maxPrice", String(f.maxPrice))
+    if (f.minPricePerSqFt) url.searchParams.set("minPricePerSqFt", String(f.minPricePerSqFt))
+    if (f.maxPricePerSqFt) url.searchParams.set("maxPricePerSqFt", String(f.maxPricePerSqFt))
+    if (f.status) url.searchParams.set("status", f.status)
+    if (f.handoverFrom) url.searchParams.set("handoverFrom", f.handoverFrom)
+    if (f.handoverTo) url.searchParams.set("handoverTo", f.handoverTo)
+    url.searchParams.set("limit", String(pageSize))
+    url.searchParams.set("offset", String(offset))
 
-  if (!res.ok) {
-    throw new Error(`GenieMap request failed: ${res.status} ${res.statusText}`)
+    const res = await fetch(url.toString(), {
+      headers: {
+        Authorization: `Bearer ${cred.secret}`,
+        Accept: "application/json",
+      },
+      cache: "no-store",
+    })
+
+    if (!res.ok) {
+      throw new Error(`GenieMap request failed: ${res.status} ${res.statusText}`)
+    }
+
+    const json = (await res.json()) as unknown
+    const batch = normalizeGenieMapProjects(json, params.workspaceId)
+    allProjects = allProjects.concat(batch)
+
+    // If we got fewer than pageSize, we've reached the end
+    if (batch.length < pageSize) {
+      hasMore = false
+    } else {
+      offset += pageSize
+    }
   }
 
-  const json = (await res.json()) as unknown
-  return normalizeGenieMapProjects(json, params.workspaceId)
+  return allProjects
 }
 
 /**
@@ -151,7 +169,7 @@ function normalizeGenieMapProjects(
         status,
         price_min: r.price_min ?? r.priceMin ?? r.starting_price ?? null,
         price_max: r.price_max ?? r.priceMax ?? null,
-        price_per_sqft: r.price_per_sqft ?? r.pricePerSqFt ?? r.price_psf ?? null,
+        price_per_sqft: r.price_per_sqft ?? r.pricePerSqFt ?? r.price_psf ?? calculatePricePerSqft(r),
         area_min: r.area_min ?? r.areaMin ?? r.min_area ?? null,
         area_max: r.area_max ?? r.areaMax ?? r.max_area ?? null,
         handover_date: parseDate(r.handover_date ?? r.handoverDate ?? r.handover),
@@ -181,6 +199,25 @@ function parseDate(date: unknown): string | null {
   if (typeof date === "string") {
     const d = new Date(date)
     if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10)
+  }
+  return null
+}
+
+function calculatePricePerSqft(r: any): number | null {
+  // Try to calculate from unit types if available
+  const units = r.unit_types || r.units || []
+  if (Array.isArray(units) && units.length > 0) {
+    const validUnits = units.filter((u: any) => u.price > 0 && u.area > 0)
+    if (validUnits.length > 0) {
+      const total = validUnits.reduce((sum: number, u: any) => sum + (u.price / u.area), 0)
+      return Math.round(total / validUnits.length)
+    }
+  }
+  // Try from price and area ranges
+  const price = r.price_min ?? r.priceMin ?? r.starting_price
+  const area = r.area_min ?? r.areaMin ?? r.min_area
+  if (price && area && area > 0) {
+    return Math.round(price / area)
   }
   return null
 }

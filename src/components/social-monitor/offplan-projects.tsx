@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, useCallback } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -17,10 +17,16 @@ import {
   DollarSign,
   TrendingUp,
   Search,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
 } from "lucide-react"
 import { formatAED, formatNumber } from "@/lib/social-monitor/format"
 import { resolveWorkspaceId } from "@/lib/workspace-client"
 import { ProjectMap } from "./project-map"
+
+const PAGE_SIZE = 20
 
 interface GenieMapProject {
   id: string
@@ -61,9 +67,22 @@ export function OffplanProjects({ workspaceId: workspaceIdentifier }: { workspac
 
   // Filters
   const [search, setSearch] = useState("")
+  const [debouncedSearch, setDebouncedSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [developerFilter, setDeveloperFilter] = useState<string>("all")
   const [districtFilter, setDistrictFilter] = useState<string>("all")
+  
+  // Pagination
+  const [page, setPage] = useState(1)
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search)
+      setPage(1) // Reset to first page on search
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [search])
 
   // Resolve workspace slug to UUID
   useEffect(() => {
@@ -103,24 +122,42 @@ export function OffplanProjects({ workspaceId: workspaceIdentifier }: { workspac
     return Array.from(set).sort() as string[]
   }, [projects])
 
+  // Smart search - searches across multiple fields
+  const matchesSearch = useCallback((p: GenieMapProject, query: string) => {
+    if (!query) return true
+    const q = query.toLowerCase()
+    return (
+      p.name.toLowerCase().includes(q) ||
+      (p.developer_name?.toLowerCase().includes(q) ?? false) ||
+      (p.district_name?.toLowerCase().includes(q) ?? false) ||
+      p.unit_types?.some(u => u.type.toLowerCase().includes(q)) ||
+      (p.status?.toLowerCase().includes(q) ?? false)
+    )
+  }, [])
+
   // Apply filters
   const filtered = useMemo(() => {
-    return projects.filter((p) => {
-      if (search && !p.name.toLowerCase().includes(search.toLowerCase())) {
-        return false
-      }
-      if (statusFilter !== "all" && p.status !== statusFilter) {
-        return false
-      }
-      if (developerFilter !== "all" && p.developer_name !== developerFilter) {
-        return false
-      }
-      if (districtFilter !== "all" && p.district_name !== districtFilter) {
-        return false
-      }
+    let result = projects.filter((p) => {
+      if (!matchesSearch(p, debouncedSearch)) return false
+      if (statusFilter !== "all" && p.status !== statusFilter) return false
+      if (developerFilter !== "all" && p.developer_name !== developerFilter) return false
+      if (districtFilter !== "all" && p.district_name !== districtFilter) return false
       return true
     })
-  }, [projects, search, statusFilter, developerFilter, districtFilter])
+    return result
+  }, [projects, debouncedSearch, statusFilter, developerFilter, districtFilter, matchesSearch])
+
+  // Pagination calculations
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE)
+  const paginatedProjects = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE
+    return filtered.slice(start, start + PAGE_SIZE)
+  }, [filtered, page])
+
+  // Reset page when filters change
+  useEffect(() => {
+    setPage(1)
+  }, [statusFilter, developerFilter, districtFilter])
 
   // KPIs
   const kpis = useMemo(() => {
@@ -324,7 +361,7 @@ export function OffplanProjects({ workspaceId: workspaceIdentifier }: { workspac
                     </tr>
                   </thead>
                   <tbody>
-                    {filtered.map((p) => (
+                    {paginatedProjects.map((p) => (
                       <tr key={p.id} className="border-b last:border-0 hover:bg-muted/50">
                         <td className="py-3 pr-4">
                           <div className="font-medium">{p.name}</div>
@@ -354,6 +391,51 @@ export function OffplanProjects({ workspaceId: workspaceIdentifier }: { workspac
                     ))}
                   </tbody>
                 </table>
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                    <div className="text-sm text-muted-foreground">
+                      Showing {((page - 1) * PAGE_SIZE) + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length} projects
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPage(1)}
+                        disabled={page === 1}
+                      >
+                        <ChevronsLeft className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPage(p => Math.max(1, p - 1))}
+                        disabled={page === 1}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <span className="px-3 text-sm">
+                        Page {page} of {totalPages}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                        disabled={page === totalPages}
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPage(totalPages)}
+                        disabled={page === totalPages}
+                      >
+                        <ChevronsRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <EmptyState />
