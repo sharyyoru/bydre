@@ -53,7 +53,7 @@ const mapOptions: google.maps.MapOptions = {
 
 export function ProjectMap({ projects, workspaceId }: ProjectMapProps) {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null)
-  const [map, setMap] = useState<google.maps.Map | null>(null)
+  const [, setMap] = useState<google.maps.Map | null>(null)
   const [apiKey, setApiKey] = useState<string | null>(null)
   const [keyError, setKeyError] = useState<string | null>(null)
 
@@ -104,7 +104,7 @@ export function ProjectMap({ projects, workspaceId }: ProjectMapProps) {
       if (bounds) {
         map.fitBounds(bounds)
         // Add padding
-        const listener = google.maps.event.addListenerOnce(map, "idle", () => {
+        google.maps.event.addListenerOnce(map, "idle", () => {
           const currentZoom = map.getZoom()
           if (currentZoom && currentZoom > 14) {
             map.setZoom(14)
