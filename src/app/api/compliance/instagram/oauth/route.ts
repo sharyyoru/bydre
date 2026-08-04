@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { getCredential } from "@/lib/social-monitor/credentials"
 
-const FACEBOOK_APP_ID = process.env.FACEBOOK_APP_ID || process.env.NEXT_PUBLIC_FACEBOOK_APP_ID
 const INSTAGRAM_OAUTH_SCOPES = [
   "instagram_basic",
   "instagram_content_publish", 
@@ -23,15 +23,22 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "workspace_id required" }, { status: 400 })
   }
 
-  if (!FACEBOOK_APP_ID) {
-    return NextResponse.json({ error: "Facebook App ID not configured" }, { status: 500 })
-  }
-
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  // Get Facebook App credentials from database
+  const metaCreds = await getCredential(workspaceId, "meta")
+  const appId = metaCreds?.config?.app_id as string | undefined
+  
+  if (!appId) {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin
+    return NextResponse.redirect(
+      `${baseUrl}/workspace/${workspaceId}/compliance?error=${encodeURIComponent("Facebook App not configured. Go to API Settings to add your Facebook App ID and Secret.")}`
+    )
   }
 
   // Build redirect URI
@@ -47,7 +54,7 @@ export async function GET(request: NextRequest) {
 
   // Build Facebook OAuth URL
   const oauthUrl = new URL("https://www.facebook.com/v21.0/dialog/oauth")
-  oauthUrl.searchParams.set("client_id", FACEBOOK_APP_ID)
+  oauthUrl.searchParams.set("client_id", appId)
   oauthUrl.searchParams.set("redirect_uri", redirectUri)
   oauthUrl.searchParams.set("scope", INSTAGRAM_OAUTH_SCOPES)
   oauthUrl.searchParams.set("response_type", "code")

@@ -28,11 +28,11 @@ interface FeedToken {
   created_at: string
 }
 
-const PROVIDER_META: Record<Provider, { label: string; hint: string; hasBaseUrl?: boolean }> = {
+const PROVIDER_META: Record<Provider, { label: string; hint: string; hasBaseUrl?: boolean; hasAppId?: boolean }> = {
   gemini: { label: "Google Gemini", hint: "LLM for arbitrage analysis & content generation" },
   dubai_pulse: { label: "Dubai Pulse / DLD", hint: "Market transaction data", hasBaseUrl: true },
   youtube: { label: "YouTube Data API v3", hint: "YouTube Shorts publishing & engagement signals" },
-  meta: { label: "Meta Graph API (Instagram/Facebook)", hint: "Reels publishing & insights (long-lived token)" },
+  meta: { label: "Meta / Facebook App", hint: "Instagram OAuth login & QR Compliance Monitor", hasAppId: true },
   tiktok: { label: "TikTok Content API", hint: "Short-video publishing & analytics" },
   geniemap: { label: "GenieMap", hint: "Off-plan project inventory & availability", hasBaseUrl: true },
   google_maps: { label: "Google Maps", hint: "Map visualization for off-plan projects" },
@@ -44,6 +44,7 @@ export function ApiSettings({ workspaceId: workspaceIdentifier }: { workspaceId:
   const [creds, setCreds] = useState<CredentialStatus[]>([])
   const [secrets, setSecrets] = useState<Record<string, string>>({})
   const [baseUrls, setBaseUrls] = useState<Record<string, string>>({})
+  const [appIds, setAppIds] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<string | null>(null)
 
@@ -57,12 +58,17 @@ export function ApiSettings({ workspaceId: workspaceIdentifier }: { workspaceId:
       const json = await res.json()
       setCreds(json.credentials)
       const urls: Record<string, string> = {}
+      const ids: Record<string, string> = {}
       for (const c of json.credentials as CredentialStatus[]) {
-        if (c.config && typeof (c.config as any).base_url === "string") {
-          urls[c.provider] = (c.config as any).base_url
+        if (c.config && typeof (c.config as Record<string, unknown>).base_url === "string") {
+          urls[c.provider] = (c.config as Record<string, unknown>).base_url as string
+        }
+        if (c.config && typeof (c.config as Record<string, unknown>).app_id === "string") {
+          ids[c.provider] = (c.config as Record<string, unknown>).app_id as string
         }
       }
       setBaseUrls(urls)
+      setAppIds(ids)
     } else if (res.status === 403) {
       toast.error("Admin access required")
     }
@@ -99,8 +105,15 @@ export function ApiSettings({ workspaceId: workspaceIdentifier }: { workspaceId:
     const meta = PROVIDER_META[provider]
     const config: Record<string, unknown> = {}
     if (meta.hasBaseUrl && baseUrls[provider]) config.base_url = baseUrls[provider]
+    if (meta.hasAppId && appIds[provider]) config.app_id = appIds[provider]
 
-    if (!secret && !Object.keys(config).length) {
+    // For meta provider, require both app_id and secret (app secret)
+    if (meta.hasAppId) {
+      if (!appIds[provider] || !secret) {
+        toast.error("Enter both App ID and App Secret")
+        return
+      }
+    } else if (!secret && !Object.keys(config).length) {
       toast.error("Enter an API key first")
       return
     }
@@ -227,12 +240,29 @@ export function ApiSettings({ workspaceId: workspaceIdentifier }: { workspaceId:
                     onChange={(e) => setBaseUrls((u) => ({ ...u, [provider]: e.target.value }))}
                   />
                 )}
-                <Input
-                  type="password"
-                  placeholder={status?.configured ? "Enter new key to replace" : "Paste API key"}
-                  value={secrets[provider] || ""}
-                  onChange={(e) => setSecrets((s) => ({ ...s, [provider]: e.target.value }))}
-                />
+                {meta.hasAppId && (
+                  <>
+                    <Input
+                      placeholder="Facebook App ID"
+                      value={appIds[provider] || ""}
+                      onChange={(e) => setAppIds((a) => ({ ...a, [provider]: e.target.value }))}
+                    />
+                    <Input
+                      type="password"
+                      placeholder={status?.configured ? "Enter new App Secret to replace" : "Facebook App Secret"}
+                      value={secrets[provider] || ""}
+                      onChange={(e) => setSecrets((s) => ({ ...s, [provider]: e.target.value }))}
+                    />
+                  </>
+                )}
+                {!meta.hasAppId && (
+                  <Input
+                    type="password"
+                    placeholder={status?.configured ? "Enter new key to replace" : "Paste API key"}
+                    value={secrets[provider] || ""}
+                    onChange={(e) => setSecrets((s) => ({ ...s, [provider]: e.target.value }))}
+                  />
+                )}
                 <div className="flex gap-2">
                   <Button size="sm" onClick={() => saveCredential(provider)} disabled={saving === provider}>
                     {saving === provider ? "Saving..." : status?.configured ? "Update" : "Save"}

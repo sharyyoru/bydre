@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createAdminClient } from "@/lib/supabase/admin"
-
-const FACEBOOK_APP_ID = process.env.FACEBOOK_APP_ID || process.env.NEXT_PUBLIC_FACEBOOK_APP_ID
-const FACEBOOK_APP_SECRET = process.env.FACEBOOK_APP_SECRET
+import { getCredential } from "@/lib/social-monitor/credentials"
 
 /**
  * GET - Handle Instagram OAuth callback
@@ -47,7 +45,12 @@ export async function GET(request: NextRequest) {
     )
   }
 
-  if (!FACEBOOK_APP_ID || !FACEBOOK_APP_SECRET) {
+  // Get Facebook App credentials from database
+  const metaCreds = await getCredential(state.workspace_id, "meta")
+  const appId = metaCreds?.config?.app_id as string | undefined
+  const appSecret = metaCreds?.secret
+
+  if (!appId || !appSecret) {
     return NextResponse.redirect(
       `${baseUrl}/workspace/${state.workspace_id}/compliance?error=Facebook+app+not+configured`
     )
@@ -59,9 +62,9 @@ export async function GET(request: NextRequest) {
     // Exchange code for short-lived token
     const tokenResponse = await fetch(
       `https://graph.facebook.com/v21.0/oauth/access_token?` +
-      `client_id=${FACEBOOK_APP_ID}&` +
+      `client_id=${appId}&` +
       `redirect_uri=${encodeURIComponent(redirectUri)}&` +
-      `client_secret=${FACEBOOK_APP_SECRET}&` +
+      `client_secret=${appSecret}&` +
       `code=${code}`
     )
 
@@ -80,8 +83,8 @@ export async function GET(request: NextRequest) {
     const longLivedResponse = await fetch(
       `https://graph.facebook.com/v21.0/oauth/access_token?` +
       `grant_type=fb_exchange_token&` +
-      `client_id=${FACEBOOK_APP_ID}&` +
-      `client_secret=${FACEBOOK_APP_SECRET}&` +
+      `client_id=${appId}&` +
+      `client_secret=${appSecret}&` +
       `fb_exchange_token=${shortLivedToken}`
     )
 
