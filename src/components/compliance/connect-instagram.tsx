@@ -126,14 +126,37 @@ export function ConnectInstagram({
                   Connect Account
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                   <DialogTitle>Connect Instagram Account</DialogTitle>
                   <DialogDescription>
-                    Enter a long-lived access token from Meta Business Suite to connect an Instagram Business account.
+                    Connect your Instagram Business or Creator account to monitor posts for QR compliance.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
+                  {/* OAuth Button - Primary Method */}
+                  <Button
+                    className="w-full h-12 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 hover:from-purple-700 hover:via-pink-700 hover:to-orange-600 text-white"
+                    onClick={() => {
+                      window.location.href = `/api/compliance/instagram/oauth?workspace_id=${workspaceId}`
+                    }}
+                  >
+                    <Instagram className="h-5 w-5 mr-2" />
+                    Connect with Instagram
+                  </Button>
+
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-background px-2 text-muted-foreground">
+                        Or use access token
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Manual Token Entry - Fallback */}
                   <div className="space-y-2">
                     <Label htmlFor="token">Access Token</Label>
                     <Input
@@ -145,12 +168,11 @@ export function ConnectInstagram({
                     />
                   </div>
                   <div className="rounded-lg bg-muted p-3 text-sm">
-                    <p className="font-medium mb-1">How to get an access token:</p>
-                    <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
+                    <p className="font-medium mb-1">Manual token method:</p>
+                    <ol className="list-decimal list-inside space-y-1 text-muted-foreground text-xs">
                       <li>Go to Meta Business Suite</li>
                       <li>Navigate to Settings → Business Assets → System Users</li>
-                      <li>Create or select a system user</li>
-                      <li>Generate a token with instagram_basic and pages_read_engagement permissions</li>
+                      <li>Generate a token with instagram_basic permissions</li>
                     </ol>
                   </div>
                 </div>
@@ -158,9 +180,9 @@ export function ConnectInstagram({
                   <Button variant="outline" onClick={() => setIsOpen(false)}>
                     Cancel
                   </Button>
-                  <Button onClick={handleConnect} disabled={connecting}>
+                  <Button onClick={handleConnect} disabled={connecting || !accessToken.trim()}>
                     {connecting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                    Connect
+                    Connect with Token
                   </Button>
                 </DialogFooter>
               </DialogContent>

@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
+import { useSearchParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { resolveWorkspaceId } from "@/lib/workspace-client"
 import { toast } from "sonner"
@@ -36,6 +37,7 @@ interface ComplianceStats {
 }
 
 export function ComplianceHub({ workspaceId: workspaceIdentifier }: { workspaceId: string }) {
+  const searchParams = useSearchParams()
   const [workspaceId, setWorkspaceId] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState("overview")
   const [accounts, setAccounts] = useState<AgentInstagramAccount[]>([])
@@ -43,6 +45,23 @@ export function ComplianceHub({ workspaceId: workspaceIdentifier }: { workspaceI
   const [stats, setStats] = useState<ComplianceStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState<string | null>(null)
+
+  // Handle OAuth callback messages
+  useEffect(() => {
+    const success = searchParams.get("success")
+    const error = searchParams.get("error")
+    
+    if (success) {
+      toast.success(decodeURIComponent(success))
+      // Clean URL
+      window.history.replaceState({}, "", window.location.pathname)
+    }
+    if (error) {
+      toast.error(decodeURIComponent(error))
+      // Clean URL
+      window.history.replaceState({}, "", window.location.pathname)
+    }
+  }, [searchParams])
 
   const fetchData = useCallback(async (wsId: string) => {
     try {
