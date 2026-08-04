@@ -27,6 +27,7 @@ import {
   Bot,
   CalendarClock,
   Palette,
+  Shield,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -238,6 +239,18 @@ export function Sidebar({ mobile, collapsed = false, onToggle }: { mobile?: bool
             >
               <Palette className="h-4 w-4" />
               {!collapsed && "Creative Studio"}
+            </Button>
+          </Link>
+
+          <Link href={`/workspace/${workspaceId || "drehomes"}/compliance`}>
+            <Button
+              variant="ghost"
+              className={`w-full justify-start gap-3 text-white/80 hover:bg-white/10 hover:text-white ${
+                pathname.includes("/compliance") ? "bg-white/10 text-white" : ""
+              }`}
+            >
+              <Shield className="h-4 w-4" />
+              {!collapsed && "QR Compliance"}
             </Button>
           </Link>
 
