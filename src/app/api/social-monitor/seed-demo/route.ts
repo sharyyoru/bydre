@@ -1,5 +1,19 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createAdminClient } from "@/lib/supabase/admin"
+import { createClient } from "@supabase/supabase-js"
+
+// Create admin client inline to avoid any import issues
+function getAdminClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  
+  if (!url || !serviceKey) {
+    throw new Error("Missing Supabase credentials")
+  }
+  
+  return createClient(url, serviceKey, {
+    auth: { autoRefreshToken: false, persistSession: false }
+  })
+}
 
 // Realistic Dubai areas with market data
 const DUBAI_AREAS = [
@@ -93,15 +107,33 @@ function getDateRange() {
 }
 
 export async function POST(request: NextRequest) {
+  const errors: string[] = []
+  
   try {
-    const body = await request.json()
+    // Parse request body
+    let body
+    try {
+      body = await request.json()
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 })
+    }
+    
     const { workspace_id: workspaceIdentifier } = body
 
     if (!workspaceIdentifier) {
       return NextResponse.json({ error: "workspace_id required" }, { status: 400 })
     }
 
-    const supabase = createAdminClient()
+    // Create Supabase client
+    let supabase
+    try {
+      supabase = getAdminClient()
+    } catch (e) {
+      return NextResponse.json({ 
+        error: "Database connection failed", 
+        details: e instanceof Error ? e.message : "Unknown error"
+      }, { status: 500 })
+    }
     
     // Resolve workspace_id (could be slug or UUID)
     let workspace_id = workspaceIdentifier
@@ -109,14 +141,21 @@ export async function POST(request: NextRequest) {
     
     if (!isUUID) {
       // It's a slug, resolve to UUID
-      const { data: ws } = await supabase
+      const { data: ws, error: wsError } = await supabase
         .from("workspaces")
         .select("id")
         .eq("slug", workspaceIdentifier)
         .maybeSingle()
       
+      if (wsError) {
+        return NextResponse.json({ 
+          error: "Failed to lookup workspace", 
+          details: wsError.message 
+        }, { status: 500 })
+      }
+      
       if (!ws) {
-        return NextResponse.json({ error: "Workspace not found" }, { status: 404 })
+        return NextResponse.json({ error: `Workspace '${workspaceIdentifier}' not found` }, { status: 404 })
       }
       workspace_id = ws.id
     }
@@ -124,7 +163,20 @@ export async function POST(request: NextRequest) {
     const dates = getDateRange()
     const results = { market: 0, sentiment: 0, briefs: 0 }
 
-    // 1. Seed Market Metrics
+    // 1. Delete existing demo data first (clean slate approach)
+    await supabase
+      .from("dld_market_metrics")
+      .delete()
+      .eq("workspace_id", workspace_id)
+      .eq("source", "demo_seed")
+    
+    await supabase
+      .from("social_sentiment_metrics")
+      .delete()
+      .eq("workspace_id", workspace_id)
+      .eq("source", "demo_seed")
+
+    // 2. Seed Market Metrics
     const marketRows = DUBAI_AREAS.map((area) => ({
       workspace_id,
       area_name: area.area,
@@ -138,16 +190,20 @@ export async function POST(request: NextRequest) {
       period_start: dates.start,
       period_end: dates.end,
       source: "demo_seed",
-      raw: { seeded: true, original: area },
+      raw: { seeded: true },
     }))
 
     const { error: marketError } = await supabase
       .from("dld_market_metrics")
-      .upsert(marketRows, { onConflict: "workspace_id,area_name,registration_type,period_start,period_end" })
+      .insert(marketRows)
 
-    if (!marketError) results.market = marketRows.length
+    if (marketError) {
+      errors.push(`Market: ${marketError.message}`)
+    } else {
+      results.market = marketRows.length
+    }
 
-    // 2. Seed Sentiment Metrics
+    // 3. Seed Sentiment Metrics
     const sentimentRows = SENTIMENT_KEYWORDS.map((kw) => ({
       workspace_id,
       keyword: kw.keyword,
@@ -160,38 +216,20 @@ export async function POST(request: NextRequest) {
       period_start: dates.start,
       period_end: dates.end,
       source: "demo_seed",
-      raw: { seeded: true, original: kw },
+      raw: { seeded: true },
     }))
 
     const { error: sentimentError } = await supabase
       .from("social_sentiment_metrics")
-      .upsert(sentimentRows, { onConflict: "workspace_id,keyword,platform,period_start,period_end" })
+      .insert(sentimentRows)
 
-    if (!sentimentError) results.sentiment = sentimentRows.length
+    if (sentimentError) {
+      errors.push(`Sentiment: ${sentimentError.message}`)
+    } else {
+      results.sentiment = sentimentRows.length
+    }
 
-    // 3. Seed Content Briefs
-    const briefRows = DEMO_BRIEFS.map((brief) => ({
-      workspace_id,
-      title: brief.title,
-      angle: brief.angle,
-      hook: brief.hook,
-      summary: brief.summary,
-      platform_copy: {
-        instagram: `🏠 ${brief.hook}\n\n${brief.summary}\n\n#DubaiRealEstate #Investment #${brief.keywords[0].replace(/\s/g, "")}`,
-        tiktok: `${brief.hook} 🔥 ${brief.summary}`,
-        youtube: `${brief.title} | Dubai Real Estate Investment Guide`,
-        linkedin: `${brief.angle}\n\n${brief.summary}\n\nKey insight: ${brief.hook}`,
-      },
-      target_area: brief.target_area,
-      keywords: brief.keywords,
-      arbitrage_score: brief.arbitrage_score,
-      status: brief.status,
-      generated_by: "demo_seed",
-      model: "demo",
-      raw: { seeded: true },
-    }))
-
-    // Check existing briefs to avoid duplicates
+    // 4. Seed Content Briefs (check for existing first)
     const { data: existingBriefs } = await supabase
       .from("content_briefs")
       .select("title")
@@ -199,17 +237,53 @@ export async function POST(request: NextRequest) {
       .eq("generated_by", "demo_seed")
 
     const existingTitles = new Set((existingBriefs || []).map((b: { title: string }) => b.title))
-    const newBriefs = briefRows.filter((b) => !existingTitles.has(b.title))
+    
+    const briefRows = DEMO_BRIEFS
+      .filter((brief) => !existingTitles.has(brief.title))
+      .map((brief) => ({
+        workspace_id,
+        title: brief.title,
+        angle: brief.angle,
+        hook: brief.hook,
+        summary: brief.summary,
+        platform_copy: {
+          instagram: `🏠 ${brief.hook}\n\n${brief.summary}\n\n#DubaiRealEstate #Investment #${brief.keywords[0].replace(/\s/g, "")}`,
+          tiktok: `${brief.hook} 🔥 ${brief.summary}`,
+          youtube: `${brief.title} | Dubai Real Estate Investment Guide`,
+          linkedin: `${brief.angle}\n\n${brief.summary}\n\nKey insight: ${brief.hook}`,
+        },
+        target_area: brief.target_area,
+        keywords: brief.keywords,
+        arbitrage_score: brief.arbitrage_score,
+        status: brief.status,
+        generated_by: "demo_seed",
+        model: "demo",
+        raw: { seeded: true },
+      }))
 
-    if (newBriefs.length > 0) {
-      const { error: briefsError } = await supabase.from("content_briefs").insert(newBriefs)
-      if (!briefsError) results.briefs = newBriefs.length
+    if (briefRows.length > 0) {
+      const { error: briefsError } = await supabase.from("content_briefs").insert(briefRows)
+      if (briefsError) {
+        errors.push(`Briefs: ${briefsError.message}`)
+      } else {
+        results.briefs = briefRows.length
+      }
+    }
+
+    // Return results
+    if (errors.length > 0 && results.market === 0 && results.sentiment === 0) {
+      return NextResponse.json({
+        success: false,
+        error: "Failed to seed data",
+        details: errors,
+      }, { status: 500 })
     }
 
     return NextResponse.json({
       success: true,
       inserted: results,
       message: `Seeded ${results.market} market metrics, ${results.sentiment} sentiment metrics, ${results.briefs} content briefs`,
+      warnings: errors.length > 0 ? errors : undefined,
     })
   } catch (error) {
     console.error("Demo seed error:", error)
