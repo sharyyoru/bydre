@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai"
+import { GoogleGenerativeAI } from "@google/generative-ai"
 import { getCredential } from "./credentials"
 import {
   ArbitrageOpportunity,
@@ -7,29 +7,15 @@ import {
 } from "./types"
 import { formatAED } from "./format"
 
-const DEFAULT_MODEL = "gemini-1.5-flash"
+const DEFAULT_MODEL = "gemini-2.0-flash"
 
-const briefSchema = {
-  type: SchemaType.OBJECT,
-  properties: {
-    title: { type: SchemaType.STRING },
-    angle: { type: SchemaType.STRING },
-    hook: { type: SchemaType.STRING },
-    summary: { type: SchemaType.STRING },
-    platform_copy: {
-      type: SchemaType.OBJECT,
-      properties: {
-        instagram: { type: SchemaType.STRING },
-        tiktok: { type: SchemaType.STRING },
-        youtube: { type: SchemaType.STRING },
-        x: { type: SchemaType.STRING },
-        linkedin: { type: SchemaType.STRING },
-      },
-    },
-    keywords: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
-  },
-  required: ["title", "angle", "hook", "summary", "platform_copy", "keywords"],
-} as const
+// Fallback models to try if the primary model is unavailable
+const FALLBACK_MODELS = [
+  "gemini-2.0-flash",
+  "gemini-1.5-flash-latest",
+  "gemini-1.5-pro",
+  "gemini-pro",
+]
 
 async function getModel(workspaceId: string) {
   const cred = await getCredential(workspaceId, "gemini")
@@ -47,13 +33,6 @@ export async function generateBrief(
   opportunity: ArbitrageOpportunity
 ): Promise<{ brief: GeneratedBrief; model: string }> {
   const { genAI, modelName } = await getModel(workspaceId)
-  const model = genAI.getGenerativeModel({
-    model: modelName,
-    generationConfig: {
-      responseMimeType: "application/json",
-      responseSchema: briefSchema as any,
-    },
-  })
 
   const prompt = `You are a UAE real-estate social media strategist for DreHomes.
 Create a short-form content brief for a "Quiet Performer" investment opportunity.
@@ -71,12 +50,45 @@ Opportunity data:
 The core insight: this area performs strongly financially but has LOW social buzz — a
 first-mover content opportunity. All monetary values must be in AED. Produce a punchy
 hook, a clear angle, a concise summary, platform-specific copy (instagram, tiktok,
-youtube, x, linkedin), and relevant keywords.`
+youtube, x, linkedin), and relevant keywords.
 
-  const result = await model.generateContent(prompt)
-  const text = result.response.text()
-  const brief = JSON.parse(text) as GeneratedBrief
-  return { brief, model: modelName }
+Respond ONLY with valid JSON in this exact format:
+{
+  "title": "string",
+  "angle": "string", 
+  "hook": "string",
+  "summary": "string",
+  "platform_copy": {
+    "instagram": "string",
+    "tiktok": "string",
+    "youtube": "string",
+    "x": "string",
+    "linkedin": "string"
+  },
+  "keywords": ["string", "string", ...]
+}`
+
+  // Try models in order until one works
+  const modelsToTry = Array.from(new Set([modelName, ...FALLBACK_MODELS]))
+  let lastError: Error | null = null
+
+  for (const tryModel of modelsToTry) {
+    try {
+      const model = genAI.getGenerativeModel({ model: tryModel })
+      const result = await model.generateContent(prompt)
+      const text = result.response.text()
+      // Clean up response - remove markdown code blocks if present
+      const cleaned = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim()
+      const brief = JSON.parse(cleaned) as GeneratedBrief
+      return { brief, model: tryModel }
+    } catch (err) {
+      lastError = err as Error
+      console.warn(`Model ${tryModel} failed:`, (err as Error).message)
+      // Continue to next model
+    }
+  }
+
+  throw lastError || new Error("All models failed")
 }
 
 /**
@@ -87,7 +99,6 @@ export async function generateArbitrageNarrative(
   opportunities: ArbitrageOpportunity[]
 ): Promise<string> {
   const { genAI, modelName } = await getModel(workspaceId)
-  const model = genAI.getGenerativeModel({ model: modelName })
 
   const top = opportunities.slice(0, 5)
   const lines = top
@@ -101,6 +112,20 @@ export async function generateArbitrageNarrative(
 "Quiet Performers" represent content arbitrage opportunities (strong market, low social
 buzz). Then recommend one concrete content angle. Values are in AED.\n\n${lines}`
 
-  const result = await model.generateContent(prompt)
-  return result.response.text()
+  // Try models in order until one works
+  const modelsToTry = Array.from(new Set([modelName, ...FALLBACK_MODELS]))
+  let lastError: Error | null = null
+
+  for (const tryModel of modelsToTry) {
+    try {
+      const model = genAI.getGenerativeModel({ model: tryModel })
+      const result = await model.generateContent(prompt)
+      return result.response.text()
+    } catch (err) {
+      lastError = err as Error
+      console.warn(`Model ${tryModel} failed:`, (err as Error).message)
+    }
+  }
+
+  throw lastError || new Error("All models failed")
 }
