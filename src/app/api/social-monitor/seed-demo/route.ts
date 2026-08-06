@@ -95,13 +95,32 @@ function getDateRange() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { workspace_id } = body
+    const { workspace_id: workspaceIdentifier } = body
 
-    if (!workspace_id) {
+    if (!workspaceIdentifier) {
       return NextResponse.json({ error: "workspace_id required" }, { status: 400 })
     }
 
     const supabase = createAdminClient()
+    
+    // Resolve workspace_id (could be slug or UUID)
+    let workspace_id = workspaceIdentifier
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(workspaceIdentifier)
+    
+    if (!isUUID) {
+      // It's a slug, resolve to UUID
+      const { data: ws } = await supabase
+        .from("workspaces")
+        .select("id")
+        .eq("slug", workspaceIdentifier)
+        .maybeSingle()
+      
+      if (!ws) {
+        return NextResponse.json({ error: "Workspace not found" }, { status: 404 })
+      }
+      workspace_id = ws.id
+    }
+    
     const dates = getDateRange()
     const results = { market: 0, sentiment: 0, briefs: 0 }
 
