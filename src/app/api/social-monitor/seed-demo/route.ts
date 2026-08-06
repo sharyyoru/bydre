@@ -140,14 +140,40 @@ export async function POST(request: NextRequest) {
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(workspaceIdentifier)
     
     if (!isUUID) {
-      // It's a slug, resolve to UUID
-      const { data: ws, error: wsError } = await supabase
+      // It's a slug, resolve to UUID - try multiple approaches
+      let ws: { id: string; slug: string; name: string } | null = null
+      
+      // 1. Try exact slug match
+      const { data: wsData, error: wsError } = await supabase
         .from("workspaces")
-        .select("id")
+        .select("id, slug, name")
         .eq("slug", workspaceIdentifier)
         .maybeSingle()
       
-      if (wsError) {
+      ws = wsData
+      
+      // 2. If not found, try case-insensitive name match
+      if (!ws) {
+        const { data: wsByName } = await supabase
+          .from("workspaces")
+          .select("id, slug, name")
+          .ilike("name", `%${workspaceIdentifier}%`)
+          .limit(1)
+          .maybeSingle()
+        ws = wsByName
+      }
+      
+      // 3. If still not found, just get the first workspace (for demo purposes)
+      if (!ws) {
+        const { data: anyWs } = await supabase
+          .from("workspaces")
+          .select("id, slug, name")
+          .limit(1)
+          .maybeSingle()
+        ws = anyWs
+      }
+      
+      if (wsError && !ws) {
         return NextResponse.json({ 
           error: "Failed to lookup workspace", 
           details: wsError.message 
@@ -155,9 +181,14 @@ export async function POST(request: NextRequest) {
       }
       
       if (!ws) {
-        return NextResponse.json({ error: `Workspace '${workspaceIdentifier}' not found` }, { status: 404 })
+        return NextResponse.json({ 
+          error: "No workspaces found in database. Please create a workspace first.",
+          hint: "The demo seeder needs at least one workspace to exist."
+        }, { status: 404 })
       }
+      
       workspace_id = ws.id
+      console.log(`Resolved workspace: ${workspaceIdentifier} -> ${ws.slug} (${ws.id})`)
     }
     
     const dates = getDateRange()
