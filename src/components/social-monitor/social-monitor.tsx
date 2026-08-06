@@ -2,8 +2,10 @@
 
 import { useState } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { Radar } from "lucide-react"
+import { Radar, Database, Loader2 } from "lucide-react"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import { Button } from "@/components/ui/button"
+import { toast } from "sonner"
 import { MarketPulse } from "./market-pulse"
 import { SentimentTracker } from "./sentiment-tracker"
 import { ArbitrageEngine } from "./arbitrage-engine"
@@ -23,6 +25,7 @@ export function SocialMonitor({ workspaceId }: { workspaceId: string }) {
   const router = useRouter()
   const pathname = usePathname()
   const [tab, setTab] = useState(() => searchParams.get("tab") || "market")
+  const [seeding, setSeeding] = useState(false)
 
   const onTabChange = (value: string) => {
     setTab(value)
@@ -31,16 +34,46 @@ export function SocialMonitor({ workspaceId }: { workspaceId: string }) {
     router.replace(`${pathname}?${next}`)
   }
 
+  const loadDemoData = async () => {
+    setSeeding(true)
+    try {
+      const res = await fetch("/api/social-monitor/seed-demo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ workspace_id: workspaceId }),
+      })
+      if (res.ok) {
+        const json = await res.json()
+        toast.success(json.message)
+        // Refresh the page to reload data
+        window.location.reload()
+      } else {
+        const json = await res.json().catch(() => ({}))
+        toast.error(json.error || "Failed to load demo data")
+      }
+    } catch {
+      toast.error("Failed to load demo data")
+    } finally {
+      setSeeding(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-2">
-        <Radar className="h-6 w-6 text-[#0A1628]" />
-        <div>
-          <h1 className="text-2xl font-bold text-[#0A1628]">Social Monitor</h1>
-          <p className="text-sm text-muted-foreground">
-            Predictive real-estate analytics, sentiment, and AI content syndication
-          </p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Radar className="h-6 w-6 text-[#0A1628]" />
+          <div>
+            <h1 className="text-2xl font-bold text-[#0A1628]">Social Monitor</h1>
+            <p className="text-sm text-muted-foreground">
+              Predictive real-estate analytics, sentiment, and AI content syndication
+            </p>
+          </div>
         </div>
+        <Button variant="outline" size="sm" onClick={loadDemoData} disabled={seeding}>
+          {seeding ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Database className="h-4 w-4 mr-2" />}
+          {seeding ? "Loading..." : "Load Demo Data"}
+        </Button>
       </div>
 
       <Tabs value={tab} onValueChange={onTabChange}>
