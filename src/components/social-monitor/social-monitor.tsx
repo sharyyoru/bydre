@@ -1,11 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Radar, Database, Loader2 } from "lucide-react"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
+import { createClient } from "@/lib/supabase/client"
 import { MarketPulse } from "./market-pulse"
 import { SentimentTracker } from "./sentiment-tracker"
 import { ArbitrageEngine } from "./arbitrage-engine"
@@ -20,12 +21,49 @@ const TABS = [
   { value: "pipeline", label: "Content Pipeline" },
 ]
 
-export function SocialMonitor({ workspaceId }: { workspaceId: string }) {
+export function SocialMonitor({ workspaceId: workspaceIdentifier }: { workspaceId: string }) {
   const searchParams = useSearchParams()
   const router = useRouter()
   const pathname = usePathname()
   const [tab, setTab] = useState(() => searchParams.get("tab") || "market")
   const [seeding, setSeeding] = useState(false)
+  const [workspaceId, setWorkspaceId] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  // Resolve workspace slug to UUID
+  useEffect(() => {
+    const resolveWorkspace = async () => {
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(workspaceIdentifier)
+      
+      if (isUUID) {
+        setWorkspaceId(workspaceIdentifier)
+        setLoading(false)
+        return
+      }
+
+      const supabase = createClient()
+      const { data } = await supabase
+        .from("workspaces")
+        .select("id")
+        .eq("slug", workspaceIdentifier)
+        .maybeSingle()
+      
+      if (data) {
+        setWorkspaceId(data.id)
+      } else {
+        // Fallback to first workspace
+        const { data: anyWs } = await supabase
+          .from("workspaces")
+          .select("id")
+          .limit(1)
+          .maybeSingle()
+        if (anyWs) setWorkspaceId(anyWs.id)
+      }
+      setLoading(false)
+    }
+    
+    resolveWorkspace()
+  }, [workspaceIdentifier])
 
   const onTabChange = (value: string) => {
     setTab(value)
@@ -56,6 +94,24 @@ export function SocialMonitor({ workspaceId }: { workspaceId: string }) {
     } finally {
       setSeeding(false)
     }
+  }
+
+  // Show loading state while resolving workspace
+  if (loading || !workspaceId) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-2">
+          <Radar className="h-6 w-6 text-[#0A1628]" />
+          <div>
+            <h1 className="text-2xl font-bold text-[#0A1628]">Social Monitor</h1>
+            <p className="text-sm text-muted-foreground">Loading workspace...</p>
+          </div>
+        </div>
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </div>
+    )
   }
 
   return (
