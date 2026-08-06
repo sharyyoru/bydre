@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Shield, Instagram, CheckCircle2, ArrowRight } from "lucide-react"
 
-export default function ComplianceDemoPage() {
+export default function CompliancePublicPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       {/* Header */}
@@ -16,12 +16,12 @@ export default function ComplianceDemoPage() {
             <span className="text-xl font-bold text-white">DreHomes Compliance</span>
           </div>
           <div className="flex items-center gap-3">
-            <Link href="/compliance-demo/login">
+            <Link href="/compliance-public/login">
               <Button variant="ghost" className="text-slate-300 hover:text-white">
                 Log In
               </Button>
             </Link>
-            <Link href="/compliance-demo/signup">
+            <Link href="/compliance-public/signup">
               <Button className="bg-emerald-600 hover:bg-emerald-700">
                 Get Started
               </Button>
@@ -44,13 +44,13 @@ export default function ComplianceDemoPage() {
             Monitor your Instagram content for RERA compliance. Connect your Instagram Business account to automatically scan posts for required disclosures.
           </p>
           <div className="flex justify-center gap-4">
-            <Link href="/compliance-demo/signup">
+            <Link href="/compliance-public/signup">
               <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700">
                 Create Free Account
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
-            <Link href="/compliance-demo/login">
+            <Link href="/compliance-public/login">
               <Button size="lg" variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-800">
                 Sign In
               </Button>

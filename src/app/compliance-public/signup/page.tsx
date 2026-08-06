@@ -10,10 +10,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Shield, Loader2, ArrowLeft } from "lucide-react"
 
-export default function ComplianceDemoLoginPage() {
+export default function CompliancePublicSignupPage() {
   const router = useRouter()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [fullName, setFullName] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
@@ -22,42 +23,57 @@ export default function ComplianceDemoLoginPage() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
 
-    if (!email || !password) {
+    if (!email || !password || !fullName) {
       setError("Please fill in all fields")
+      return
+    }
+
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters")
       return
     }
 
     setLoading(true)
 
     try {
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+      // Create the user
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          data: {
+            full_name: fullName,
+          },
+        },
       })
 
-      if (signInError) {
-        setError(signInError.message)
+      if (signUpError) {
+        setError(signUpError.message)
         setLoading(false)
         return
       }
 
-      if (data.user) {
-        // Ensure user is in demo workspace
-        await fetch("/api/compliance-demo/setup", {
+      if (authData.user) {
+        // Add user to demo workspace
+        const res = await fetch("/api/compliance-public/setup", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId: data.user.id }),
+          body: JSON.stringify({ userId: authData.user.id }),
         })
+
+        if (!res.ok) {
+          console.error("Failed to setup demo workspace")
+        }
 
         // Redirect to compliance dashboard
         router.push("/workspace/demo/compliance")
       }
     } catch (err) {
-      console.error("Login error:", err)
+      console.error("Signup error:", err)
       setError("An unexpected error occurred. Please try again.")
     } finally {
       setLoading(false)
@@ -68,7 +84,7 @@ export default function ComplianceDemoLoginPage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <Link 
-          href="/compliance-demo" 
+          href="/compliance-public" 
           className="inline-flex items-center gap-2 text-slate-400 hover:text-white mb-6"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -80,13 +96,26 @@ export default function ComplianceDemoLoginPage() {
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/10">
               <Shield className="h-7 w-7 text-emerald-500" />
             </div>
-            <CardTitle className="text-xl text-white">Welcome Back</CardTitle>
+            <CardTitle className="text-xl text-white">Create Account</CardTitle>
             <CardDescription className="text-slate-400">
-              Sign in to access the Compliance Monitor
+              Sign up to access the Compliance Monitor
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleLogin} className="space-y-4">
+            <form onSubmit={handleSignup} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name" className="text-slate-300">Full Name</Label>
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="John Smith"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className="bg-slate-900/50 border-slate-600 text-white placeholder:text-slate-500"
+                  required
+                />
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-slate-300">Email</Label>
                 <Input
@@ -111,6 +140,7 @@ export default function ComplianceDemoLoginPage() {
                   className="bg-slate-900/50 border-slate-600 text-white placeholder:text-slate-500"
                   required
                 />
+                <p className="text-xs text-slate-500">Minimum 6 characters</p>
               </div>
 
               {error && (
@@ -127,32 +157,27 @@ export default function ComplianceDemoLoginPage() {
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Signing in...
+                    Creating account...
                   </>
                 ) : (
-                  "Sign In"
+                  "Create Account"
                 )}
               </Button>
 
               <p className="text-center text-sm text-slate-400">
-                Don&apos;t have an account?{" "}
-                <Link href="/compliance-demo/signup" className="text-emerald-400 hover:text-emerald-300">
-                  Sign up
+                Already have an account?{" "}
+                <Link href="/compliance-public/login" className="text-emerald-400 hover:text-emerald-300">
+                  Sign in
                 </Link>
               </p>
             </form>
           </CardContent>
         </Card>
 
-        {/* Demo credentials for reviewers */}
-        <Card className="bg-blue-900/30 border-blue-500/30 mt-6">
-          <CardContent className="pt-4">
-            <p className="text-xs text-blue-300 font-medium mb-2">For Facebook Reviewers:</p>
-            <p className="text-xs text-blue-200/70">
-              Create a new account using the Sign Up page, or contact us for test credentials.
-            </p>
-          </CardContent>
-        </Card>
+        <p className="text-center text-xs text-slate-500 mt-6">
+          By creating an account, you agree to our{" "}
+          <Link href="/privacy" className="underline hover:text-slate-300">Privacy Policy</Link>
+        </p>
       </div>
     </div>
   )
