@@ -55,11 +55,11 @@ export interface StreamChatParams {
  * transparently try the next candidate until one starts.
  */
 const FALLBACK_MODELS = [
-  "gemini-2.0-flash",
+  "gemini-1.5-flash",
   "gemini-flash-latest",
   "gemini-2.5-flash",
-  "gemini-2.0-flash-001",
-  "gemini-1.5-flash",
+  "gemini-1.5-flash-001",
+  "gemini-1.5-pro",
 ]
 
 /**

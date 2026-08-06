@@ -7,7 +7,7 @@ import {
 } from "./types"
 import { formatAED } from "./format"
 
-const DEFAULT_MODEL = "gemini-2.0-flash"
+const DEFAULT_MODEL = "gemini-1.5-flash"
 
 const briefSchema = {
   type: SchemaType.OBJECT,
