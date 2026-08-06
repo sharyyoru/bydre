@@ -301,6 +301,73 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // 5. Seed Global Investment Sentiment
+    const globalSentimentRows = [
+      { country_code: "IN", country_name: "India", search_interest: 100, trend_direction: "up" },
+      { country_code: "GB", country_name: "United Kingdom", search_interest: 85, trend_direction: "up" },
+      { country_code: "PK", country_name: "Pakistan", search_interest: 78, trend_direction: "stable" },
+      { country_code: "RU", country_name: "Russia", search_interest: 72, trend_direction: "up" },
+      { country_code: "US", country_name: "United States", search_interest: 65, trend_direction: "stable" },
+      { country_code: "CN", country_name: "China", search_interest: 58, trend_direction: "down" },
+      { country_code: "EG", country_name: "Egypt", search_interest: 52, trend_direction: "up" },
+      { country_code: "SA", country_name: "Saudi Arabia", search_interest: 48, trend_direction: "stable" },
+      { country_code: "NG", country_name: "Nigeria", search_interest: 45, trend_direction: "up" },
+      { country_code: "DE", country_name: "Germany", search_interest: 42, trend_direction: "stable" },
+    ].map((c) => ({
+      workspace_id,
+      ...c,
+      trending_keywords: ["Dubai property", "UAE investment", "off plan Dubai"],
+      period_start: dates.start,
+      period_end: dates.end,
+      source: "demo_seed",
+    }))
+
+    // Delete existing demo global sentiment
+    await supabase
+      .from("global_investment_sentiment")
+      .delete()
+      .eq("workspace_id", workspace_id)
+      .eq("source", "demo_seed")
+
+    const { error: globalError } = await supabase
+      .from("global_investment_sentiment")
+      .insert(globalSentimentRows)
+
+    if (globalError) {
+      errors.push(`Global: ${globalError.message}`)
+    }
+
+    // 6. Seed Crypto Property Sentiment
+    const cryptoSentimentRows = [
+      { keyword: "Buy property with Bitcoin Dubai", search_volume: 68, trend_direction: "up" },
+      { keyword: "Crypto real estate UAE", search_volume: 54, trend_direction: "up" },
+      { keyword: "Bitcoin payment Dubai property", search_volume: 42, trend_direction: "stable" },
+      { keyword: "USDT real estate Dubai", search_volume: 38, trend_direction: "up" },
+      { keyword: "Cryptocurrency property investment", search_volume: 35, trend_direction: "stable" },
+    ].map((c) => ({
+      workspace_id,
+      ...c,
+      platform: "google_trends",
+      period_start: dates.start,
+      period_end: dates.end,
+      source: "demo_seed",
+    }))
+
+    // Delete existing demo crypto sentiment
+    await supabase
+      .from("crypto_property_sentiment")
+      .delete()
+      .eq("workspace_id", workspace_id)
+      .eq("source", "demo_seed")
+
+    const { error: cryptoError } = await supabase
+      .from("crypto_property_sentiment")
+      .insert(cryptoSentimentRows)
+
+    if (cryptoError) {
+      errors.push(`Crypto: ${cryptoError.message}`)
+    }
+
     // Return results
     if (errors.length > 0 && results.market === 0 && results.sentiment === 0) {
       return NextResponse.json({
