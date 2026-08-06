@@ -12,10 +12,14 @@ import { SentimentTracker } from "./sentiment-tracker"
 import { ArbitrageEngine } from "./arbitrage-engine"
 import { ContentPipeline } from "./content-pipeline"
 import { OffplanProjects } from "./offplan-projects"
+import { GlobalDemand } from "./global-demand"
+import { CryptoSentiment } from "./crypto-sentiment"
 
 const TABS = [
   { value: "market", label: "Market Pulse" },
   { value: "offplan", label: "Off-plan Projects" },
+  { value: "global", label: "Global Demand" },
+  { value: "crypto", label: "Crypto Interest" },
   { value: "sentiment", label: "Sentiment Tracker" },
   { value: "arbitrage", label: "Arbitrage Engine" },
   { value: "pipeline", label: "Content Pipeline" },
@@ -146,6 +150,12 @@ export function SocialMonitor({ workspaceId: workspaceIdentifier }: { workspaceI
         </TabsContent>
         <TabsContent value="offplan">
           <OffplanProjects workspaceId={workspaceId} />
+        </TabsContent>
+        <TabsContent value="global">
+          <GlobalDemand workspaceId={workspaceId} />
+        </TabsContent>
+        <TabsContent value="crypto">
+          <CryptoSentiment workspaceId={workspaceId} />
         </TabsContent>
         <TabsContent value="sentiment">
           <SentimentTracker workspaceId={workspaceId} />

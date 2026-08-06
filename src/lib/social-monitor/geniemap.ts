@@ -160,6 +160,26 @@ function normalizeGenieMapProjects(
     ? (payload as any).hits
     : []
 
+  // Debug: Log first record to see actual structure
+  if (records.length > 0) {
+    const sample = records[0]
+    console.log("GenieMap sample project structure:", JSON.stringify({
+      id: sample.id,
+      name: sample.name,
+      unitPriceRange: sample.unitPriceRange,
+      unitAreaRange: sample.unitAreaRange,
+      priceRange: sample.priceRange,
+      areaRange: sample.areaRange,
+      price: sample.price,
+      priceMin: sample.priceMin,
+      price_min: sample.price_min,
+      serviceCharge: sample.serviceCharge,
+      // Check all possible nested structures
+      hasUnitPriceRange: !!sample.unitPriceRange,
+      unitPriceRangeKeys: sample.unitPriceRange ? Object.keys(sample.unitPriceRange) : [],
+    }, null, 2))
+  }
+
   return records
     .map((r) => {
       const id = r.id ?? r.project_id ?? r.external_id
@@ -173,8 +193,14 @@ function normalizeGenieMapProjects(
       const coords = r.coordinates || r.location || {}
       
       // Parse unitPriceRange and unitAreaRange (GenieMap format: { from, to })
-      const priceRange = r.unitPriceRange || {}
-      const areaRange = r.unitAreaRange || {}
+      // API docs confirm these are the correct field names
+      const priceRange = r.unitPriceRange || r.priceRange || {}
+      const areaRange = r.unitAreaRange || r.areaRange || {}
+      
+      // Debug log for price extraction
+      if (r.unitPriceRange || r.unitAreaRange) {
+        console.log(`Project ${r.name}: priceRange=${JSON.stringify(priceRange)}, areaRange=${JSON.stringify(areaRange)}`)
+      }
 
       // Parse unitTypes or unitLayouts for bedroom info
       const unitTypes: GenieMapUnitType[] = Array.isArray(r.unitTypes || r.unit_types || r.units || r.unitLayouts)
