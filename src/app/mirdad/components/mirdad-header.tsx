@@ -1,55 +1,96 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
-import { Menu, X, Wrench } from "lucide-react"
+import { Menu, X, Phone, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { LanguageSwitcher } from "./language-switcher"
+import { cn } from "@/lib/utils"
+
+interface Project {
+  contact_phone?: string
+}
 
 interface MirdadHeaderProps {
   locale: "en" | "fr"
   dict: {
     nav: {
-      collection: string
-      about: string
-      faq: string
+      residences: string
+      amenities: string
+      location: string
+      developer: string
       contact: string
-      getStarted: string
+      registerInterest: string
     }
   }
+  project?: Project | null
 }
 
 export function MirdadHeader({ locale, dict }: MirdadHeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
   const basePath = locale === "fr" ? "/mirdad/fr" : "/mirdad"
 
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 50)
+    }
+    window.addEventListener("scroll", handleScroll)
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [])
+
   const navItems = [
-    { href: "#collection", label: dict.nav.collection },
-    { href: "#faq", label: dict.nav.faq },
-    { href: "#contact", label: dict.nav.contact },
+    { href: "#residences", label: dict.nav.residences },
+    { href: "#amenities", label: dict.nav.amenities },
+    { href: "#location", label: dict.nav.location },
+    { href: "#developer", label: dict.nav.developer },
   ]
 
   return (
-    <header className="sticky top-0 z-50 border-b border-slate-800 bg-slate-950/80 backdrop-blur-lg">
+    <header
+      className={cn(
+        "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
+        scrolled
+          ? "bg-[#0a0a0a]/95 backdrop-blur-lg border-b border-white/10"
+          : "bg-transparent"
+      )}
+    >
+      {/* Top bar */}
+      <div className="hidden lg:block border-b border-white/10">
+        <div className="container mx-auto px-4 py-2 flex items-center justify-between text-sm">
+          <div className="flex items-center gap-6">
+            <a href="tel:+971800886466" className="text-white/60 hover:text-[#C9A962] flex items-center gap-2">
+              <Phone className="h-3 w-3" />
+              800 UPSALE (886466)
+            </a>
+          </div>
+          <div className="flex items-center gap-4">
+            <span className="text-white/40">A Development by Union Properties</span>
+            <LanguageSwitcher currentLocale={locale} />
+          </div>
+        </div>
+      </div>
+
       <nav className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <Link href={basePath} className="flex items-center gap-2 group">
-            <div className="p-2 rounded-lg bg-amber-500/10 group-hover:bg-amber-500/20 transition-colors">
-              <Wrench className="h-6 w-6 text-amber-500" />
+          <Link href={basePath} className="flex items-center gap-3 group">
+            <div className="w-10 h-10 border border-[#C9A962] flex items-center justify-center">
+              <span className="text-lg font-bold text-[#C9A962]">M</span>
             </div>
-            <span className="text-xl font-bold text-white tracking-tight">
-              Mirdad
-            </span>
+            <div className="hidden sm:block">
+              <span className="text-xl font-light text-white tracking-wider">MIRDAD</span>
+              <p className="text-[10px] text-white/40 tracking-[0.2em] uppercase">By Union Properties</p>
+            </div>
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-6">
+          <div className="hidden lg:flex items-center gap-8">
             {navItems.map((item) => (
               <a
                 key={item.href}
                 href={item.href}
-                className="text-sm text-slate-300 hover:text-white transition-colors"
+                className="text-sm text-white/70 hover:text-[#C9A962] transition-colors tracking-wide"
               >
                 {item.label}
               </a>
@@ -57,48 +98,57 @@ export function MirdadHeader({ locale, dict }: MirdadHeaderProps) {
           </div>
 
           {/* Right Section */}
-          <div className="flex items-center gap-2">
-            <LanguageSwitcher currentLocale={locale} />
-            <a href="#contact" className="hidden sm:block">
-              <Button className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-medium">
-                {dict.nav.getStarted}
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              className="hidden md:flex border-white/20 text-white/80 hover:bg-white/10 rounded-none"
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Brochure
+            </Button>
+            <a href="#register">
+              <Button
+                size="sm"
+                className="bg-[#C9A962] hover:bg-[#B8985A] text-black font-medium rounded-none"
+              >
+                {dict.nav.registerInterest}
               </Button>
             </a>
 
-            {/* Mobile Menu Button */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="md:hidden text-slate-300"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              aria-label="Toggle menu"
-            >
-              {mobileMenuOpen ? (
-                <X className="h-6 w-6" />
-              ) : (
-                <Menu className="h-6 w-6" />
-              )}
-            </Button>
+            {/* Mobile: Language + Menu */}
+            <div className="lg:hidden flex items-center gap-2">
+              <LanguageSwitcher currentLocale={locale} />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-white"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                aria-label="Toggle menu"
+              >
+                {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+              </Button>
+            </div>
           </div>
         </div>
 
         {/* Mobile Navigation */}
         {mobileMenuOpen && (
-          <div className="md:hidden mt-4 pb-4 border-t border-slate-800 pt-4">
-            <div className="flex flex-col gap-4">
+          <div className="lg:hidden mt-4 pb-4 border-t border-white/10 pt-4 bg-[#0a0a0a]">
+            <div className="flex flex-col gap-1">
               {navItems.map((item) => (
                 <a
                   key={item.href}
                   href={item.href}
-                  className="text-slate-300 hover:text-white transition-colors py-2"
+                  className="text-white/70 hover:text-[#C9A962] transition-colors py-3 border-b border-white/5"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   {item.label}
                 </a>
               ))}
-              <a href="#contact" onClick={() => setMobileMenuOpen(false)}>
-                <Button className="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-medium">
-                  {dict.nav.getStarted}
+              <a href="#register" onClick={() => setMobileMenuOpen(false)} className="mt-4">
+                <Button className="w-full bg-[#C9A962] hover:bg-[#B8985A] text-black font-medium rounded-none">
+                  {dict.nav.registerInterest}
                 </Button>
               </a>
             </div>

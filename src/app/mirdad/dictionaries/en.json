@@ -1,123 +1,136 @@
 {
   "meta": {
-    "title": "Mirdad | Precision Mechanical Models",
-    "description": "Premium kitbash mechanical models with digital build instructions. Custom mechs, vehicles, and architecture from premium brick sets.",
-    "keywords": "mechanical models, kitbash, 3D instructions, brick building, custom mechs, MOC"
+    "title": "MIRDAD by Union Properties | Luxury Residences in Motor City, Dubai",
+    "description": "Discover MIRDAD, a new era of refined, sustainable living in Motor City, Dubai. Studios, 1-3 BR apartments, lofts & duplexes starting from AED 999,000. 30/70 payment plan.",
+    "keywords": "MIRDAD, Union Properties, Motor City Dubai, luxury apartments Dubai, Dubai real estate, off-plan Dubai, sustainable living Dubai"
   },
   "nav": {
-    "collection": "Collection",
-    "about": "About",
-    "faq": "FAQ",
+    "residences": "Residences",
+    "amenities": "Amenities",
+    "location": "Location",
+    "developer": "Developer",
     "contact": "Contact",
-    "getStarted": "Get Started"
+    "registerInterest": "Register Interest"
   },
   "hero": {
-    "badge": "Premium Digital Instructions",
-    "headline": "Precision-Engineered Mechanical Models",
-    "subheadline": "Kitbash custom mechs, vehicles, and architecture from premium brick sets. Digital instructions included with every purchase.",
-    "cta": "Explore Collection",
-    "secondaryCta": "Learn More"
+    "tagline": "Where The Heart Belongs",
+    "headline": "A New Era of Refined, Sustainable Living",
+    "subheadline": "MIRDAD by Union Properties redefines affordable luxury within Motor City, offering a sophisticated urban lifestyle with world-class amenities.",
+    "cta": "Register Your Interest",
+    "secondaryCta": "Download Brochure",
+    "stats": {
+      "startingPrice": "Starting Price",
+      "paymentPlan": "Payment Plan",
+      "evCharging": "EV Charging",
+      "amenities": "World-Class Amenities"
+    }
   },
-  "featured": {
-    "title": "Featured Builds",
-    "subtitle": "Our most popular mechanical models, handcrafted with precision",
-    "pieces": "pieces",
-    "viewDetails": "View Details",
-    "complexity": {
-      "beginner": "Beginner",
-      "intermediate": "Intermediate",
-      "advanced": "Advanced",
-      "expert": "Expert"
+  "units": {
+    "title": "Explore Our Residences",
+    "subtitle": "From stylish studios to expansive duplexes, find your perfect home",
+    "from": "From",
+    "sqft": "sq.ft",
+    "bedrooms": "Bedrooms",
+    "bathrooms": "Bathrooms",
+    "features": "Features",
+    "viewFloorPlan": "View Floor Plan",
+    "registerInterest": "Register Interest",
+    "types": {
+      "studio": "Studio",
+      "1br": "1 Bedroom",
+      "2br": "2 Bedrooms",
+      "3br": "3 Bedrooms",
+      "loft": "Loft",
+      "duplex": "Duplex",
+      "penthouse": "Penthouse"
+    }
+  },
+  "amenities": {
+    "title": "World-Class Amenities",
+    "subtitle": "26+ premium amenities designed for modern living",
+    "categories": {
+      "all": "All",
+      "fitness": "Fitness",
+      "leisure": "Leisure",
+      "family": "Family",
+      "business": "Business",
+      "sustainability": "Sustainability",
+      "general": "General"
+    }
+  },
+  "location": {
+    "title": "Prime Location in Motor City",
+    "subtitle": "Effortless access to Dubai's essentials",
+    "distances": {
+      "downtown": "Downtown Dubai",
+      "airport": "Dubai International Airport",
+      "marina": "Dubai Marina",
+      "mall": "Mall of the Emirates",
+      "autodrome": "Dubai Autodrome"
     },
-    "stock": {
-      "in_stock": "In Stock",
-      "low_stock": "Low Stock",
-      "out_of_stock": "Out of Stock",
-      "preorder": "Pre-order"
+    "minutes": "min"
+  },
+  "developer": {
+    "title": "About Union Properties",
+    "subtitle": "A Legacy Built on Vision and Innovation",
+    "description": "Union Properties PJSC has been a visionary force in Dubai's real estate landscape for over 30 years. From Motor City to The Ritz-Carlton DIFC and Index Tower, UP has set the highest standards of quality and innovation.",
+    "stats": {
+      "years": "Years of Excellence",
+      "projects": "Iconic Projects",
+      "employees": "Employees"
     }
   },
-  "process": {
-    "title": "How It Works",
-    "subtitle": "From purchase to completed build in three simple steps",
-    "steps": [
-      {
-        "title": "Choose Your Model",
-        "description": "Browse our collection of precision-engineered mechanical models"
-      },
-      {
-        "title": "Get Instructions",
-        "description": "Receive detailed digital build instructions with parts list"
-      },
-      {
-        "title": "Build & Display",
-        "description": "Follow step-by-step guides to create your masterpiece"
-      }
-    ]
-  },
-  "faq": {
-    "title": "Frequently Asked Questions",
-    "subtitle": "Everything you need to know about our mechanical models",
-    "questions": [
-      {
-        "question": "What sets do I need to build these models?",
-        "answer": "Each model includes a detailed parts list specifying the exact sets needed. Most builds use Technic and Creator sets, which are listed on each product page."
-      },
-      {
-        "question": "Are the instructions included with purchase?",
-        "answer": "Yes, every purchase includes comprehensive digital PDF instructions with step-by-step building guides, parts inventory, and assembly tips."
-      },
-      {
-        "question": "What skill level do I need?",
-        "answer": "We offer models for all skill levels, from beginner to expert. Each product clearly indicates its complexity level and estimated build time."
-      },
-      {
-        "question": "Can I request custom modifications?",
-        "answer": "Absolutely! Contact us for custom build requests. We can modify existing designs or create entirely new models based on your specifications."
-      },
-      {
-        "question": "What format are the instructions in?",
-        "answer": "Instructions are delivered as high-resolution PDF files that can be viewed on any device. Some complex builds also include 3D viewer files."
-      }
-    ]
-  },
-  "inquiry": {
-    "title": "Start Your Build",
-    "subtitle": "Have questions or ready to order? Get in touch with our team",
-    "form": {
-      "name": "Full Name",
-      "namePlaceholder": "Enter your name",
-      "email": "Email Address",
-      "emailPlaceholder": "you@example.com",
-      "phone": "Phone (Optional)",
-      "phonePlaceholder": "+971 XX XXX XXXX",
-      "type": "Inquiry Type",
-      "typePlaceholder": "Select type",
-      "types": {
-        "purchase": "Purchase Inquiry",
-        "custom_build": "Custom Build Request",
-        "question": "General Question",
-        "other": "Other"
-      },
-      "message": "Message",
-      "messagePlaceholder": "Tell us about your project or question...",
-      "submit": "Send Inquiry",
-      "submitting": "Sending...",
-      "success": "Thank you! We'll be in touch soon.",
-      "error": "Something went wrong. Please try again."
+  "paymentPlan": {
+    "title": "Flexible Payment Plan",
+    "subtitle": "Making your dream home accessible",
+    "plan": {
+      "booking": "On Booking",
+      "construction": "During Construction",
+      "handover": "On Handover"
     }
+  },
+  "form": {
+    "title": "Register Your Interest",
+    "subtitle": "Be the first to discover exclusive offerings and pricing",
+    "name": "Full Name",
+    "namePlaceholder": "Enter your full name",
+    "email": "Email Address",
+    "emailPlaceholder": "you@example.com",
+    "phone": "Phone Number",
+    "phonePlaceholder": "+971 50 XXX XXXX",
+    "country": "Country",
+    "countryPlaceholder": "Select your country",
+    "unitType": "Interested In",
+    "unitTypePlaceholder": "Select unit type",
+    "message": "Message (Optional)",
+    "messagePlaceholder": "Any specific requirements or questions...",
+    "brochure": "Send me the brochure",
+    "submit": "Register Now",
+    "submitting": "Submitting...",
+    "success": "Thank you for registering! Our team will contact you shortly.",
+    "error": "Something went wrong. Please try again or call us directly."
+  },
+  "contact": {
+    "title": "Get in Touch",
+    "subtitle": "Our team is ready to assist you",
+    "phone": "Call Us",
+    "whatsapp": "WhatsApp",
+    "email": "Email Us",
+    "visit": "Visit Sales Center"
   },
   "footer": {
-    "tagline": "Precision mechanical models for discerning builders",
-    "copyright": "© {year} Mirdad. All rights reserved.",
+    "developer": "A Development by Union Properties",
+    "tagline": "Where The Heart Belongs",
+    "copyright": "© {year} Union Properties. All rights reserved.",
     "links": {
       "privacy": "Privacy Policy",
-      "terms": "Terms of Service",
-      "contact": "Contact Us"
-    }
+      "terms": "Terms & Conditions",
+      "disclaimer": "Disclaimer"
+    },
+    "disclaimer": "Images are artist impressions and for illustrative purposes only. Prices and availability subject to change without notice."
   },
   "language": {
     "en": "English",
-    "fr": "Français",
-    "switchTo": "Switch to {language}"
+    "fr": "Français"
   }
 }

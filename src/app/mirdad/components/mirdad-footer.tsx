@@ -1,19 +1,28 @@
 import Link from "next/link"
-import { Wrench } from "lucide-react"
+import { Phone, Mail, MapPin } from "lucide-react"
+
+interface Project {
+  contact_phone?: string
+  contact_whatsapp?: string
+  contact_email?: string
+}
 
 interface MirdadFooterProps {
   locale: "en" | "fr"
   dict: {
     footer: {
+      developer: string
       tagline: string
       copyright: string
+      disclaimer: string
       links: {
         privacy: string
         terms: string
-        contact: string
+        disclaimer: string
       }
     }
   }
+  project?: Project | null
 }
 
 export function MirdadFooter({ locale, dict }: MirdadFooterProps) {
@@ -21,117 +30,146 @@ export function MirdadFooter({ locale, dict }: MirdadFooterProps) {
   const basePath = locale === "fr" ? "/mirdad/fr" : "/mirdad"
 
   return (
-    <footer className="border-t border-slate-800 bg-slate-950">
-      <div className="container mx-auto px-4 py-12">
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
+    <footer className="bg-[#0a0a0a] border-t border-white/10">
+      {/* Main Footer */}
+      <div className="container mx-auto px-4 py-16">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-12">
           {/* Brand */}
           <div className="sm:col-span-2 lg:col-span-1">
-            <Link href={basePath} className="flex items-center gap-2 mb-4">
-              <div className="p-2 rounded-lg bg-amber-500/10">
-                <Wrench className="h-5 w-5 text-amber-500" />
+            <Link href={basePath} className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 border border-[#C9A962] flex items-center justify-center">
+                <span className="text-lg font-bold text-[#C9A962]">M</span>
               </div>
-              <span className="text-lg font-bold text-white">Mirdad</span>
+              <div>
+                <span className="text-xl font-light text-white tracking-wider">MIRDAD</span>
+              </div>
             </Link>
-            <p className="text-sm text-slate-400">{dict.footer.tagline}</p>
+            <p className="text-white/50 text-sm mb-4">{dict.footer.developer}</p>
+            <p className="text-[#C9A962] text-lg font-light italic">&quot;{dict.footer.tagline}&quot;</p>
           </div>
 
           {/* Quick Links */}
           <div>
-            <h4 className="font-semibold text-white mb-4">
+            <h4 className="text-white font-medium mb-6 tracking-wider text-sm uppercase">
               {locale === "fr" ? "Liens Rapides" : "Quick Links"}
             </h4>
-            <ul className="space-y-2">
+            <ul className="space-y-3">
               <li>
-                <a
-                  href="#collection"
-                  className="text-sm text-slate-400 hover:text-amber-400 transition-colors"
-                >
-                  {locale === "fr" ? "Collection" : "Collection"}
+                <a href="#residences" className="text-white/60 hover:text-[#C9A962] transition-colors text-sm">
+                  {locale === "fr" ? "Résidences" : "Residences"}
                 </a>
               </li>
               <li>
-                <a
-                  href="#faq"
-                  className="text-sm text-slate-400 hover:text-amber-400 transition-colors"
-                >
-                  FAQ
+                <a href="#amenities" className="text-white/60 hover:text-[#C9A962] transition-colors text-sm">
+                  {locale === "fr" ? "Équipements" : "Amenities"}
                 </a>
               </li>
               <li>
-                <a
-                  href="#contact"
-                  className="text-sm text-slate-400 hover:text-amber-400 transition-colors"
-                >
-                  {dict.footer.links.contact}
+                <a href="#location" className="text-white/60 hover:text-[#C9A962] transition-colors text-sm">
+                  {locale === "fr" ? "Emplacement" : "Location"}
                 </a>
+              </li>
+              <li>
+                <a href="#developer" className="text-white/60 hover:text-[#C9A962] transition-colors text-sm">
+                  {locale === "fr" ? "Promoteur" : "Developer"}
+                </a>
+              </li>
+              <li>
+                <a href="#register" className="text-white/60 hover:text-[#C9A962] transition-colors text-sm">
+                  {locale === "fr" ? "S&apos;inscrire" : "Register Interest"}
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          {/* Contact */}
+          <div>
+            <h4 className="text-white font-medium mb-6 tracking-wider text-sm uppercase">
+              {locale === "fr" ? "Contact" : "Contact"}
+            </h4>
+            <ul className="space-y-4">
+              <li>
+                <a href="tel:+971800886466" className="flex items-center gap-3 text-white/60 hover:text-[#C9A962] transition-colors text-sm">
+                  <Phone className="h-4 w-4 text-[#C9A962]" />
+                  800 UPSALE (886466)
+                </a>
+              </li>
+              <li>
+                <a href="mailto:info@up.ae" className="flex items-center gap-3 text-white/60 hover:text-[#C9A962] transition-colors text-sm">
+                  <Mail className="h-4 w-4 text-[#C9A962]" />
+                  info@up.ae
+                </a>
+              </li>
+              <li>
+                <div className="flex items-start gap-3 text-white/60 text-sm">
+                  <MapPin className="h-4 w-4 text-[#C9A962] flex-shrink-0 mt-0.5" />
+                  Motor City, Dubai, UAE
+                </div>
               </li>
             </ul>
           </div>
 
           {/* Legal */}
           <div>
-            <h4 className="font-semibold text-white mb-4">
+            <h4 className="text-white font-medium mb-6 tracking-wider text-sm uppercase">
               {locale === "fr" ? "Légal" : "Legal"}
             </h4>
-            <ul className="space-y-2">
+            <ul className="space-y-3">
               <li>
-                <Link
-                  href="/privacy"
-                  className="text-sm text-slate-400 hover:text-amber-400 transition-colors"
-                >
+                <Link href="/privacy" className="text-white/60 hover:text-[#C9A962] transition-colors text-sm">
                   {dict.footer.links.privacy}
                 </Link>
               </li>
               <li>
-                <Link
-                  href="/terms"
-                  className="text-sm text-slate-400 hover:text-amber-400 transition-colors"
-                >
+                <Link href="/terms" className="text-white/60 hover:text-[#C9A962] transition-colors text-sm">
                   {dict.footer.links.terms}
                 </Link>
               </li>
             </ul>
-          </div>
 
-          {/* Language */}
-          <div>
-            <h4 className="font-semibold text-white mb-4">
-              {locale === "fr" ? "Langue" : "Language"}
-            </h4>
-            <ul className="space-y-2">
-              <li>
+            {/* Language Switcher */}
+            <div className="mt-8">
+              <h5 className="text-white/40 text-xs uppercase tracking-wider mb-3">
+                {locale === "fr" ? "Langue" : "Language"}
+              </h5>
+              <div className="flex gap-2">
                 <Link
                   href="/mirdad"
-                  className={`text-sm transition-colors ${
+                  className={`px-3 py-1 text-xs border ${
                     locale === "en"
-                      ? "text-amber-400"
-                      : "text-slate-400 hover:text-amber-400"
+                      ? "border-[#C9A962] text-[#C9A962]"
+                      : "border-white/20 text-white/60 hover:border-[#C9A962]"
                   }`}
                 >
-                  🇬🇧 English
+                  EN
                 </Link>
-              </li>
-              <li>
                 <Link
                   href="/mirdad/fr"
-                  className={`text-sm transition-colors ${
+                  className={`px-3 py-1 text-xs border ${
                     locale === "fr"
-                      ? "text-amber-400"
-                      : "text-slate-400 hover:text-amber-400"
+                      ? "border-[#C9A962] text-[#C9A962]"
+                      : "border-white/20 text-white/60 hover:border-[#C9A962]"
                   }`}
                 >
-                  🇫🇷 Français
+                  FR
                 </Link>
-              </li>
-            </ul>
+              </div>
+            </div>
           </div>
         </div>
+      </div>
 
-        {/* Bottom */}
-        <div className="pt-8 border-t border-slate-800 text-center">
-          <p className="text-sm text-slate-500">
-            {dict.footer.copyright.replace("{year}", currentYear.toString())}
-          </p>
+      {/* Bottom Bar */}
+      <div className="border-t border-white/10">
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+            <p className="text-xs text-white/40">
+              {dict.footer.copyright.replace("{year}", currentYear.toString())}
+            </p>
+            <p className="text-xs text-white/30 text-center md:text-right max-w-xl">
+              {dict.footer.disclaimer}
+            </p>
+          </div>
         </div>
       </div>
     </footer>

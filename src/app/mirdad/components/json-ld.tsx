@@ -1,109 +1,103 @@
 import Script from "next/script"
 
-type Model = {
+type Unit = {
   id: string
-  slug: string
+  unit_type: string
   title: string
-  description: string
-  price_aed: number
-  piece_count: number
-  complexity_level: string
-  image_url: string
-  stock_status: string
+  description?: string
+  starting_price_aed: number
+  size_sqft_min: number
+  bedrooms: number
 }
 
-type FAQ = {
-  question: string
-  answer: string
+type Project = {
+  name?: string
+  tagline?: string
+  developer?: string
+  location?: string
+  starting_price_aed?: number
+  contact_phone?: string
+  contact_email?: string
 }
 
 interface JsonLdProps {
-  models?: Model[]
-  faqs?: FAQ[]
+  units?: Unit[]
+  project?: Project | null
   locale?: string
 }
 
-export function JsonLd({ models = [], faqs = [], locale = "en" }: JsonLdProps) {
+export function JsonLd({ units = [], project, locale = "en" }: JsonLdProps) {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://drehomes.com"
   const pageUrl = locale === "fr" ? `${baseUrl}/mirdad/fr` : `${baseUrl}/mirdad`
 
-  // Organization schema
+  // Real Estate Development Organization schema
   const organizationSchema = {
     "@context": "https://schema.org",
-    "@type": "Organization",
-    name: "Mirdad",
-    url: `${baseUrl}/mirdad`,
+    "@type": "RealEstateAgent",
+    name: "Union Properties",
+    url: "https://up.ae",
     logo: `${baseUrl}/mirdad/logo.png`,
-    description:
-      locale === "fr"
-        ? "Modèles mécaniques kitbash premium avec instructions de montage numériques"
-        : "Premium kitbash mechanical models with digital build instructions",
+    description: "Union Properties PJSC - Dubai's leading real estate developer since 1987",
+    address: {
+      "@type": "PostalAddress",
+      addressLocality: "Dubai",
+      addressRegion: "Dubai",
+      addressCountry: "UAE",
+    },
     contactPoint: {
       "@type": "ContactPoint",
-      contactType: "customer service",
-      availableLanguage: ["English", "French"],
+      telephone: project?.contact_phone || "+971 800 886466",
+      email: project?.contact_email || "info@up.ae",
+      contactType: "sales",
+      availableLanguage: ["English", "French", "Arabic"],
     },
   }
 
-  // Product schemas
-  const productSchemas = models.map((model) => ({
+  // Real Estate Project schema
+  const realEstateSchema = {
     "@context": "https://schema.org",
-    "@type": "Product",
-    name: model.title,
-    description: model.description,
-    image: model.image_url?.startsWith("http")
-      ? model.image_url
-      : `${baseUrl}${model.image_url}`,
-    url: `${pageUrl}#${model.slug}`,
-    brand: {
-      "@type": "Brand",
-      name: "Mirdad",
+    "@type": "RealEstateListing",
+    name: project?.name || "MIRDAD",
+    description:
+      locale === "fr"
+        ? "MIRDAD par Union Properties - Résidences de luxe à Motor City, Dubai"
+        : "MIRDAD by Union Properties - Luxury residences in Motor City, Dubai",
+    url: pageUrl,
+    image: `${baseUrl}/mirdad/og-image.jpg`,
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: "Motor City",
+      addressLocality: "Dubai",
+      addressCountry: "UAE",
+    },
+    offers: {
+      "@type": "AggregateOffer",
+      lowPrice: project?.starting_price_aed || 999000,
+      priceCurrency: "AED",
+      offerCount: units.length,
+    },
+  }
+
+  // Apartment/Unit schemas
+  const unitSchemas = units.map((unit) => ({
+    "@context": "https://schema.org",
+    "@type": "Apartment",
+    name: unit.title,
+    description: unit.description,
+    numberOfRooms: unit.bedrooms + 1,
+    numberOfBedrooms: unit.bedrooms,
+    floorSize: {
+      "@type": "QuantitativeValue",
+      value: unit.size_sqft_min,
+      unitCode: "FTK",
     },
     offers: {
       "@type": "Offer",
-      price: model.price_aed,
+      price: unit.starting_price_aed,
       priceCurrency: "AED",
-      availability:
-        model.stock_status === "out_of_stock"
-          ? "https://schema.org/OutOfStock"
-          : model.stock_status === "preorder"
-            ? "https://schema.org/PreOrder"
-            : "https://schema.org/InStock",
-      seller: {
-        "@type": "Organization",
-        name: "Mirdad",
-      },
+      availability: "https://schema.org/InStock",
     },
-    additionalProperty: [
-      {
-        "@type": "PropertyValue",
-        name: "Piece Count",
-        value: model.piece_count,
-      },
-      {
-        "@type": "PropertyValue",
-        name: "Complexity",
-        value: model.complexity_level,
-      },
-    ],
   }))
-
-  // FAQ schema
-  const faqSchema =
-    faqs.length > 0
-      ? {
-          "@context": "https://schema.org",
-          "@type": "FAQPage",
-          mainEntity: faqs.map((faq) => ({
-            "@type": "Question",
-            name: faq.question,
-            acceptedAnswer: {
-              "@type": "Answer",
-              text: faq.answer,
-            },
-          })),
-        }
-      : null
 
   // Breadcrumb schema
   const breadcrumbSchema = {
@@ -119,7 +113,7 @@ export function JsonLd({ models = [], faqs = [], locale = "en" }: JsonLdProps) {
       {
         "@type": "ListItem",
         position: 2,
-        name: "Mirdad",
+        name: "MIRDAD",
         item: pageUrl,
       },
     ],
@@ -131,17 +125,17 @@ export function JsonLd({ models = [], faqs = [], locale = "en" }: JsonLdProps) {
     "@type": "WebPage",
     name:
       locale === "fr"
-        ? "Mirdad | Modèles Mécaniques de Précision"
-        : "Mirdad | Precision Mechanical Models",
+        ? "MIRDAD par Union Properties | Résidences de Luxe à Motor City, Dubai"
+        : "MIRDAD by Union Properties | Luxury Residences in Motor City, Dubai",
     description:
       locale === "fr"
-        ? "Modèles mécaniques kitbash premium avec instructions de montage numériques"
-        : "Premium kitbash mechanical models with digital build instructions",
+        ? "Découvrez MIRDAD, une nouvelle ère de vie raffinée et durable à Motor City, Dubai."
+        : "Discover MIRDAD, a new era of refined, sustainable living in Motor City, Dubai.",
     url: pageUrl,
     inLanguage: locale === "fr" ? "fr-AE" : "en-AE",
     isPartOf: {
       "@type": "WebSite",
-      name: "Mirdad",
+      name: "MIRDAD",
       url: `${baseUrl}/mirdad`,
     },
   }
@@ -154,6 +148,11 @@ export function JsonLd({ models = [], faqs = [], locale = "en" }: JsonLdProps) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
       />
       <Script
+        id="realestate-schema"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(realEstateSchema) }}
+      />
+      <Script
         id="webpage-schema"
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(webPageSchema) }}
@@ -163,21 +162,14 @@ export function JsonLd({ models = [], faqs = [], locale = "en" }: JsonLdProps) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
       />
-      {productSchemas.map((schema, idx) => (
+      {unitSchemas.map((schema, idx) => (
         <Script
-          key={`product-${idx}`}
-          id={`product-schema-${idx}`}
+          key={`unit-${idx}`}
+          id={`unit-schema-${idx}`}
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
         />
       ))}
-      {faqSchema && (
-        <Script
-          id="faq-schema"
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
-        />
-      )}
     </>
   )
 }

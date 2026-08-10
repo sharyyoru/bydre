@@ -1,215 +1,167 @@
--- Mirdad Digital Storefront Schema
--- Tables for mechanical models, customers, and inquiries
+-- Mirdad Real Estate Landing Page Schema
+-- Union Properties - Motor City Development
+-- Tables for units, leads, and brochure requests
 
--- Complexity level enum
-CREATE TYPE mirdad_complexity AS ENUM ('beginner', 'intermediate', 'advanced', 'expert');
+-- Unit type enum
+CREATE TYPE mirdad_unit_type AS ENUM ('studio', '1br', '2br', '3br', 'loft', 'duplex', 'penthouse');
 
--- Stock status enum
-CREATE TYPE mirdad_stock_status AS ENUM ('in_stock', 'low_stock', 'out_of_stock', 'preorder');
+-- Lead status enum  
+CREATE TYPE mirdad_lead_status AS ENUM ('new', 'contacted', 'qualified', 'converted', 'closed');
 
--- Inquiry type enum
-CREATE TYPE mirdad_inquiry_type AS ENUM ('purchase', 'custom_build', 'question', 'other');
+-- Lead source enum
+CREATE TYPE mirdad_lead_source AS ENUM ('website', 'whatsapp', 'phone', 'brochure', 'referral', 'social');
 
--- Inquiry status enum
-CREATE TYPE mirdad_inquiry_status AS ENUM ('new', 'contacted', 'converted', 'closed');
-
--- Models table
-CREATE TABLE mirdad_models (
+-- Units/Floor Plans table
+CREATE TABLE mirdad_units (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  slug TEXT UNIQUE NOT NULL,
+  unit_type mirdad_unit_type NOT NULL,
   title TEXT NOT NULL,
-  title_fr TEXT, -- French title
+  title_fr TEXT,
   description TEXT,
-  description_fr TEXT, -- French description
-  short_description TEXT,
-  short_description_fr TEXT, -- French short description
-  price_aed DECIMAL(10, 2) NOT NULL,
-  piece_count INTEGER NOT NULL,
-  complexity_level mirdad_complexity NOT NULL DEFAULT 'intermediate',
-  category TEXT NOT NULL,
-  category_fr TEXT, -- French category
-  image_url TEXT,
+  description_fr TEXT,
+  starting_price_aed DECIMAL(12, 2) NOT NULL,
+  size_sqft_min INTEGER NOT NULL,
+  size_sqft_max INTEGER,
+  bedrooms INTEGER NOT NULL DEFAULT 0,
+  bathrooms INTEGER NOT NULL DEFAULT 1,
+  floor_plan_url TEXT,
+  render_url TEXT,
   gallery_urls JSONB DEFAULT '[]'::jsonb,
-  instructions_url TEXT,
-  parts_list JSONB DEFAULT '[]'::jsonb, -- [{set_id, set_name, quantity}]
-  is_featured BOOLEAN DEFAULT false,
-  stock_status mirdad_stock_status DEFAULT 'in_stock',
+  features JSONB DEFAULT '[]'::jsonb, -- ["Balcony", "City View", "Smart Home"]
+  features_fr JSONB DEFAULT '[]'::jsonb,
+  is_available BOOLEAN DEFAULT true,
+  display_order INTEGER DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Customers table
-CREATE TABLE mirdad_customers (
+-- Amenities table
+CREATE TABLE mirdad_amenities (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  email TEXT UNIQUE NOT NULL,
-  name TEXT,
+  name TEXT NOT NULL,
+  name_fr TEXT,
+  description TEXT,
+  description_fr TEXT,
+  icon TEXT, -- Lucide icon name
+  category TEXT DEFAULT 'general', -- fitness, leisure, family, business, sustainability
+  display_order INTEGER DEFAULT 0
+);
+
+-- Leads table (main CRM for interest registration)
+CREATE TABLE mirdad_leads (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  email TEXT NOT NULL,
   phone TEXT,
   country TEXT,
   preferred_language TEXT DEFAULT 'en',
-  created_at TIMESTAMPTZ DEFAULT now()
+  interested_unit_type mirdad_unit_type,
+  budget_min DECIMAL(12, 2),
+  budget_max DECIMAL(12, 2),
+  message TEXT,
+  source mirdad_lead_source DEFAULT 'website',
+  status mirdad_lead_status DEFAULT 'new',
+  utm_source TEXT,
+  utm_medium TEXT,
+  utm_campaign TEXT,
+  brochure_requested BOOLEAN DEFAULT false,
+  brochure_sent_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Inquiries table (lead capture)
-CREATE TABLE mirdad_inquiries (
+-- Project details (singleton config table)
+CREATE TABLE mirdad_project (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  customer_id UUID REFERENCES mirdad_customers(id) ON DELETE SET NULL,
-  model_id UUID REFERENCES mirdad_models(id) ON DELETE SET NULL,
-  message TEXT,
-  inquiry_type mirdad_inquiry_type DEFAULT 'question',
-  status mirdad_inquiry_status DEFAULT 'new',
-  created_at TIMESTAMPTZ DEFAULT now()
+  name TEXT DEFAULT 'MIRDAD',
+  tagline TEXT DEFAULT 'Where The Heart Belongs',
+  tagline_fr TEXT DEFAULT 'Où le Cœur Appartient',
+  developer TEXT DEFAULT 'Union Properties',
+  location TEXT DEFAULT 'Motor City, Dubai',
+  starting_price_aed DECIMAL(12, 2) DEFAULT 999000,
+  payment_plan TEXT DEFAULT '30/70',
+  completion_date TEXT DEFAULT 'Q4 2027',
+  total_units INTEGER DEFAULT 500,
+  amenities_count INTEGER DEFAULT 26,
+  ev_parking_percent INTEGER DEFAULT 50,
+  brochure_url TEXT,
+  video_url TEXT,
+  hero_image_url TEXT,
+  gallery_urls JSONB DEFAULT '[]'::jsonb,
+  contact_phone TEXT DEFAULT '+971 800 886466',
+  contact_whatsapp TEXT DEFAULT '+971 800 877253',
+  contact_email TEXT DEFAULT 'info@up.ae',
+  updated_at TIMESTAMPTZ DEFAULT now()
 );
 
 -- Indexes
-CREATE INDEX idx_mirdad_models_slug ON mirdad_models(slug);
-CREATE INDEX idx_mirdad_models_featured ON mirdad_models(is_featured) WHERE is_featured = true;
-CREATE INDEX idx_mirdad_models_category ON mirdad_models(category);
-CREATE INDEX idx_mirdad_customers_email ON mirdad_customers(email);
-CREATE INDEX idx_mirdad_inquiries_status ON mirdad_inquiries(status);
-CREATE INDEX idx_mirdad_inquiries_created ON mirdad_inquiries(created_at DESC);
+CREATE INDEX idx_mirdad_units_type ON mirdad_units(unit_type);
+CREATE INDEX idx_mirdad_units_available ON mirdad_units(is_available) WHERE is_available = true;
+CREATE INDEX idx_mirdad_leads_email ON mirdad_leads(email);
+CREATE INDEX idx_mirdad_leads_status ON mirdad_leads(status);
+CREATE INDEX idx_mirdad_leads_created ON mirdad_leads(created_at DESC);
 
--- RLS Policies (public read for models, restricted write)
-ALTER TABLE mirdad_models ENABLE ROW LEVEL SECURITY;
-ALTER TABLE mirdad_customers ENABLE ROW LEVEL SECURITY;
-ALTER TABLE mirdad_inquiries ENABLE ROW LEVEL SECURITY;
+-- RLS Policies
+ALTER TABLE mirdad_units ENABLE ROW LEVEL SECURITY;
+ALTER TABLE mirdad_amenities ENABLE ROW LEVEL SECURITY;
+ALTER TABLE mirdad_leads ENABLE ROW LEVEL SECURITY;
+ALTER TABLE mirdad_project ENABLE ROW LEVEL SECURITY;
 
--- Public can read models
-CREATE POLICY "Public can view models"
-  ON mirdad_models FOR SELECT
-  USING (true);
+-- Public can view units, amenities, and project info
+CREATE POLICY "Public can view units" ON mirdad_units FOR SELECT USING (true);
+CREATE POLICY "Public can view amenities" ON mirdad_amenities FOR SELECT USING (true);
+CREATE POLICY "Public can view project" ON mirdad_project FOR SELECT USING (true);
 
--- Service role can manage all
-CREATE POLICY "Service role manages models"
-  ON mirdad_models FOR ALL
-  USING (auth.role() = 'service_role');
+-- Anyone can submit leads
+CREATE POLICY "Anyone can submit lead" ON mirdad_leads FOR INSERT WITH CHECK (true);
 
-CREATE POLICY "Service role manages customers"
-  ON mirdad_customers FOR ALL
-  USING (auth.role() = 'service_role');
+-- Service role full access
+CREATE POLICY "Service role manages units" ON mirdad_units FOR ALL USING (auth.role() = 'service_role');
+CREATE POLICY "Service role manages amenities" ON mirdad_amenities FOR ALL USING (auth.role() = 'service_role');
+CREATE POLICY "Service role manages leads" ON mirdad_leads FOR ALL USING (auth.role() = 'service_role');
+CREATE POLICY "Service role manages project" ON mirdad_project FOR ALL USING (auth.role() = 'service_role');
 
-CREATE POLICY "Service role manages inquiries"
-  ON mirdad_inquiries FOR ALL
-  USING (auth.role() = 'service_role');
+-- Seed project data
+INSERT INTO mirdad_project (name, tagline, tagline_fr, developer, location, starting_price_aed, payment_plan, completion_date, total_units, amenities_count, ev_parking_percent, contact_phone, contact_whatsapp, contact_email) VALUES
+('MIRDAD', 'Where The Heart Belongs', 'Où le Cœur Appartient', 'Union Properties', 'Motor City, Dubai', 999000, '30/70', 'Q4 2027', 500, 26, 50, '+971 800 886466', '+971 800 877253', 'info@up.ae');
 
--- Allow inserts for lead capture (anon users can submit inquiries)
-CREATE POLICY "Anyone can submit inquiry"
-  ON mirdad_inquiries FOR INSERT
-  WITH CHECK (true);
+-- Seed unit types
+INSERT INTO mirdad_units (unit_type, title, title_fr, description, description_fr, starting_price_aed, size_sqft_min, size_sqft_max, bedrooms, bathrooms, features, features_fr, display_order) VALUES
+('studio', 'Studio Apartments', 'Studios', 'Thoughtfully designed studio apartments perfect for young professionals. Open-plan living with premium finishes and smart home features.', 'Studios soigneusement conçus, parfaits pour les jeunes professionnels. Salon ouvert avec finitions premium et fonctionnalités maison intelligente.', 799000, 400, 550, 0, 1, '["Smart Home Ready", "Built-in Wardrobes", "Premium Finishes", "Balcony"]', '["Maison Intelligente", "Placards Intégrés", "Finitions Premium", "Balcon"]', 1),
+('1br', '1 Bedroom Apartments', 'Appartements 1 Chambre', 'Elegant one-bedroom residences offering the perfect balance of comfort and style. Featuring spacious living areas and modern kitchens.', 'Résidences élégantes d''une chambre offrant l''équilibre parfait entre confort et style. Avec espaces de vie spacieux et cuisines modernes.', 999000, 650, 850, 1, 1, '["Open Kitchen", "Master En-suite", "Smart Home Ready", "Balcony", "Storage Room"]', '["Cuisine Ouverte", "Suite Parentale", "Maison Intelligente", "Balcon", "Rangement"]', 2),
+('2br', '2 Bedroom Apartments', 'Appartements 2 Chambres', 'Spacious two-bedroom apartments designed for families. Generous living spaces, premium appliances, and stunning Motor City views.', 'Appartements spacieux de deux chambres conçus pour les familles. Espaces de vie généreux, appareils premium et vues imprenables sur Motor City.', 1450000, 1100, 1400, 2, 2, '["Maid''s Room", "Walk-in Closet", "Premium Appliances", "Large Balcony", "Smart Home"]', '["Chambre de Bonne", "Dressing", "Appareils Premium", "Grand Balcon", "Maison Intelligente"]', 3),
+('3br', '3 Bedroom Apartments', 'Appartements 3 Chambres', 'Luxurious three-bedroom residences for discerning families. Premium finishes throughout, multiple balconies, and panoramic city views.', 'Résidences luxueuses de trois chambres pour familles exigeantes. Finitions premium, multiples balcons et vues panoramiques sur la ville.', 2100000, 1600, 2200, 3, 3, '["Maid''s Room", "Multiple Balconies", "Walk-in Closets", "Premium Kitchen", "Smart Home", "Storage"]', '["Chambre de Bonne", "Multiples Balcons", "Dressings", "Cuisine Premium", "Maison Intelligente", "Rangement"]', 4),
+('loft', 'Lofts', 'Lofts', 'Contemporary loft-style living with dramatic double-height ceilings. Industrial-chic design meets luxury amenities for the modern urbanite.', 'Vie contemporaine style loft avec plafonds spectaculaires double hauteur. Design industriel-chic rencontre équipements luxueux pour l''urbain moderne.', 1800000, 1200, 1800, 2, 2, '["Double Height Ceiling", "Mezzanine Level", "Industrial Design", "Premium Finishes", "Smart Home"]', '["Plafond Double Hauteur", "Niveau Mezzanine", "Design Industriel", "Finitions Premium", "Maison Intelligente"]', 5),
+('duplex', 'Duplexes', 'Duplex', 'Exceptional duplex residences spanning two floors. Private internal staircases, rooftop terraces, and the finest finishes throughout.', 'Résidences duplex exceptionnelles sur deux étages. Escaliers internes privés, terrasses sur le toit et finitions les plus fines.', 2800000, 2200, 3500, 3, 4, '["Private Terrace", "Internal Staircase", "Rooftop Access", "Premium Kitchen", "Multiple Living Areas", "Smart Home"]', '["Terrasse Privée", "Escalier Interne", "Accès au Toit", "Cuisine Premium", "Multiples Espaces de Vie", "Maison Intelligente"]', 6);
 
-CREATE POLICY "Anyone can create customer record"
-  ON mirdad_customers FOR INSERT
-  WITH CHECK (true);
-
--- Seed sample data
-INSERT INTO mirdad_models (slug, title, title_fr, description, description_fr, short_description, short_description_fr, price_aed, piece_count, complexity_level, category, category_fr, image_url, is_featured, stock_status, parts_list) VALUES
-(
-  'titan-mk-iv',
-  'Titan Mk.IV',
-  'Titan Mk.IV',
-  'The Titan Mk.IV is our flagship bipedal combat mech, featuring articulated joints, modular weapon hardpoints, and a fully detailed cockpit interior. This advanced build challenges experienced builders with complex greebling techniques and structural engineering.',
-  'Le Titan Mk.IV est notre mech de combat bipède phare, avec des articulations articulées, des points d''ancrage d''armes modulaires et un intérieur de cockpit entièrement détaillé. Cette construction avancée met au défi les constructeurs expérimentés avec des techniques de greebling complexes.',
-  'Advanced bipedal combat mech with modular weapons',
-  'Mech de combat bipède avancé avec armes modulaires',
-  1299.00,
-  2847,
-  'expert',
-  'Mechs',
-  'Mechs',
-  '/mirdad/images/titan-mk-iv.jpg',
-  true,
-  'in_stock',
-  '[{"set_id": "42100", "set_name": "Liebherr R 9800", "quantity": 2}, {"set_id": "42131", "set_name": "Cat D11 Bulldozer", "quantity": 1}]'
-),
-(
-  'desert-crawler',
-  'Desert Crawler',
-  'Rampant du Désert',
-  'An all-terrain reconnaissance vehicle designed for harsh desert environments. Features working suspension, steering mechanism, and detailed engine bay. Perfect for intermediate builders looking to advance their skills.',
-  'Un véhicule de reconnaissance tout-terrain conçu pour les environnements désertiques difficiles. Comprend une suspension fonctionnelle, un mécanisme de direction et un compartiment moteur détaillé.',
-  'All-terrain recon vehicle with working suspension',
-  'Véhicule de reconnaissance tout-terrain avec suspension fonctionnelle',
-  649.00,
-  1234,
-  'intermediate',
-  'Vehicles',
-  'Véhicules',
-  '/mirdad/images/desert-crawler.jpg',
-  true,
-  'in_stock',
-  '[{"set_id": "42124", "set_name": "Off-Road Buggy", "quantity": 1}, {"set_id": "42139", "set_name": "All-Terrain Vehicle", "quantity": 1}]'
-),
-(
-  'orbital-station-alpha',
-  'Orbital Station Alpha',
-  'Station Orbitale Alpha',
-  'A massive space station build featuring rotating habitat rings, docking bays, solar panel arrays, and modular expansion ports. Our most ambitious architecture project, requiring patience and precision.',
-  'Une construction de station spatiale massive avec des anneaux d''habitat rotatifs, des baies d''amarrage, des panneaux solaires et des ports d''expansion modulaires. Notre projet d''architecture le plus ambitieux.',
-  'Massive space station with rotating habitat rings',
-  'Station spatiale massive avec anneaux d''habitat rotatifs',
-  1899.00,
-  3521,
-  'expert',
-  'Architecture',
-  'Architecture',
-  '/mirdad/images/orbital-station.jpg',
-  true,
-  'preorder',
-  '[{"set_id": "21321", "set_name": "International Space Station", "quantity": 3}, {"set_id": "10283", "set_name": "NASA Space Shuttle", "quantity": 2}]'
-),
-(
-  'scout-walker',
-  'Scout Walker',
-  'Marcheur Éclaireur',
-  'A lightweight reconnaissance mech perfect for beginners. Simple construction techniques introduce core kitbashing concepts while delivering a satisfying finished model with poseable legs.',
-  'Un mech de reconnaissance léger parfait pour les débutants. Des techniques de construction simples introduisent les concepts de base du kitbashing tout en offrant un modèle fini satisfaisant.',
-  'Lightweight recon mech, perfect for beginners',
-  'Mech de reconnaissance léger, parfait pour débutants',
-  349.00,
-  876,
-  'beginner',
-  'Mechs',
-  'Mechs',
-  '/mirdad/images/scout-walker.jpg',
-  false,
-  'in_stock',
-  '[{"set_id": "42118", "set_name": "Monster Jam Grave Digger", "quantity": 2}]'
-),
-(
-  'heavy-transport',
-  'Heavy Transport',
-  'Transport Lourd',
-  'An industrial cargo hauler featuring a working crane, opening cargo bay, and detailed cabin interior. This advanced build teaches complex mechanical systems and realistic vehicle proportions.',
-  'Un transporteur de fret industriel avec une grue fonctionnelle, une soute de chargement ouvrante et un intérieur de cabine détaillé. Cette construction avancée enseigne les systèmes mécaniques complexes.',
-  'Industrial cargo hauler with working crane',
-  'Transporteur de fret industriel avec grue fonctionnelle',
-  899.00,
-  1892,
-  'advanced',
-  'Vehicles',
-  'Véhicules',
-  '/mirdad/images/heavy-transport.jpg',
-  true,
-  'low_stock',
-  '[{"set_id": "42128", "set_name": "Heavy-Duty Tow Truck", "quantity": 1}, {"set_id": "42108", "set_name": "Mobile Crane", "quantity": 1}]'
-),
-(
-  'city-block-7',
-  'City Block 7',
-  'Bloc Urbain 7',
-  'A modular urban architecture set that can be configured in multiple ways. Includes detailed building facades, street-level shops, rooftop details, and hidden interior rooms.',
-  'Un ensemble d''architecture urbaine modulaire qui peut être configuré de plusieurs façons. Comprend des façades de bâtiments détaillées, des boutiques au niveau de la rue et des toits détaillés.',
-  'Modular urban architecture with detailed facades',
-  'Architecture urbaine modulaire avec façades détaillées',
-  749.00,
-  2156,
-  'intermediate',
-  'Architecture',
-  'Architecture',
-  '/mirdad/images/city-block-7.jpg',
-  false,
-  'in_stock',
-  '[{"set_id": "10278", "set_name": "Police Station", "quantity": 1}, {"set_id": "10270", "set_name": "Bookshop", "quantity": 1}, {"set_id": "10297", "set_name": "Boutique Hotel", "quantity": 1}]'
-);
+-- Seed amenities
+INSERT INTO mirdad_amenities (name, name_fr, icon, category, display_order) VALUES
+('Infinity Pool', 'Piscine à Débordement', 'Waves', 'leisure', 1),
+('State-of-the-art Gym', 'Salle de Sport Moderne', 'Dumbbell', 'fitness', 2),
+('Yoga & Meditation Studio', 'Studio Yoga & Méditation', 'Heart', 'fitness', 3),
+('Kids Play Area', 'Aire de Jeux Enfants', 'Baby', 'family', 4),
+('BBQ Area', 'Zone Barbecue', 'Flame', 'leisure', 5),
+('Landscaped Gardens', 'Jardins Paysagers', 'TreeDeciduous', 'leisure', 6),
+('Jogging Track', 'Piste de Jogging', 'Footprints', 'fitness', 7),
+('Business Center', 'Centre d''Affaires', 'Briefcase', 'business', 8),
+('Co-working Space', 'Espace Coworking', 'Laptop', 'business', 9),
+('Concierge Service', 'Service Conciergerie', 'Bell', 'general', 10),
+('24/7 Security', 'Sécurité 24/7', 'Shield', 'general', 11),
+('Smart Home Features', 'Fonctionnalités Maison Intelligente', 'Smartphone', 'general', 12),
+('EV Charging Stations', 'Bornes de Recharge VE', 'Zap', 'sustainability', 13),
+('Retail Outlets', 'Commerces', 'ShoppingBag', 'general', 14),
+('Cafes & Restaurants', 'Cafés & Restaurants', 'Coffee', 'leisure', 15),
+('Sports Courts', 'Terrains de Sport', 'Trophy', 'fitness', 16),
+('Cinema Room', 'Salle de Cinéma', 'Clapperboard', 'leisure', 17),
+('Spa & Sauna', 'Spa & Sauna', 'Sparkles', 'leisure', 18),
+('Prayer Room', 'Salle de Prière', 'Moon', 'general', 19),
+('Covered Parking', 'Parking Couvert', 'Car', 'general', 20),
+('Bicycle Storage', 'Rangement Vélos', 'Bike', 'sustainability', 21),
+('Pet-Friendly Areas', 'Espaces Animaux', 'PawPrint', 'family', 22),
+('Outdoor Cinema', 'Cinéma Extérieur', 'Film', 'leisure', 23),
+('Rooftop Lounge', 'Salon sur le Toit', 'Cloud', 'leisure', 24),
+('Water Features', 'Jeux d''Eau', 'Droplets', 'leisure', 25),
+('Green Building Certified', 'Certifié Bâtiment Vert', 'Leaf', 'sustainability', 26);
 
 -- Update trigger for updated_at
 CREATE OR REPLACE FUNCTION update_mirdad_updated_at()
@@ -220,7 +172,17 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER mirdad_models_updated_at
-  BEFORE UPDATE ON mirdad_models
+CREATE TRIGGER mirdad_units_updated_at
+  BEFORE UPDATE ON mirdad_units
+  FOR EACH ROW
+  EXECUTE FUNCTION update_mirdad_updated_at();
+
+CREATE TRIGGER mirdad_leads_updated_at
+  BEFORE UPDATE ON mirdad_leads
+  FOR EACH ROW
+  EXECUTE FUNCTION update_mirdad_updated_at();
+
+CREATE TRIGGER mirdad_project_updated_at
+  BEFORE UPDATE ON mirdad_project
   FOR EACH ROW
   EXECUTE FUNCTION update_mirdad_updated_at();

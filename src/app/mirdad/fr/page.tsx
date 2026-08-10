@@ -2,9 +2,11 @@ import { Metadata } from "next"
 import { createClient } from "@supabase/supabase-js"
 import { MirdadHeader } from "../components/mirdad-header"
 import { HeroSection } from "../components/hero-section"
-import { FeaturedBuilds } from "../components/featured-builds"
-import { FAQSection } from "../components/faq-section"
-import { InquiryForm } from "../components/inquiry-form"
+import { UnitsSection } from "../components/units-section"
+import { AmenitiesSection } from "../components/amenities-section"
+import { LocationSection } from "../components/location-section"
+import { DeveloperSection } from "../components/developer-section"
+import { LeadForm } from "../components/lead-form"
 import { MirdadFooter } from "../components/mirdad-footer"
 import { JsonLd } from "../components/json-ld"
 import dictFr from "../dictionaries/fr.json"
@@ -25,75 +27,84 @@ export const metadata: Metadata = {
     description: dictFr.meta.description,
     locale: "fr_AE",
     alternateLocale: "en_AE",
+    type: "website",
+    images: ["/mirdad/og-image.jpg"],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: dictFr.meta.title,
+    description: dictFr.meta.description,
   },
 }
 
-async function getModels() {
+async function getData() {
   try {
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     )
 
-    const { data, error } = await supabase
-      .from("mirdad_models")
-      .select("*")
-      .eq("is_featured", true)
-      .order("created_at", { ascending: false })
-      .limit(6)
+    const [unitsRes, amenitiesRes, projectRes] = await Promise.all([
+      supabase.from("mirdad_units").select("*").eq("is_available", true).order("display_order"),
+      supabase.from("mirdad_amenities").select("*").order("display_order"),
+      supabase.from("mirdad_project").select("*").limit(1).single(),
+    ])
 
-    if (error) {
-      console.error("Error fetching models:", error)
-      return []
+    return {
+      units: unitsRes.data || [],
+      amenities: amenitiesRes.data || [],
+      project: projectRes.data || null,
     }
-
-    return data || []
   } catch (err) {
-    console.error("Error in getModels:", err)
-    return []
+    console.error("Error fetching data:", err)
+    return { units: [], amenities: [], project: null }
   }
 }
 
 export default async function MirdadFrenchPage() {
-  const models = await getModels()
+  const { units, amenities, project } = await getData()
 
-  // Map model fields to French where available
-  const frenchModels = models.map((model) => ({
-    ...model,
-    title: model.title_fr || model.title,
-    short_description: model.short_description_fr || model.short_description,
-    category: model.category_fr || model.category,
-  })) as typeof models
+  // Map to French content where available
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const frenchUnits = units.map((unit: any) => ({
+    ...unit,
+    title: unit.title_fr || unit.title,
+    description: unit.description_fr || unit.description,
+    features: unit.features_fr || unit.features,
+  }))
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const frenchAmenities = amenities.map((amenity: any) => ({
+    ...amenity,
+    name: amenity.name_fr || amenity.name,
+  }))
 
   return (
     <>
-      {/* Hreflang tags for SEO */}
       <link rel="alternate" hrefLang="en" href="/mirdad" />
       <link rel="alternate" hrefLang="fr" href="/mirdad/fr" />
       <link rel="alternate" hrefLang="x-default" href="/mirdad" />
 
-      {/* JSON-LD Structured Data */}
-      <JsonLd
-        models={frenchModels}
-        faqs={dictFr.faq.questions}
-        locale="fr"
-      />
+      <JsonLd units={frenchUnits} project={project} locale="fr" />
 
-      {/* Page Content */}
-      <main>
-        <MirdadHeader locale="fr" dict={dictFr} />
+      <main className="bg-[#0a0a0a]">
+        <MirdadHeader locale="fr" dict={dictFr} project={project} />
 
         <article>
-          <HeroSection dict={dictFr} />
+          <HeroSection dict={dictFr} project={project} />
 
-          <FeaturedBuilds models={frenchModels} locale="fr" dict={dictFr} />
+          <UnitsSection units={frenchUnits} locale="fr" dict={dictFr} />
 
-          <FAQSection dict={dictFr} />
+          <AmenitiesSection amenities={frenchAmenities} locale="fr" dict={dictFr} />
 
-          <InquiryForm locale="fr" dict={dictFr} />
+          <LocationSection dict={dictFr} />
+
+          <DeveloperSection dict={dictFr} />
+
+          <LeadForm locale="fr" dict={dictFr} units={frenchUnits} />
         </article>
 
-        <MirdadFooter locale="fr" dict={dictFr} />
+        <MirdadFooter locale="fr" dict={dictFr} project={project} />
       </main>
     </>
   )

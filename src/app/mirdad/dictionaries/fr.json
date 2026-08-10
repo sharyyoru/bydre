@@ -1,123 +1,136 @@
 {
   "meta": {
-    "title": "Mirdad | Modèles Mécaniques de Précision",
-    "description": "Modèles mécaniques kitbash premium avec instructions de montage numériques. Mechs personnalisés, véhicules et architecture à partir de sets de briques premium.",
-    "keywords": "modèles mécaniques, kitbash, instructions 3D, construction de briques, mechs personnalisés, MOC"
+    "title": "MIRDAD par Union Properties | Résidences de Luxe à Motor City, Dubaï",
+    "description": "Découvrez MIRDAD, une nouvelle ère de vie raffinée et durable à Motor City, Dubaï. Studios, appartements 1-3 chambres, lofts et duplex à partir de 999 000 AED. Plan de paiement 30/70.",
+    "keywords": "MIRDAD, Union Properties, Motor City Dubai, appartements luxe Dubai, immobilier Dubai, sur plan Dubai, vie durable Dubai"
   },
   "nav": {
-    "collection": "Collection",
-    "about": "À propos",
-    "faq": "FAQ",
+    "residences": "Résidences",
+    "amenities": "Équipements",
+    "location": "Emplacement",
+    "developer": "Promoteur",
     "contact": "Contact",
-    "getStarted": "Commencer"
+    "registerInterest": "S'inscrire"
   },
   "hero": {
-    "badge": "Instructions Numériques Premium",
-    "headline": "Modèles Mécaniques de Haute Précision",
-    "subheadline": "Créez des mechs, véhicules et architectures sur mesure à partir de sets de briques premium. Instructions numériques incluses avec chaque achat.",
-    "cta": "Explorer la Collection",
-    "secondaryCta": "En Savoir Plus"
+    "tagline": "Où le Cœur Appartient",
+    "headline": "Une Nouvelle Ère de Vie Raffinée et Durable",
+    "subheadline": "MIRDAD par Union Properties redéfinit le luxe accessible à Motor City, offrant un style de vie urbain sophistiqué avec des équipements de classe mondiale.",
+    "cta": "Inscrivez Votre Intérêt",
+    "secondaryCta": "Télécharger la Brochure",
+    "stats": {
+      "startingPrice": "Prix de Départ",
+      "paymentPlan": "Plan de Paiement",
+      "evCharging": "Recharge VE",
+      "amenities": "Équipements Premium"
+    }
   },
-  "featured": {
-    "title": "Constructions Vedettes",
-    "subtitle": "Nos modèles mécaniques les plus populaires, fabriqués avec précision",
-    "pieces": "pièces",
-    "viewDetails": "Voir les Détails",
-    "complexity": {
-      "beginner": "Débutant",
-      "intermediate": "Intermédiaire",
-      "advanced": "Avancé",
-      "expert": "Expert"
+  "units": {
+    "title": "Explorez Nos Résidences",
+    "subtitle": "Des studios élégants aux duplex spacieux, trouvez votre maison idéale",
+    "from": "À partir de",
+    "sqft": "pi²",
+    "bedrooms": "Chambres",
+    "bathrooms": "Salles de bain",
+    "features": "Caractéristiques",
+    "viewFloorPlan": "Voir le Plan",
+    "registerInterest": "S'inscrire",
+    "types": {
+      "studio": "Studio",
+      "1br": "1 Chambre",
+      "2br": "2 Chambres",
+      "3br": "3 Chambres",
+      "loft": "Loft",
+      "duplex": "Duplex",
+      "penthouse": "Penthouse"
+    }
+  },
+  "amenities": {
+    "title": "Équipements de Classe Mondiale",
+    "subtitle": "26+ équipements premium conçus pour la vie moderne",
+    "categories": {
+      "all": "Tous",
+      "fitness": "Fitness",
+      "leisure": "Loisirs",
+      "family": "Famille",
+      "business": "Affaires",
+      "sustainability": "Durabilité",
+      "general": "Général"
+    }
+  },
+  "location": {
+    "title": "Emplacement Premium à Motor City",
+    "subtitle": "Accès facile aux essentiels de Dubaï",
+    "distances": {
+      "downtown": "Downtown Dubai",
+      "airport": "Aéroport International de Dubaï",
+      "marina": "Dubai Marina",
+      "mall": "Mall of the Emirates",
+      "autodrome": "Dubai Autodrome"
     },
-    "stock": {
-      "in_stock": "En Stock",
-      "low_stock": "Stock Faible",
-      "out_of_stock": "Rupture de Stock",
-      "preorder": "Précommande"
+    "minutes": "min"
+  },
+  "developer": {
+    "title": "À Propos d'Union Properties",
+    "subtitle": "Un Héritage Bâti sur la Vision et l'Innovation",
+    "description": "Union Properties PJSC est une force visionnaire dans le paysage immobilier de Dubaï depuis plus de 30 ans. De Motor City au Ritz-Carlton DIFC et Index Tower, UP a établi les plus hauts standards de qualité et d'innovation.",
+    "stats": {
+      "years": "Années d'Excellence",
+      "projects": "Projets Emblématiques",
+      "employees": "Employés"
     }
   },
-  "process": {
-    "title": "Comment Ça Marche",
-    "subtitle": "De l'achat à la construction terminée en trois étapes simples",
-    "steps": [
-      {
-        "title": "Choisissez Votre Modèle",
-        "description": "Parcourez notre collection de modèles mécaniques de précision"
-      },
-      {
-        "title": "Obtenez les Instructions",
-        "description": "Recevez des instructions numériques détaillées avec la liste des pièces"
-      },
-      {
-        "title": "Construisez et Exposez",
-        "description": "Suivez les guides étape par étape pour créer votre chef-d'œuvre"
-      }
-    ]
-  },
-  "faq": {
-    "title": "Questions Fréquemment Posées",
-    "subtitle": "Tout ce que vous devez savoir sur nos modèles mécaniques",
-    "questions": [
-      {
-        "question": "Quels sets ai-je besoin pour construire ces modèles?",
-        "answer": "Chaque modèle comprend une liste de pièces détaillée spécifiant les sets exacts nécessaires. La plupart des constructions utilisent des sets Technic et Creator, listés sur chaque page produit."
-      },
-      {
-        "question": "Les instructions sont-elles incluses avec l'achat?",
-        "answer": "Oui, chaque achat comprend des instructions PDF numériques complètes avec des guides de construction étape par étape, un inventaire des pièces et des conseils d'assemblage."
-      },
-      {
-        "question": "Quel niveau de compétence ai-je besoin?",
-        "answer": "Nous proposons des modèles pour tous les niveaux, du débutant à l'expert. Chaque produit indique clairement son niveau de complexité et le temps de construction estimé."
-      },
-      {
-        "question": "Puis-je demander des modifications personnalisées?",
-        "answer": "Absolument! Contactez-nous pour des demandes de construction personnalisées. Nous pouvons modifier des designs existants ou créer de nouveaux modèles selon vos spécifications."
-      },
-      {
-        "question": "Dans quel format sont les instructions?",
-        "answer": "Les instructions sont livrées sous forme de fichiers PDF haute résolution visualisables sur n'importe quel appareil. Certaines constructions complexes incluent également des fichiers de visualisation 3D."
-      }
-    ]
-  },
-  "inquiry": {
-    "title": "Commencez Votre Construction",
-    "subtitle": "Des questions ou prêt à commander? Contactez notre équipe",
-    "form": {
-      "name": "Nom Complet",
-      "namePlaceholder": "Entrez votre nom",
-      "email": "Adresse Email",
-      "emailPlaceholder": "vous@exemple.com",
-      "phone": "Téléphone (Optionnel)",
-      "phonePlaceholder": "+971 XX XXX XXXX",
-      "type": "Type de Demande",
-      "typePlaceholder": "Sélectionnez le type",
-      "types": {
-        "purchase": "Demande d'Achat",
-        "custom_build": "Demande de Construction Personnalisée",
-        "question": "Question Générale",
-        "other": "Autre"
-      },
-      "message": "Message",
-      "messagePlaceholder": "Parlez-nous de votre projet ou question...",
-      "submit": "Envoyer la Demande",
-      "submitting": "Envoi en cours...",
-      "success": "Merci! Nous vous contacterons bientôt.",
-      "error": "Une erreur s'est produite. Veuillez réessayer."
+  "paymentPlan": {
+    "title": "Plan de Paiement Flexible",
+    "subtitle": "Rendre votre maison de rêve accessible",
+    "plan": {
+      "booking": "À la Réservation",
+      "construction": "Pendant Construction",
+      "handover": "À la Remise"
     }
+  },
+  "form": {
+    "title": "Inscrivez Votre Intérêt",
+    "subtitle": "Soyez le premier à découvrir les offres et prix exclusifs",
+    "name": "Nom Complet",
+    "namePlaceholder": "Entrez votre nom complet",
+    "email": "Adresse Email",
+    "emailPlaceholder": "vous@exemple.com",
+    "phone": "Numéro de Téléphone",
+    "phonePlaceholder": "+971 50 XXX XXXX",
+    "country": "Pays",
+    "countryPlaceholder": "Sélectionnez votre pays",
+    "unitType": "Intéressé Par",
+    "unitTypePlaceholder": "Sélectionnez le type",
+    "message": "Message (Optionnel)",
+    "messagePlaceholder": "Exigences spécifiques ou questions...",
+    "brochure": "Envoyez-moi la brochure",
+    "submit": "S'inscrire Maintenant",
+    "submitting": "Envoi en cours...",
+    "success": "Merci pour votre inscription! Notre équipe vous contactera bientôt.",
+    "error": "Une erreur s'est produite. Veuillez réessayer ou nous appeler directement."
+  },
+  "contact": {
+    "title": "Contactez-Nous",
+    "subtitle": "Notre équipe est prête à vous assister",
+    "phone": "Appelez-Nous",
+    "whatsapp": "WhatsApp",
+    "email": "Envoyez-Nous un Email",
+    "visit": "Visitez le Centre de Vente"
   },
   "footer": {
-    "tagline": "Modèles mécaniques de précision pour constructeurs exigeants",
-    "copyright": "© {year} Mirdad. Tous droits réservés.",
+    "developer": "Un Développement d'Union Properties",
+    "tagline": "Où le Cœur Appartient",
+    "copyright": "© {year} Union Properties. Tous droits réservés.",
     "links": {
       "privacy": "Politique de Confidentialité",
-      "terms": "Conditions d'Utilisation",
-      "contact": "Nous Contacter"
-    }
+      "terms": "Termes et Conditions",
+      "disclaimer": "Avertissement"
+    },
+    "disclaimer": "Les images sont des impressions artistiques à titre illustratif uniquement. Prix et disponibilité sujets à changement sans préavis."
   },
   "language": {
     "en": "English",
-    "fr": "Français",
-    "switchTo": "Passer en {language}"
+    "fr": "Français"
   }
 }

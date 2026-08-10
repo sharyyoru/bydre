@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
 
     const supabase = getAdminClient()
 
-    // Create lead directly
+    // Create lead
     const { error: leadError } = await supabase
       .from("mirdad_leads")
       .insert({

@@ -2,9 +2,11 @@ import { Metadata } from "next"
 import { createClient } from "@supabase/supabase-js"
 import { MirdadHeader } from "./components/mirdad-header"
 import { HeroSection } from "./components/hero-section"
-import { FeaturedBuilds } from "./components/featured-builds"
-import { FAQSection } from "./components/faq-section"
-import { InquiryForm } from "./components/inquiry-form"
+import { UnitsSection } from "./components/units-section"
+import { AmenitiesSection } from "./components/amenities-section"
+import { LocationSection } from "./components/location-section"
+import { DeveloperSection } from "./components/developer-section"
+import { LeadForm } from "./components/lead-form"
 import { MirdadFooter } from "./components/mirdad-footer"
 import { JsonLd } from "./components/json-ld"
 import dictEn from "./dictionaries/en.json"
@@ -25,67 +27,69 @@ export const metadata: Metadata = {
     description: dictEn.meta.description,
     locale: "en_AE",
     alternateLocale: "fr_AE",
+    type: "website",
+    images: ["/mirdad/og-image.jpg"],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: dictEn.meta.title,
+    description: dictEn.meta.description,
   },
 }
 
-async function getModels() {
+async function getData() {
   try {
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     )
 
-    const { data, error } = await supabase
-      .from("mirdad_models")
-      .select("*")
-      .eq("is_featured", true)
-      .order("created_at", { ascending: false })
-      .limit(6)
+    const [unitsRes, amenitiesRes, projectRes] = await Promise.all([
+      supabase.from("mirdad_units").select("*").eq("is_available", true).order("display_order"),
+      supabase.from("mirdad_amenities").select("*").order("display_order"),
+      supabase.from("mirdad_project").select("*").limit(1).single(),
+    ])
 
-    if (error) {
-      console.error("Error fetching models:", error)
-      return []
+    return {
+      units: unitsRes.data || [],
+      amenities: amenitiesRes.data || [],
+      project: projectRes.data || null,
     }
-
-    return data || []
   } catch (err) {
-    console.error("Error in getModels:", err)
-    return []
+    console.error("Error fetching data:", err)
+    return { units: [], amenities: [], project: null }
   }
 }
 
 export default async function MirdadPage() {
-  const models = await getModels()
+  const { units, amenities, project } = await getData()
 
   return (
     <>
-      {/* Hreflang tags for SEO */}
       <link rel="alternate" hrefLang="en" href="/mirdad" />
       <link rel="alternate" hrefLang="fr" href="/mirdad/fr" />
       <link rel="alternate" hrefLang="x-default" href="/mirdad" />
 
-      {/* JSON-LD Structured Data */}
-      <JsonLd
-        models={models}
-        faqs={dictEn.faq.questions}
-        locale="en"
-      />
+      <JsonLd units={units} project={project} locale="en" />
 
-      {/* Page Content */}
-      <main>
-        <MirdadHeader locale="en" dict={dictEn} />
+      <main className="bg-[#0a0a0a]">
+        <MirdadHeader locale="en" dict={dictEn} project={project} />
 
         <article>
-          <HeroSection dict={dictEn} />
+          <HeroSection dict={dictEn} project={project} />
 
-          <FeaturedBuilds models={models} locale="en" dict={dictEn} />
+          <UnitsSection units={units} locale="en" dict={dictEn} />
 
-          <FAQSection dict={dictEn} />
+          <AmenitiesSection amenities={amenities} locale="en" dict={dictEn} />
 
-          <InquiryForm locale="en" dict={dictEn} />
+          <LocationSection dict={dictEn} />
+
+          <DeveloperSection dict={dictEn} />
+
+          <LeadForm locale="en" dict={dictEn} units={units} />
         </article>
 
-        <MirdadFooter locale="en" dict={dictEn} />
+        <MirdadFooter locale="en" dict={dictEn} project={project} />
       </main>
     </>
   )
