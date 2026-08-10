@@ -8,7 +8,7 @@ interface Project {
 }
 
 interface MirdadFooterProps {
-  locale: "en" | "fr"
+  locale: "en" | "fr" | "ar"
   dict: {
     footer: {
       developer: string
@@ -27,7 +27,13 @@ interface MirdadFooterProps {
 
 export function MirdadFooter({ locale, dict }: MirdadFooterProps) {
   const currentYear = new Date().getFullYear()
-  const basePath = locale === "fr" ? "/mirdad/fr" : "/mirdad"
+  const basePath = locale === "fr" ? "/mirdad/fr" : locale === "ar" ? "/mirdad/ar" : "/mirdad"
+
+  const getLocalizedText = (en: string, fr: string, ar: string) => {
+    if (locale === "ar") return ar
+    if (locale === "fr") return fr
+    return en
+  }
 
   return (
     <footer className="bg-[#0a0a0a] border-t border-white/10">
@@ -51,32 +57,32 @@ export function MirdadFooter({ locale, dict }: MirdadFooterProps) {
           {/* Quick Links */}
           <div>
             <h4 className="text-white font-medium mb-6 tracking-wider text-sm uppercase">
-              {locale === "fr" ? "Liens Rapides" : "Quick Links"}
+              {getLocalizedText("Quick Links", "Liens Rapides", "روابط سريعة")}
             </h4>
             <ul className="space-y-3">
               <li>
                 <a href="#residences" className="text-white/60 hover:text-[#C9A962] transition-colors text-sm">
-                  {locale === "fr" ? "Résidences" : "Residences"}
+                  {getLocalizedText("Residences", "Résidences", "الوحدات السكنية")}
                 </a>
               </li>
               <li>
                 <a href="#amenities" className="text-white/60 hover:text-[#C9A962] transition-colors text-sm">
-                  {locale === "fr" ? "Équipements" : "Amenities"}
+                  {getLocalizedText("Amenities", "Équipements", "المرافق")}
                 </a>
               </li>
               <li>
                 <a href="#location" className="text-white/60 hover:text-[#C9A962] transition-colors text-sm">
-                  {locale === "fr" ? "Emplacement" : "Location"}
+                  {getLocalizedText("Location", "Emplacement", "الموقع")}
                 </a>
               </li>
               <li>
                 <a href="#developer" className="text-white/60 hover:text-[#C9A962] transition-colors text-sm">
-                  {locale === "fr" ? "Promoteur" : "Developer"}
+                  {getLocalizedText("Developer", "Promoteur", "المطور")}
                 </a>
               </li>
               <li>
                 <a href="#register" className="text-white/60 hover:text-[#C9A962] transition-colors text-sm">
-                  {locale === "fr" ? "S&apos;inscrire" : "Register Interest"}
+                  {getLocalizedText("Register Interest", "S'inscrire", "سجل اهتمامك")}
                 </a>
               </li>
             </ul>
@@ -85,7 +91,7 @@ export function MirdadFooter({ locale, dict }: MirdadFooterProps) {
           {/* Contact */}
           <div>
             <h4 className="text-white font-medium mb-6 tracking-wider text-sm uppercase">
-              {locale === "fr" ? "Contact" : "Contact"}
+              {getLocalizedText("Contact", "Contact", "تواصل معنا")}
             </h4>
             <ul className="space-y-4">
               <li>
@@ -112,7 +118,7 @@ export function MirdadFooter({ locale, dict }: MirdadFooterProps) {
           {/* Legal */}
           <div>
             <h4 className="text-white font-medium mb-6 tracking-wider text-sm uppercase">
-              {locale === "fr" ? "Légal" : "Legal"}
+              {getLocalizedText("Legal", "Légal", "قانوني")}
             </h4>
             <ul className="space-y-3">
               <li>
@@ -130,7 +136,7 @@ export function MirdadFooter({ locale, dict }: MirdadFooterProps) {
             {/* Language Switcher */}
             <div className="mt-8">
               <h5 className="text-white/40 text-xs uppercase tracking-wider mb-3">
-                {locale === "fr" ? "Langue" : "Language"}
+                {getLocalizedText("Language", "Langue", "اللغة")}
               </h5>
               <div className="flex gap-2">
                 <Link
@@ -152,6 +158,16 @@ export function MirdadFooter({ locale, dict }: MirdadFooterProps) {
                   }`}
                 >
                   FR
+                </Link>
+                <Link
+                  href="/mirdad/ar"
+                  className={`px-3 py-1 text-xs border ${
+                    locale === "ar"
+                      ? "border-[#C9A962] text-[#C9A962]"
+                      : "border-white/20 text-white/60 hover:border-[#C9A962]"
+                  }`}
+                >
+                  AR
                 </Link>
               </div>
             </div>

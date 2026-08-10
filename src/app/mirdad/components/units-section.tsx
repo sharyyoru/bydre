@@ -23,7 +23,7 @@ interface Unit {
 
 interface UnitsSectionProps {
   units: Unit[]
-  locale: "en" | "fr"
+  locale: "en" | "fr" | "ar"
   dict: {
     units: {
       title: string

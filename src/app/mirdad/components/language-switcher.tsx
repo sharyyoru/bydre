@@ -11,16 +11,25 @@ import {
 } from "@/components/ui/dropdown-menu"
 
 interface LanguageSwitcherProps {
-  currentLocale: "en" | "fr"
+  currentLocale: "en" | "fr" | "ar"
 }
 
 export function LanguageSwitcher({ currentLocale }: LanguageSwitcherProps) {
 
-  const getLocalePath = (locale: "en" | "fr") => {
+  const getLocalePath = (locale: "en" | "fr" | "ar") => {
     if (locale === "en") {
       return "/mirdad"
     }
+    if (locale === "ar") {
+      return "/mirdad/ar"
+    }
     return "/mirdad/fr"
+  }
+
+  const getLocaleLabel = () => {
+    if (currentLocale === "ar") return "AR"
+    if (currentLocale === "fr") return "FR"
+    return "EN"
   }
 
   return (
@@ -32,9 +41,7 @@ export function LanguageSwitcher({ currentLocale }: LanguageSwitcherProps) {
           className="!bg-transparent !text-white/70 hover:text-[#C9A962] hover:bg-white/5 gap-2"
         >
           <Globe className="h-4 w-4" />
-          <span>
-            {currentLocale === "en" ? "EN" : "FR"}
-          </span>
+          <span>{getLocaleLabel()}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
@@ -61,6 +68,17 @@ export function LanguageSwitcher({ currentLocale }: LanguageSwitcherProps) {
           >
             <span className="text-lg">🇫🇷</span>
             Français
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link
+            href={getLocalePath("ar")}
+            className={`flex items-center gap-2 cursor-pointer ${
+              currentLocale === "ar" ? "text-amber-500" : "text-slate-300"
+            }`}
+          >
+            <span className="text-lg">🇦🇪</span>
+            العربية
           </Link>
         </DropdownMenuItem>
       </DropdownMenuContent>

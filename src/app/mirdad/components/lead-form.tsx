@@ -13,7 +13,7 @@ interface Unit {
 }
 
 interface LeadFormProps {
-  locale: "en" | "fr"
+  locale: "en" | "fr" | "ar"
   dict: {
     form: {
       title: string

@@ -1,7 +1,8 @@
 import Link from "next/link"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, ArrowRight } from "lucide-react"
 import { MirdadHeader } from "./mirdad-header"
 import { MirdadFooter } from "./mirdad-footer"
+import { cn } from "@/lib/utils"
 
 interface Section {
   title: string
@@ -13,7 +14,7 @@ interface Section {
 }
 
 interface LegalPageLayoutProps {
-  locale: "en" | "fr"
+  locale: "en" | "fr" | "ar"
   dict: {
     nav: {
       residences: string
@@ -51,10 +52,12 @@ export function LegalPageLayout({
   backToHome,
   sections,
 }: LegalPageLayoutProps) {
-  const basePath = locale === "fr" ? "/mirdad/fr" : "/mirdad"
+  const basePath = locale === "fr" ? "/mirdad/fr" : locale === "ar" ? "/mirdad/ar" : "/mirdad"
+  const isRtl = locale === "ar"
+  const ArrowIcon = isRtl ? ArrowRight : ArrowLeft
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a]">
+    <div className="min-h-screen bg-[#0a0a0a]" dir={isRtl ? "rtl" : "ltr"}>
       <MirdadHeader locale={locale} dict={dict} />
 
       <main className="pt-32 pb-20">
@@ -64,7 +67,7 @@ export function LegalPageLayout({
             href={basePath}
             className="inline-flex items-center gap-2 text-[#C9A962] hover:text-white transition-colors mb-8"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowIcon className="h-4 w-4" />
             {backToHome}
           </Link>
 
@@ -80,7 +83,10 @@ export function LegalPageLayout({
           {/* Content Sections */}
           <div className="space-y-12">
             {Object.entries(sections).map(([key, section]) => (
-              <section key={key} className="border-l-2 border-[#C9A962]/30 pl-6">
+              <section key={key} className={cn(
+                "border-[#C9A962]/30",
+                isRtl ? "border-r-2 pr-6" : "border-l-2 pl-6"
+              )}>
                 <h2 className="text-2xl font-medium text-white mb-4">
                   {section.title}
                 </h2>

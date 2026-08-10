@@ -9,31 +9,32 @@ import { DeveloperSection } from "../components/developer-section"
 import { LeadForm } from "../components/lead-form"
 import { MirdadFooter } from "../components/mirdad-footer"
 import { JsonLd } from "../components/json-ld"
-import dictFr from "../dictionaries/fr.json"
+import dictAr from "../dictionaries/ar.json"
 
 export const metadata: Metadata = {
-  title: dictFr.meta.title,
-  description: dictFr.meta.description,
-  keywords: dictFr.meta.keywords,
+  title: dictAr.meta.title,
+  description: dictAr.meta.description,
+  keywords: dictAr.meta.keywords,
   alternates: {
-    canonical: "/mirdad/fr",
+    canonical: "/mirdad/ar",
     languages: {
       en: "/mirdad",
       fr: "/mirdad/fr",
+      ar: "/mirdad/ar",
     },
   },
   openGraph: {
-    title: dictFr.meta.title,
-    description: dictFr.meta.description,
-    locale: "fr_AE",
-    alternateLocale: "en_AE",
+    title: dictAr.meta.title,
+    description: dictAr.meta.description,
+    locale: "ar_AE",
+    alternateLocale: ["en_AE", "fr_AE"],
     type: "website",
     images: ["/mirdad/og-image.jpg"],
   },
   twitter: {
     card: "summary_large_image",
-    title: dictFr.meta.title,
-    description: dictFr.meta.description,
+    title: dictAr.meta.title,
+    description: dictAr.meta.description,
   },
 }
 
@@ -61,22 +62,22 @@ async function getData() {
   }
 }
 
-export default async function MirdadFrenchPage() {
+export default async function MirdadArabicPage() {
   const { units, amenities, project } = await getData()
 
-  // Map to French content where available
+  // Map to Arabic content where available
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const frenchUnits = units.map((unit: any) => ({
+  const arabicUnits = units.map((unit: any) => ({
     ...unit,
-    title: unit.title_fr || unit.title,
-    description: unit.description_fr || unit.description,
-    features: unit.features_fr || unit.features,
+    title: unit.title_ar || unit.title,
+    description: unit.description_ar || unit.description,
+    features: unit.features_ar || unit.features,
   }))
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const frenchAmenities = amenities.map((amenity: any) => ({
+  const arabicAmenities = amenities.map((amenity: any) => ({
     ...amenity,
-    name: amenity.name_fr || amenity.name,
+    name: amenity.name_ar || amenity.name,
   }))
 
   return (
@@ -86,26 +87,26 @@ export default async function MirdadFrenchPage() {
       <link rel="alternate" hrefLang="ar" href="/mirdad/ar" />
       <link rel="alternate" hrefLang="x-default" href="/mirdad" />
 
-      <JsonLd units={frenchUnits} project={project} locale="fr" />
+      <JsonLd units={arabicUnits} project={project} locale="ar" />
 
-      <main className="bg-[#0a0a0a]">
-        <MirdadHeader locale="fr" dict={dictFr} project={project} />
+      <main className="bg-[#0a0a0a]" dir="rtl">
+        <MirdadHeader locale="ar" dict={dictAr} project={project} />
 
         <article>
-          <HeroSection dict={dictFr} project={project} />
+          <HeroSection dict={dictAr} project={project} />
 
-          <UnitsSection units={frenchUnits} locale="fr" dict={dictFr} />
+          <UnitsSection units={arabicUnits} locale="ar" dict={dictAr} />
 
-          <AmenitiesSection amenities={frenchAmenities} locale="fr" dict={dictFr} />
+          <AmenitiesSection amenities={arabicAmenities} locale="ar" dict={dictAr} />
 
-          <LocationSection dict={dictFr} />
+          <LocationSection dict={dictAr} />
 
-          <DeveloperSection dict={dictFr} />
+          <DeveloperSection dict={dictAr} />
 
-          <LeadForm locale="fr" dict={dictFr} units={frenchUnits} />
+          <LeadForm locale="ar" dict={dictAr} units={arabicUnits} />
         </article>
 
-        <MirdadFooter locale="fr" dict={dictFr} project={project} />
+        <MirdadFooter locale="ar" dict={dictAr} project={project} />
       </main>
     </>
   )

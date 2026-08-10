@@ -68,6 +68,7 @@ export default async function MirdadPage() {
     <>
       <link rel="alternate" hrefLang="en" href="/mirdad" />
       <link rel="alternate" hrefLang="fr" href="/mirdad/fr" />
+      <link rel="alternate" hrefLang="ar" href="/mirdad/ar" />
       <link rel="alternate" hrefLang="x-default" href="/mirdad" />
 
       <JsonLd units={units} project={project} locale="en" />

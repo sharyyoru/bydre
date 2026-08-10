@@ -14,7 +14,7 @@ interface Amenity {
 
 interface AmenitiesSectionProps {
   amenities: Amenity[]
-  locale: "en" | "fr"
+  locale: "en" | "fr" | "ar"
   dict: {
     amenities: {
       title: string

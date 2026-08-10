@@ -12,7 +12,7 @@ interface Project {
 }
 
 interface MirdadHeaderProps {
-  locale: "en" | "fr"
+  locale: "en" | "fr" | "ar"
   dict: {
     nav: {
       residences: string
@@ -29,7 +29,7 @@ interface MirdadHeaderProps {
 export function MirdadHeader({ locale, dict }: MirdadHeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
-  const basePath = locale === "fr" ? "/mirdad/fr" : "/mirdad"
+  const basePath = locale === "fr" ? "/mirdad/fr" : locale === "ar" ? "/mirdad/ar" : "/mirdad"
 
   useEffect(() => {
     const handleScroll = () => {
