@@ -116,12 +116,12 @@ export function MirdadFooter({ locale, dict }: MirdadFooterProps) {
             </h4>
             <ul className="space-y-3">
               <li>
-                <Link href="/privacy" className="text-white/60 hover:text-[#C9A962] transition-colors text-sm">
+                <Link href={`${basePath}/privacy`} className="text-white/60 hover:text-[#C9A962] transition-colors text-sm">
                   {dict.footer.links.privacy}
                 </Link>
               </li>
               <li>
-                <Link href="/terms" className="text-white/60 hover:text-[#C9A962] transition-colors text-sm">
+                <Link href={`${basePath}/terms`} className="text-white/60 hover:text-[#C9A962] transition-colors text-sm">
                   {dict.footer.links.terms}
                 </Link>
               </li>

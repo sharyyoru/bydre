@@ -143,5 +143,134 @@
     "location": "Location",
     "developer": "Developer",
     "contact": "Contact"
+  },
+  "privacy": {
+    "title": "Privacy Policy",
+    "subtitle": "Your privacy is important to us",
+    "lastUpdated": "Last Updated: January 2024",
+    "backToHome": "Back to Home",
+    "sections": {
+      "intro": {
+        "title": "Introduction",
+        "content": "Union Properties PJSC (\"we\", \"us\", or \"Union Properties\") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you visit our MIRDAD project website or express interest in our properties."
+      },
+      "collection": {
+        "title": "Information We Collect",
+        "content": "We may collect personal information that you voluntarily provide when you:",
+        "items": [
+          "Register your interest in MIRDAD residences",
+          "Request a brochure or floor plans",
+          "Schedule a viewing or consultation",
+          "Subscribe to our newsletter",
+          "Contact us via phone, email, or WhatsApp"
+        ],
+        "dataTypes": "This information may include your name, email address, phone number, country of residence, preferred unit type, and any messages or preferences you share with us."
+      },
+      "usage": {
+        "title": "How We Use Your Information",
+        "content": "We use the information we collect to:",
+        "items": [
+          "Respond to your inquiries about MIRDAD properties",
+          "Send you requested brochures and property information",
+          "Provide personalized property recommendations",
+          "Schedule viewings and consultations",
+          "Send marketing communications (with your consent)",
+          "Improve our website and services"
+        ]
+      },
+      "sharing": {
+        "title": "Information Sharing",
+        "content": "We may share your information with:",
+        "items": [
+          "Our authorized sales agents and representatives",
+          "Service providers who assist in our operations",
+          "Legal authorities when required by law"
+        ],
+        "noSale": "We do not sell your personal information to third parties."
+      },
+      "security": {
+        "title": "Data Security",
+        "content": "We implement appropriate technical and organizational measures to protect your personal information against unauthorized access, alteration, disclosure, or destruction. This includes encryption, secure servers, and regular security assessments."
+      },
+      "rights": {
+        "title": "Your Rights",
+        "content": "You have the right to:",
+        "items": [
+          "Access the personal information we hold about you",
+          "Request correction of inaccurate information",
+          "Request deletion of your information",
+          "Withdraw consent for marketing communications",
+          "Lodge a complaint with relevant authorities"
+        ]
+      },
+      "cookies": {
+        "title": "Cookies",
+        "content": "Our website uses cookies to enhance your browsing experience and analyze website traffic. You can control cookie settings through your browser preferences."
+      },
+      "contact": {
+        "title": "Contact Us",
+        "content": "For any privacy-related questions or to exercise your rights, please contact us:",
+        "email": "Email: info@up.ae",
+        "phone": "Phone: 800 UPSALE (886466)",
+        "address": "Address: Union Properties PJSC, Motor City, Dubai, UAE"
+      }
+    }
+  },
+  "terms": {
+    "title": "Terms & Conditions",
+    "subtitle": "Please read these terms carefully",
+    "lastUpdated": "Last Updated: January 2024",
+    "backToHome": "Back to Home",
+    "sections": {
+      "acceptance": {
+        "title": "Acceptance of Terms",
+        "content": "By accessing and using the MIRDAD website operated by Union Properties PJSC, you accept and agree to be bound by these Terms and Conditions. If you do not agree to these terms, please do not use this website."
+      },
+      "propertyInfo": {
+        "title": "Property Information Disclaimer",
+        "content": "All property information, including but not limited to prices, floor plans, renders, specifications, and availability, is provided for general information purposes only. While we strive to ensure accuracy:",
+        "items": [
+          "Prices and payment plans are subject to change without notice",
+          "Images and renders are artist impressions for illustration only",
+          "Actual units may vary from displayed materials",
+          "Availability is subject to confirmation at time of booking"
+        ],
+        "binding": "No information on this website constitutes a binding offer or contract."
+      },
+      "intellectual": {
+        "title": "Intellectual Property",
+        "content": "All content on this website, including but not limited to text, graphics, logos, images, videos, and software, is the property of Union Properties PJSC or its content suppliers and is protected by UAE and international copyright laws. Unauthorized reproduction, distribution, or modification is strictly prohibited."
+      },
+      "conduct": {
+        "title": "User Conduct",
+        "content": "When using this website, you agree not to:",
+        "items": [
+          "Provide false or misleading information",
+          "Use the website for any unlawful purpose",
+          "Attempt to gain unauthorized access to our systems",
+          "Interfere with the website's functionality",
+          "Copy or redistribute website content without permission"
+        ]
+      },
+      "liability": {
+        "title": "Limitation of Liability",
+        "content": "To the fullest extent permitted by UAE law, Union Properties PJSC shall not be liable for any direct, indirect, incidental, consequential, or punitive damages arising from your use of this website or reliance on any information provided herein."
+      },
+      "governing": {
+        "title": "Governing Law",
+        "content": "These Terms and Conditions shall be governed by and construed in accordance with the laws of the United Arab Emirates. Any disputes arising from these terms shall be subject to the exclusive jurisdiction of the courts of Dubai."
+      },
+      "changes": {
+        "title": "Changes to Terms",
+        "content": "We reserve the right to modify these Terms and Conditions at any time. Changes will be effective immediately upon posting on this website. Your continued use of the website constitutes acceptance of any modifications."
+      },
+      "contact": {
+        "title": "Contact Information",
+        "content": "For questions regarding these Terms and Conditions, please contact:",
+        "email": "Email: info@up.ae",
+        "phone": "Phone: 800 UPSALE (886466)",
+        "address": "Address: Union Properties PJSC, Motor City, Dubai, UAE"
+      }
+    }
   }
 }

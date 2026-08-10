@@ -143,5 +143,134 @@
     "location": "Emplacement",
     "developer": "Promoteur",
     "contact": "Contact"
+  },
+  "privacy": {
+    "title": "Politique de Confidentialité",
+    "subtitle": "Votre vie privée est importante pour nous",
+    "lastUpdated": "Dernière mise à jour : Janvier 2024",
+    "backToHome": "Retour à l'accueil",
+    "sections": {
+      "intro": {
+        "title": "Introduction",
+        "content": "Union Properties PJSC (« nous », « notre » ou « Union Properties ») s'engage à protéger votre vie privée. Cette Politique de Confidentialité explique comment nous collectons, utilisons, divulguons et protégeons vos informations lorsque vous visitez le site web de notre projet MIRDAD ou exprimez votre intérêt pour nos propriétés."
+      },
+      "collection": {
+        "title": "Informations que Nous Collectons",
+        "content": "Nous pouvons collecter des informations personnelles que vous fournissez volontairement lorsque vous :",
+        "items": [
+          "Enregistrez votre intérêt pour les résidences MIRDAD",
+          "Demandez une brochure ou des plans d'étage",
+          "Planifiez une visite ou une consultation",
+          "Vous abonnez à notre newsletter",
+          "Nous contactez par téléphone, email ou WhatsApp"
+        ],
+        "dataTypes": "Ces informations peuvent inclure votre nom, adresse email, numéro de téléphone, pays de résidence, type d'unité préféré et tout message ou préférence que vous partagez avec nous."
+      },
+      "usage": {
+        "title": "Comment Nous Utilisons Vos Informations",
+        "content": "Nous utilisons les informations collectées pour :",
+        "items": [
+          "Répondre à vos demandes concernant les propriétés MIRDAD",
+          "Vous envoyer les brochures et informations demandées",
+          "Fournir des recommandations personnalisées",
+          "Planifier des visites et consultations",
+          "Envoyer des communications marketing (avec votre consentement)",
+          "Améliorer notre site web et nos services"
+        ]
+      },
+      "sharing": {
+        "title": "Partage des Informations",
+        "content": "Nous pouvons partager vos informations avec :",
+        "items": [
+          "Nos agents de vente et représentants autorisés",
+          "Les prestataires de services qui nous assistent",
+          "Les autorités légales lorsque la loi l'exige"
+        ],
+        "noSale": "Nous ne vendons pas vos informations personnelles à des tiers."
+      },
+      "security": {
+        "title": "Sécurité des Données",
+        "content": "Nous mettons en œuvre des mesures techniques et organisationnelles appropriées pour protéger vos informations personnelles contre tout accès, modification, divulgation ou destruction non autorisés. Cela inclut le cryptage, des serveurs sécurisés et des évaluations de sécurité régulières."
+      },
+      "rights": {
+        "title": "Vos Droits",
+        "content": "Vous avez le droit de :",
+        "items": [
+          "Accéder aux informations personnelles que nous détenons",
+          "Demander la correction d'informations inexactes",
+          "Demander la suppression de vos informations",
+          "Retirer votre consentement aux communications marketing",
+          "Déposer une plainte auprès des autorités compétentes"
+        ]
+      },
+      "cookies": {
+        "title": "Cookies",
+        "content": "Notre site web utilise des cookies pour améliorer votre expérience de navigation et analyser le trafic. Vous pouvez contrôler les paramètres des cookies via les préférences de votre navigateur."
+      },
+      "contact": {
+        "title": "Nous Contacter",
+        "content": "Pour toute question relative à la confidentialité ou pour exercer vos droits, veuillez nous contacter :",
+        "email": "Email : info@up.ae",
+        "phone": "Téléphone : 800 UPSALE (886466)",
+        "address": "Adresse : Union Properties PJSC, Motor City, Dubaï, EAU"
+      }
+    }
+  },
+  "terms": {
+    "title": "Conditions Générales",
+    "subtitle": "Veuillez lire attentivement ces conditions",
+    "lastUpdated": "Dernière mise à jour : Janvier 2024",
+    "backToHome": "Retour à l'accueil",
+    "sections": {
+      "acceptance": {
+        "title": "Acceptation des Conditions",
+        "content": "En accédant et en utilisant le site web MIRDAD exploité par Union Properties PJSC, vous acceptez d'être lié par ces Conditions Générales. Si vous n'acceptez pas ces conditions, veuillez ne pas utiliser ce site web."
+      },
+      "propertyInfo": {
+        "title": "Avertissement sur les Informations Immobilières",
+        "content": "Toutes les informations immobilières, y compris mais sans s'y limiter les prix, plans d'étage, rendus, spécifications et disponibilités, sont fournies à titre d'information générale uniquement. Bien que nous nous efforcions d'assurer l'exactitude :",
+        "items": [
+          "Les prix et plans de paiement sont susceptibles de changer sans préavis",
+          "Les images et rendus sont des impressions artistiques à titre illustratif",
+          "Les unités réelles peuvent différer des matériaux présentés",
+          "La disponibilité est soumise à confirmation au moment de la réservation"
+        ],
+        "binding": "Aucune information sur ce site web ne constitue une offre ou un contrat contraignant."
+      },
+      "intellectual": {
+        "title": "Propriété Intellectuelle",
+        "content": "Tout le contenu de ce site web, y compris mais sans s'y limiter les textes, graphiques, logos, images, vidéos et logiciels, est la propriété d'Union Properties PJSC ou de ses fournisseurs de contenu et est protégé par les lois sur le droit d'auteur des EAU et internationales. Toute reproduction, distribution ou modification non autorisée est strictement interdite."
+      },
+      "conduct": {
+        "title": "Conduite de l'Utilisateur",
+        "content": "En utilisant ce site web, vous acceptez de ne pas :",
+        "items": [
+          "Fournir des informations fausses ou trompeuses",
+          "Utiliser le site web à des fins illégales",
+          "Tenter d'accéder sans autorisation à nos systèmes",
+          "Interférer avec le fonctionnement du site web",
+          "Copier ou redistribuer le contenu sans permission"
+        ]
+      },
+      "liability": {
+        "title": "Limitation de Responsabilité",
+        "content": "Dans toute la mesure permise par la loi des EAU, Union Properties PJSC ne sera pas responsable des dommages directs, indirects, accessoires, consécutifs ou punitifs découlant de votre utilisation de ce site web ou de votre confiance dans les informations fournies."
+      },
+      "governing": {
+        "title": "Loi Applicable",
+        "content": "Ces Conditions Générales seront régies et interprétées conformément aux lois des Émirats Arabes Unis. Tout litige découlant de ces conditions sera soumis à la compétence exclusive des tribunaux de Dubaï."
+      },
+      "changes": {
+        "title": "Modifications des Conditions",
+        "content": "Nous nous réservons le droit de modifier ces Conditions Générales à tout moment. Les modifications prendront effet immédiatement après leur publication sur ce site web. Votre utilisation continue du site web constitue l'acceptation de toute modification."
+      },
+      "contact": {
+        "title": "Informations de Contact",
+        "content": "Pour toute question concernant ces Conditions Générales, veuillez contacter :",
+        "email": "Email : info@up.ae",
+        "phone": "Téléphone : 800 UPSALE (886466)",
+        "address": "Adresse : Union Properties PJSC, Motor City, Dubaï, EAU"
+      }
+    }
   }
 }
