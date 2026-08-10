@@ -28,6 +28,7 @@ import {
   CalendarClock,
   Palette,
   Shield,
+  FileSpreadsheet,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -57,6 +58,7 @@ export function Sidebar({ mobile, collapsed = false, onToggle }: { mobile?: bool
   const boardId = params.boardId as string | undefined
   const [boards, setBoards] = useState<Board[]>([])
   const [workspaceName, setWorkspaceName] = useState("DreHomes")
+  const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
     const supabase = createClient()
@@ -69,6 +71,18 @@ export function Sidebar({ mobile, collapsed = false, onToggle }: { mobile?: bool
 
       if (workspace) {
         setWorkspaceName((workspace as { name: string }).name)
+        
+        // Check if current user is admin
+        const { data: authData } = await supabase.auth.getUser()
+        if (authData.user) {
+          const { data: membership } = await supabase
+            .from("workspace_members")
+            .select("role")
+            .eq("workspace_id", workspace.id)
+            .eq("user_id", authData.user.id)
+            .maybeSingle()
+          setIsAdmin(membership?.role === "admin")
+        }
       }
 
       const { data, error } = await supabase
@@ -291,6 +305,20 @@ export function Sidebar({ mobile, collapsed = false, onToggle }: { mobile?: bool
               {!collapsed && "Attendance"}
             </Button>
           </Link>
+
+          {isAdmin && (
+            <Link href={`/workspace/${workspaceId || "drehomes"}/owner-sheets`}>
+              <Button
+                variant="ghost"
+                className={`w-full justify-start gap-3 text-white/80 hover:bg-white/10 hover:text-white ${
+                  pathname.includes("/owner-sheets") ? "bg-white/10 text-white" : ""
+                }`}
+              >
+                <FileSpreadsheet className="h-4 w-4" />
+                {!collapsed && "Owner Sheets"}
+              </Button>
+            </Link>
+          )}
 
           {!collapsed && <p className="text-xs font-semibold text-white/40 uppercase tracking-wider px-3 mt-6 mb-2">Boards</p>}
 
