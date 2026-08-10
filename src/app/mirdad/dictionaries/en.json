@@ -1,0 +1,123 @@
+{
+  "meta": {
+    "title": "Mirdad | Precision Mechanical Models",
+    "description": "Premium kitbash mechanical models with digital build instructions. Custom mechs, vehicles, and architecture from premium brick sets.",
+    "keywords": "mechanical models, kitbash, 3D instructions, brick building, custom mechs, MOC"
+  },
+  "nav": {
+    "collection": "Collection",
+    "about": "About",
+    "faq": "FAQ",
+    "contact": "Contact",
+    "getStarted": "Get Started"
+  },
+  "hero": {
+    "badge": "Premium Digital Instructions",
+    "headline": "Precision-Engineered Mechanical Models",
+    "subheadline": "Kitbash custom mechs, vehicles, and architecture from premium brick sets. Digital instructions included with every purchase.",
+    "cta": "Explore Collection",
+    "secondaryCta": "Learn More"
+  },
+  "featured": {
+    "title": "Featured Builds",
+    "subtitle": "Our most popular mechanical models, handcrafted with precision",
+    "pieces": "pieces",
+    "viewDetails": "View Details",
+    "complexity": {
+      "beginner": "Beginner",
+      "intermediate": "Intermediate",
+      "advanced": "Advanced",
+      "expert": "Expert"
+    },
+    "stock": {
+      "in_stock": "In Stock",
+      "low_stock": "Low Stock",
+      "out_of_stock": "Out of Stock",
+      "preorder": "Pre-order"
+    }
+  },
+  "process": {
+    "title": "How It Works",
+    "subtitle": "From purchase to completed build in three simple steps",
+    "steps": [
+      {
+        "title": "Choose Your Model",
+        "description": "Browse our collection of precision-engineered mechanical models"
+      },
+      {
+        "title": "Get Instructions",
+        "description": "Receive detailed digital build instructions with parts list"
+      },
+      {
+        "title": "Build & Display",
+        "description": "Follow step-by-step guides to create your masterpiece"
+      }
+    ]
+  },
+  "faq": {
+    "title": "Frequently Asked Questions",
+    "subtitle": "Everything you need to know about our mechanical models",
+    "questions": [
+      {
+        "question": "What sets do I need to build these models?",
+        "answer": "Each model includes a detailed parts list specifying the exact sets needed. Most builds use Technic and Creator sets, which are listed on each product page."
+      },
+      {
+        "question": "Are the instructions included with purchase?",
+        "answer": "Yes, every purchase includes comprehensive digital PDF instructions with step-by-step building guides, parts inventory, and assembly tips."
+      },
+      {
+        "question": "What skill level do I need?",
+        "answer": "We offer models for all skill levels, from beginner to expert. Each product clearly indicates its complexity level and estimated build time."
+      },
+      {
+        "question": "Can I request custom modifications?",
+        "answer": "Absolutely! Contact us for custom build requests. We can modify existing designs or create entirely new models based on your specifications."
+      },
+      {
+        "question": "What format are the instructions in?",
+        "answer": "Instructions are delivered as high-resolution PDF files that can be viewed on any device. Some complex builds also include 3D viewer files."
+      }
+    ]
+  },
+  "inquiry": {
+    "title": "Start Your Build",
+    "subtitle": "Have questions or ready to order? Get in touch with our team",
+    "form": {
+      "name": "Full Name",
+      "namePlaceholder": "Enter your name",
+      "email": "Email Address",
+      "emailPlaceholder": "you@example.com",
+      "phone": "Phone (Optional)",
+      "phonePlaceholder": "+971 XX XXX XXXX",
+      "type": "Inquiry Type",
+      "typePlaceholder": "Select type",
+      "types": {
+        "purchase": "Purchase Inquiry",
+        "custom_build": "Custom Build Request",
+        "question": "General Question",
+        "other": "Other"
+      },
+      "message": "Message",
+      "messagePlaceholder": "Tell us about your project or question...",
+      "submit": "Send Inquiry",
+      "submitting": "Sending...",
+      "success": "Thank you! We'll be in touch soon.",
+      "error": "Something went wrong. Please try again."
+    }
+  },
+  "footer": {
+    "tagline": "Precision mechanical models for discerning builders",
+    "copyright": "© {year} Mirdad. All rights reserved.",
+    "links": {
+      "privacy": "Privacy Policy",
+      "terms": "Terms of Service",
+      "contact": "Contact Us"
+    }
+  },
+  "language": {
+    "en": "English",
+    "fr": "Français",
+    "switchTo": "Switch to {language}"
+  }
+}

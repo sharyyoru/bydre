@@ -1,0 +1,123 @@
+{
+  "meta": {
+    "title": "Mirdad | Modèles Mécaniques de Précision",
+    "description": "Modèles mécaniques kitbash premium avec instructions de montage numériques. Mechs personnalisés, véhicules et architecture à partir de sets de briques premium.",
+    "keywords": "modèles mécaniques, kitbash, instructions 3D, construction de briques, mechs personnalisés, MOC"
+  },
+  "nav": {
+    "collection": "Collection",
+    "about": "À propos",
+    "faq": "FAQ",
+    "contact": "Contact",
+    "getStarted": "Commencer"
+  },
+  "hero": {
+    "badge": "Instructions Numériques Premium",
+    "headline": "Modèles Mécaniques de Haute Précision",
+    "subheadline": "Créez des mechs, véhicules et architectures sur mesure à partir de sets de briques premium. Instructions numériques incluses avec chaque achat.",
+    "cta": "Explorer la Collection",
+    "secondaryCta": "En Savoir Plus"
+  },
+  "featured": {
+    "title": "Constructions Vedettes",
+    "subtitle": "Nos modèles mécaniques les plus populaires, fabriqués avec précision",
+    "pieces": "pièces",
+    "viewDetails": "Voir les Détails",
+    "complexity": {
+      "beginner": "Débutant",
+      "intermediate": "Intermédiaire",
+      "advanced": "Avancé",
+      "expert": "Expert"
+    },
+    "stock": {
+      "in_stock": "En Stock",
+      "low_stock": "Stock Faible",
+      "out_of_stock": "Rupture de Stock",
+      "preorder": "Précommande"
+    }
+  },
+  "process": {
+    "title": "Comment Ça Marche",
+    "subtitle": "De l'achat à la construction terminée en trois étapes simples",
+    "steps": [
+      {
+        "title": "Choisissez Votre Modèle",
+        "description": "Parcourez notre collection de modèles mécaniques de précision"
+      },
+      {
+        "title": "Obtenez les Instructions",
+        "description": "Recevez des instructions numériques détaillées avec la liste des pièces"
+      },
+      {
+        "title": "Construisez et Exposez",
+        "description": "Suivez les guides étape par étape pour créer votre chef-d'œuvre"
+      }
+    ]
+  },
+  "faq": {
+    "title": "Questions Fréquemment Posées",
+    "subtitle": "Tout ce que vous devez savoir sur nos modèles mécaniques",
+    "questions": [
+      {
+        "question": "Quels sets ai-je besoin pour construire ces modèles?",
+        "answer": "Chaque modèle comprend une liste de pièces détaillée spécifiant les sets exacts nécessaires. La plupart des constructions utilisent des sets Technic et Creator, listés sur chaque page produit."
+      },
+      {
+        "question": "Les instructions sont-elles incluses avec l'achat?",
+        "answer": "Oui, chaque achat comprend des instructions PDF numériques complètes avec des guides de construction étape par étape, un inventaire des pièces et des conseils d'assemblage."
+      },
+      {
+        "question": "Quel niveau de compétence ai-je besoin?",
+        "answer": "Nous proposons des modèles pour tous les niveaux, du débutant à l'expert. Chaque produit indique clairement son niveau de complexité et le temps de construction estimé."
+      },
+      {
+        "question": "Puis-je demander des modifications personnalisées?",
+        "answer": "Absolument! Contactez-nous pour des demandes de construction personnalisées. Nous pouvons modifier des designs existants ou créer de nouveaux modèles selon vos spécifications."
+      },
+      {
+        "question": "Dans quel format sont les instructions?",
+        "answer": "Les instructions sont livrées sous forme de fichiers PDF haute résolution visualisables sur n'importe quel appareil. Certaines constructions complexes incluent également des fichiers de visualisation 3D."
+      }
+    ]
+  },
+  "inquiry": {
+    "title": "Commencez Votre Construction",
+    "subtitle": "Des questions ou prêt à commander? Contactez notre équipe",
+    "form": {
+      "name": "Nom Complet",
+      "namePlaceholder": "Entrez votre nom",
+      "email": "Adresse Email",
+      "emailPlaceholder": "vous@exemple.com",
+      "phone": "Téléphone (Optionnel)",
+      "phonePlaceholder": "+971 XX XXX XXXX",
+      "type": "Type de Demande",
+      "typePlaceholder": "Sélectionnez le type",
+      "types": {
+        "purchase": "Demande d'Achat",
+        "custom_build": "Demande de Construction Personnalisée",
+        "question": "Question Générale",
+        "other": "Autre"
+      },
+      "message": "Message",
+      "messagePlaceholder": "Parlez-nous de votre projet ou question...",
+      "submit": "Envoyer la Demande",
+      "submitting": "Envoi en cours...",
+      "success": "Merci! Nous vous contacterons bientôt.",
+      "error": "Une erreur s'est produite. Veuillez réessayer."
+    }
+  },
+  "footer": {
+    "tagline": "Modèles mécaniques de précision pour constructeurs exigeants",
+    "copyright": "© {year} Mirdad. Tous droits réservés.",
+    "links": {
+      "privacy": "Politique de Confidentialité",
+      "terms": "Conditions d'Utilisation",
+      "contact": "Nous Contacter"
+    }
+  },
+  "language": {
+    "en": "English",
+    "fr": "Français",
+    "switchTo": "Passer en {language}"
+  }
+}
