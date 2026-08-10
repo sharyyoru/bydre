@@ -100,9 +100,8 @@ export function MirdadHeader({ locale, dict }: MirdadHeaderProps) {
           {/* Right Section */}
           <div className="flex items-center gap-3">
             <Button
-              variant="outline"
               size="sm"
-              className="hidden md:flex border-white/20 text-white/80 hover:bg-white/10 rounded-none"
+              className="hidden md:flex border border-white/30 !bg-transparent !text-white hover:bg-white/10 rounded-none"
             >
               <Download className="mr-2 h-4 w-4" />
               Brochure

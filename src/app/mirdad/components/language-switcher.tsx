@@ -29,10 +29,10 @@ export function LanguageSwitcher({ currentLocale }: LanguageSwitcherProps) {
         <Button
           variant="ghost"
           size="sm"
-          className="text-slate-300 hover:text-white hover:bg-slate-800 gap-2"
+          className="!bg-transparent !text-white/70 hover:text-[#C9A962] hover:bg-white/5 gap-2"
         >
           <Globe className="h-4 w-4" />
-          <span className="hidden sm:inline">
+          <span>
             {currentLocale === "en" ? "EN" : "FR"}
           </span>
         </Button>
