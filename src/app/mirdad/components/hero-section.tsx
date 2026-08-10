@@ -25,12 +25,36 @@ interface HeroSectionProps {
         amenities: string
       }
     }
+    form: {
+      title: string
+      subtitle: string
+      name: string
+      namePlaceholder: string
+      email: string
+      emailPlaceholder: string
+      phone: string
+      phonePlaceholder: string
+      unitType: string
+      unitTypePlaceholder: string
+      submit: string
+    }
+    units: {
+      types: Record<string, string>
+    }
+    currency: string
+    scroll: string
+    privacyConsent: string
   }
   project: Project | null
 }
 
 export function HeroSection({ dict, project }: HeroSectionProps) {
-  const formatPrice = (price: number) => {
+  const formatPrice = (price: number, currency: string) => {
+    if (currency === "CHF") {
+      // Convert AED to CHF (approx rate: 1 AED = 0.24 CHF)
+      const chfPrice = Math.round(price * 0.24)
+      return new Intl.NumberFormat("fr-CH").format(chfPrice)
+    }
     return new Intl.NumberFormat("en-AE").format(price)
   }
 
@@ -109,7 +133,7 @@ export function HeroSection({ dict, project }: HeroSectionProps) {
                   <span className="text-xs text-white/50 uppercase tracking-wider">{dict.hero.stats.startingPrice}</span>
                 </div>
                 <p className="text-xl sm:text-2xl font-semibold text-white">
-                  AED {project ? formatPrice(project.starting_price_aed) : "999,000"}
+                  {dict.currency} {project ? formatPrice(project.starting_price_aed, dict.currency) : (dict.currency === "CHF" ? "240'000" : "999,000")}
                 </p>
               </div>
               <div className="text-center sm:text-left">
@@ -145,43 +169,43 @@ export function HeroSection({ dict, project }: HeroSectionProps) {
           {/* Right: Lead Form (Desktop) */}
           <div className="hidden lg:block">
             <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-8 rounded-sm">
-              <h3 className="text-2xl font-light text-white mb-2">Register Your Interest</h3>
-              <p className="text-white/60 mb-6">Be the first to discover exclusive offerings</p>
+              <h3 className="text-2xl font-light text-white mb-2">{dict.form.title}</h3>
+              <p className="text-white/60 mb-6">{dict.form.subtitle}</p>
               <form className="space-y-4">
                 <input
                   type="text"
-                  placeholder="Full Name"
+                  placeholder={dict.form.namePlaceholder}
                   className="w-full px-4 py-3 bg-white/5 border border-white/10 text-white placeholder:text-white/40 focus:outline-none focus:border-[#C9A962] rounded-none"
                 />
                 <input
                   type="email"
-                  placeholder="Email Address"
+                  placeholder={dict.form.emailPlaceholder}
                   className="w-full px-4 py-3 bg-white/5 border border-white/10 text-white placeholder:text-white/40 focus:outline-none focus:border-[#C9A962] rounded-none"
                 />
                 <input
                   type="tel"
-                  placeholder="Phone Number"
+                  placeholder={dict.form.phonePlaceholder}
                   className="w-full px-4 py-3 bg-white/5 border border-white/10 text-white placeholder:text-white/40 focus:outline-none focus:border-[#C9A962] rounded-none"
                 />
                 <select className="w-full px-4 py-3 bg-white/5 border border-white/10 text-white/40 focus:outline-none focus:border-[#C9A962] rounded-none">
-                  <option value="">I&apos;m interested in...</option>
-                  <option value="studio">Studio</option>
-                  <option value="1br">1 Bedroom</option>
-                  <option value="2br">2 Bedrooms</option>
-                  <option value="3br">3 Bedrooms</option>
-                  <option value="loft">Loft</option>
-                  <option value="duplex">Duplex</option>
+                  <option value="">{dict.form.unitTypePlaceholder}</option>
+                  <option value="studio">{dict.units.types.studio}</option>
+                  <option value="1br">{dict.units.types["1br"]}</option>
+                  <option value="2br">{dict.units.types["2br"]}</option>
+                  <option value="3br">{dict.units.types["3br"]}</option>
+                  <option value="loft">{dict.units.types.loft}</option>
+                  <option value="duplex">{dict.units.types.duplex}</option>
                 </select>
                 <Button
                   type="submit"
                   className="w-full bg-[#C9A962] hover:bg-[#B8985A] text-black font-semibold py-4 text-base rounded-none"
                 >
-                  Register Now
+                  {dict.form.submit}
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </form>
               <p className="text-xs text-white/40 mt-4 text-center">
-                By registering, you agree to our Privacy Policy
+                {dict.privacyConsent}
               </p>
             </div>
           </div>
@@ -190,7 +214,7 @@ export function HeroSection({ dict, project }: HeroSectionProps) {
 
       {/* Scroll indicator */}
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 hidden lg:flex flex-col items-center gap-2">
-        <span className="text-xs text-white/40 uppercase tracking-widest">Scroll</span>
+        <span className="text-xs text-white/40 uppercase tracking-widest">{dict.scroll}</span>
         <div className="w-px h-12 bg-gradient-to-b from-[#C9A962] to-transparent" />
       </div>
     </section>

@@ -37,13 +37,18 @@ interface UnitsSectionProps {
       registerInterest: string
       types: Record<string, string>
     }
+    currency: string
   }
 }
 
 export function UnitsSection({ units, locale, dict }: UnitsSectionProps) {
   const [activeUnit, setActiveUnit] = useState(units[0]?.unit_type || "1br")
 
-  const formatPrice = (price: number) => {
+  const formatPrice = (price: number, currency: string) => {
+    if (currency === "CHF") {
+      const chfPrice = Math.round(price * 0.24)
+      return new Intl.NumberFormat("fr-CH").format(chfPrice)
+    }
     return new Intl.NumberFormat("en-AE").format(price)
   }
 
@@ -102,7 +107,7 @@ export function UnitsSection({ units, locale, dict }: UnitsSectionProps) {
               {/* Price Tag */}
               <div className="absolute top-6 left-6 bg-[#C9A962] px-4 py-2">
                 <p className="text-xs text-black/70 uppercase">{dict.units.from}</p>
-                <p className="text-lg font-semibold text-black">AED {formatPrice(selectedUnit.starting_price_aed)}</p>
+                <p className="text-lg font-semibold text-black">{dict.currency} {formatPrice(selectedUnit.starting_price_aed, dict.currency)}</p>
               </div>
             </div>
 

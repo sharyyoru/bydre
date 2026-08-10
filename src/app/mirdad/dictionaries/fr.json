@@ -132,5 +132,16 @@
   "language": {
     "en": "English",
     "fr": "Français"
+  },
+  "currency": "CHF",
+  "brochure": "Brochure",
+  "scroll": "Défiler",
+  "privacyConsent": "En vous inscrivant, vous acceptez notre Politique de Confidentialité",
+  "sectionLabels": {
+    "residences": "Résidences",
+    "amenities": "Équipements",
+    "location": "Emplacement",
+    "developer": "Promoteur",
+    "contact": "Contact"
   }
 }
