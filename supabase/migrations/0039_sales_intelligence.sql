@@ -1,6 +1,50 @@
 -- Sales Intelligence Brain Schema
 -- Transforms Social Monitor into AI-powered sales advisor
 
+-- Off-plan projects table (synced from GenieMap)
+CREATE TABLE IF NOT EXISTS offplan_projects (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  external_id INTEGER,
+  name TEXT NOT NULL,
+  developer_name TEXT,
+  developer_id INTEGER,
+  district_name TEXT,
+  district_id INTEGER,
+  status TEXT, -- 'available', 'sold_out', 'launch'
+  price_min NUMERIC(15,2),
+  price_max NUMERIC(15,2),
+  price_per_sqft NUMERIC(10,2),
+  area_min NUMERIC(10,2),
+  area_max NUMERIC(10,2),
+  handover_date DATE,
+  service_charge NUMERIC(10,2),
+  eoi_amount NUMERIC(15,2),
+  unit_types JSONB DEFAULT '[]',
+  latitude NUMERIC(10,7),
+  longitude NUMERIC(10,7),
+  image_url TEXT,
+  images TEXT[] DEFAULT '{}',
+  documents TEXT[] DEFAULT '{}',
+  description TEXT,
+  amenities TEXT[] DEFAULT '{}',
+  payment_plans JSONB DEFAULT '[]',
+  raw JSONB,
+  last_synced_at TIMESTAMPTZ DEFAULT now(),
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(workspace_id, external_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_offplan_projects_workspace 
+  ON offplan_projects(workspace_id);
+
+CREATE INDEX IF NOT EXISTS idx_offplan_projects_developer 
+  ON offplan_projects(workspace_id, developer_name);
+
+CREATE INDEX IF NOT EXISTS idx_offplan_projects_status 
+  ON offplan_projects(workspace_id, status);
+
 -- Developer profiles with track record
 CREATE TABLE IF NOT EXISTS developer_profiles (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -63,7 +107,7 @@ CREATE TABLE IF NOT EXISTS inventory_snapshots (
   source TEXT, -- 'geniemap', 'scraper_emaar', 'manual', etc.
   raw_data JSONB,
   created_at TIMESTAMPTZ DEFAULT now(),
-  UNIQUE(workspace_id, project_id, snapshot_date)
+  UNIQUE(workspace_id, project_name, snapshot_date)
 );
 
 -- AI-scored sales opportunities
@@ -201,6 +245,7 @@ CREATE INDEX IF NOT EXISTS idx_project_commissions_workspace_active
   ON project_commissions(workspace_id) WHERE is_active = true;
 
 -- Enable RLS
+ALTER TABLE offplan_projects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE developer_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE project_commissions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE inventory_snapshots ENABLE ROW LEVEL SECURITY;
@@ -210,6 +255,14 @@ ALTER TABLE project_alerts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE daily_briefings ENABLE ROW LEVEL SECURITY;
 
 -- RLS policies (workspace members can read, admins can write)
+CREATE POLICY "Workspace members can view offplan projects"
+  ON offplan_projects FOR SELECT
+  USING (workspace_id IN (SELECT workspace_id FROM workspace_members WHERE user_id = auth.uid()));
+
+CREATE POLICY "Service role full access to offplan_projects"
+  ON offplan_projects FOR ALL
+  USING (auth.role() = 'service_role');
+
 CREATE POLICY "Workspace members can view developer profiles"
   ON developer_profiles FOR SELECT
   USING (workspace_id IN (SELECT workspace_id FROM workspace_members WHERE user_id = auth.uid()));
@@ -221,6 +274,10 @@ CREATE POLICY "Admins can manage developer profiles"
     WHERE user_id = auth.uid() AND role IN ('admin', 'owner')
   ));
 
+CREATE POLICY "Service role full access to developer_profiles"
+  ON developer_profiles FOR ALL
+  USING (auth.role() = 'service_role');
+
 CREATE POLICY "Workspace members can view commissions"
   ON project_commissions FOR SELECT
   USING (workspace_id IN (SELECT workspace_id FROM workspace_members WHERE user_id = auth.uid()));
@@ -231,6 +288,10 @@ CREATE POLICY "Admins can manage commissions"
     SELECT workspace_id FROM workspace_members 
     WHERE user_id = auth.uid() AND role IN ('admin', 'owner')
   ));
+
+CREATE POLICY "Service role full access to project_commissions"
+  ON project_commissions FOR ALL
+  USING (auth.role() = 'service_role');
 
 CREATE POLICY "Workspace members can view inventory snapshots"
   ON inventory_snapshots FOR SELECT
