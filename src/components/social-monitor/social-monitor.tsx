@@ -14,8 +14,10 @@ import { ContentPipeline } from "./content-pipeline"
 import { OffplanProjects } from "./offplan-projects"
 import { GlobalDemand } from "./global-demand"
 import { CryptoSentiment } from "./crypto-sentiment"
+import { SalesBrain } from "../sales-brain/sales-brain"
 
 const TABS = [
+  { value: "brain", label: "🧠 Sales Brain" },
   { value: "market", label: "Market Pulse" },
   { value: "offplan", label: "Off-plan Projects" },
   { value: "global", label: "Global Demand" },
@@ -29,7 +31,7 @@ export function SocialMonitor({ workspaceId: workspaceIdentifier }: { workspaceI
   const searchParams = useSearchParams()
   const router = useRouter()
   const pathname = usePathname()
-  const [tab, setTab] = useState(() => searchParams.get("tab") || "market")
+  const [tab, setTab] = useState(() => searchParams.get("tab") || "brain")
   const [seeding, setSeeding] = useState(false)
   const [workspaceId, setWorkspaceId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -145,6 +147,9 @@ export function SocialMonitor({ workspaceId: workspaceIdentifier }: { workspaceI
           ))}
         </TabsList>
 
+        <TabsContent value="brain">
+          <SalesBrain workspaceId={workspaceId} />
+        </TabsContent>
         <TabsContent value="market">
           <MarketPulse workspaceId={workspaceId} />
         </TabsContent>
