@@ -3,6 +3,10 @@ import { createClient } from "@supabase/supabase-js"
 import JSZip from "jszip"
 import * as XLSX from "xlsx"
 
+// Increase body size limit for large zip files
+export const maxDuration = 300 // 5 minutes timeout
+export const dynamic = "force-dynamic"
+
 function getAdminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY

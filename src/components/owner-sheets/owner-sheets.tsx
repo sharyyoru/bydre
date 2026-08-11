@@ -22,16 +22,26 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { toast } from "sonner"
 import {
   Upload,
-  Search,
   Filter,
   Download,
   AlertTriangle,
   Loader2,
   Sparkles,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   Trash2,
   FileSpreadsheet,
   Users,
@@ -40,6 +50,7 @@ import {
 import { UploadPanel } from "./upload-panel"
 import { SearchableSelect } from "./searchable-select"
 import { DuplicatePanel } from "./duplicate-panel"
+import { AISearchModal } from "./ai-search-modal"
 
 export type OwnerContact = {
   id: string
@@ -90,9 +101,13 @@ export function OwnerSheets() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [showUpload, setShowUpload] = useState(false)
   const [showDuplicates, setShowDuplicates] = useState<string | null>(null)
-  const [aiSearching, setAiSearching] = useState(false)
-  const [aiQuery, setAiQuery] = useState("")
+  const [showAiSearch, setShowAiSearch] = useState(false)
   const [exporting, setExporting] = useState(false)
+  
+  // Pagination state
+  const [page, setPage] = useState(1)
+  const [perPage, setPerPage] = useState(50)
+  const [totalPages, setTotalPages] = useState(1)
 
   const [filters, setFilters] = useState<FilterState>({
     area: null,
@@ -137,7 +152,7 @@ export function OwnerSheets() {
     init()
   }, [params.id])
 
-  // Fetch contacts with filters
+  // Fetch contacts with filters and pagination
   const fetchContacts = useCallback(async () => {
     if (!workspaceId) return
     setLoading(true)
@@ -145,6 +160,8 @@ export function OwnerSheets() {
     try {
       const queryParams = new URLSearchParams()
       queryParams.set("workspaceId", workspaceId)
+      queryParams.set("page", page.toString())
+      queryParams.set("perPage", perPage.toString())
       if (filters.area) queryParams.set("area", filters.area)
       if (filters.building) queryParams.set("building", filters.building)
       if (filters.owner_type) queryParams.set("owner_type", filters.owner_type)
@@ -158,6 +175,7 @@ export function OwnerSheets() {
       if (res.ok) {
         setContacts(data.contacts || [])
         setTotalCount(data.total || 0)
+        setTotalPages(data.totalPages || 1)
         setFilterOptions(data.filterOptions || filterOptions)
       } else {
         toast.error(data.error || "Failed to load contacts")
@@ -167,7 +185,7 @@ export function OwnerSheets() {
     } finally {
       setLoading(false)
     }
-  }, [workspaceId, filters])
+  }, [workspaceId, filters, page, perPage])
 
   useEffect(() => {
     if (workspaceId) {
@@ -175,33 +193,14 @@ export function OwnerSheets() {
     }
   }, [workspaceId, fetchContacts])
 
-  // AI Search
-  const handleAiSearch = async () => {
-    if (!aiQuery.trim() || !workspaceId) return
-    setAiSearching(true)
-
-    try {
-      const res = await fetch("/api/owner-sheets/ai-search", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: aiQuery, workspaceId }),
-      })
-      const data = await res.json()
-
-      if (res.ok && data.filters) {
-        setFilters((prev) => ({
-          ...prev,
-          ...data.filters,
-        }))
-        toast.success("AI applied filters based on your query")
-      } else {
-        toast.error(data.error || "AI search failed")
-      }
-    } catch {
-      toast.error("AI search failed")
-    } finally {
-      setAiSearching(false)
-    }
+  // Handle AI search filter application
+  const handleApplyAiFilters = (newFilters: Partial<FilterState>) => {
+    setFilters((prev) => ({
+      ...prev,
+      ...newFilters,
+    }))
+    setPage(1) // Reset to first page when applying new filters
+    toast.success("AI filters applied")
   }
 
   // Export to Excel
@@ -274,7 +273,7 @@ export function OwnerSheets() {
       duplicatesOnly: false,
       search: "",
     })
-    setAiQuery("")
+    setPage(1)
   }
 
   if (!isAdmin) {
@@ -309,26 +308,15 @@ export function OwnerSheets() {
         </Button>
       </div>
 
-      {/* AI Search */}
-      <Card>
-        <CardContent className="pt-4">
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Sparkles className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="AI Search: 'Find all owners in Dubai Marina with email' ..."
-                value={aiQuery}
-                onChange={(e) => setAiQuery(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleAiSearch()}
-                className="pl-10"
-              />
-            </div>
-            <Button onClick={handleAiSearch} disabled={aiSearching || !aiQuery.trim()}>
-              {aiSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      {/* AI Search Button */}
+      <Button 
+        onClick={() => setShowAiSearch(true)} 
+        variant="outline"
+        className="w-full justify-start gap-2 border-dashed border-[#D4AF37]/50 hover:border-[#D4AF37] hover:bg-[#D4AF37]/5"
+      >
+        <Sparkles className="h-4 w-4 text-[#D4AF37]" />
+        <span className="text-muted-foreground">AI Search: &quot;Find all owners in Dubai Marina&quot; ...</span>
+      </Button>
 
       {/* Filters */}
       <Card>
@@ -349,31 +337,31 @@ export function OwnerSheets() {
               placeholder="Area"
               options={filterOptions.areas}
               value={filters.area}
-              onChange={(v: string | null) => setFilters((f) => ({ ...f, area: v }))}
+              onChange={(v: string | null) => { setFilters((f) => ({ ...f, area: v })); setPage(1) }}
             />
             <SearchableSelect
               placeholder="Building"
               options={filterOptions.buildings}
               value={filters.building}
-              onChange={(v: string | null) => setFilters((f) => ({ ...f, building: v }))}
+              onChange={(v: string | null) => { setFilters((f) => ({ ...f, building: v })); setPage(1) }}
             />
             <SearchableSelect
               placeholder="Owner Type"
               options={filterOptions.owner_types}
               value={filters.owner_type}
-              onChange={(v: string | null) => setFilters((f) => ({ ...f, owner_type: v }))}
+              onChange={(v: string | null) => { setFilters((f) => ({ ...f, owner_type: v })); setPage(1) }}
             />
             <SearchableSelect
               placeholder="Nationality"
               options={filterOptions.nationalities}
               value={filters.nationality}
-              onChange={(v: string | null) => setFilters((f) => ({ ...f, nationality: v }))}
+              onChange={(v: string | null) => { setFilters((f) => ({ ...f, nationality: v })); setPage(1) }}
             />
             <div className="flex items-center gap-2">
               <Checkbox
                 id="duplicates"
                 checked={filters.duplicatesOnly}
-                onCheckedChange={(c) => setFilters((f) => ({ ...f, duplicatesOnly: !!c }))}
+                onCheckedChange={(c) => { setFilters((f) => ({ ...f, duplicatesOnly: !!c })); setPage(1) }}
               />
               <label htmlFor="duplicates" className="text-sm cursor-pointer">
                 Duplicates only
@@ -382,19 +370,27 @@ export function OwnerSheets() {
             <Input
               placeholder="Search name/phone..."
               value={filters.search}
-              onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value }))}
+              onChange={(e) => { setFilters((f) => ({ ...f, search: e.target.value })); setPage(1) }}
             />
           </div>
         </CardContent>
       </Card>
 
-      {/* Actions Bar */}
-      <div className="flex items-center justify-between">
+      {/* Actions Bar with Pagination */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
+          {/* Result Counter */}
           <p className="text-sm text-muted-foreground">
-            {totalCount.toLocaleString()} contacts
-            {selectedIds.size > 0 && ` · ${selectedIds.size} selected`}
+            {totalCount > 0 ? (
+              <>
+                Showing <span className="font-medium text-foreground">{((page - 1) * perPage) + 1}-{Math.min(page * perPage, totalCount)}</span> of <span className="font-medium text-foreground">{totalCount.toLocaleString()}</span> contacts
+              </>
+            ) : (
+              "No contacts"
+            )}
+            {selectedIds.size > 0 && <span className="text-[#D4AF37]"> · {selectedIds.size} selected</span>}
           </p>
+          
           {selectedIds.size > 0 && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -415,10 +411,73 @@ export function OwnerSheets() {
             </DropdownMenu>
           )}
         </div>
-        <Button variant="outline" onClick={handleExport} disabled={exporting}>
-          {exporting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
-          Export Excel
-        </Button>
+        
+        <div className="flex items-center gap-4">
+          {/* Per Page Selector */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Show:</span>
+            <Select value={perPage.toString()} onValueChange={(v) => { setPerPage(Number(v)); setPage(1) }}>
+              <SelectTrigger className="w-20 h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="25">25</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+                <SelectItem value="100">100</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setPage(1)}
+                disabled={page === 1}
+              >
+                <ChevronsLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-sm px-2">
+                Page {page} of {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setPage(totalPages)}
+                disabled={page === totalPages}
+              >
+                <ChevronsRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+          
+          <Button variant="outline" onClick={handleExport} disabled={exporting}>
+            {exporting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+            Export
+          </Button>
+        </div>
       </div>
 
       {/* Data Table */}
@@ -553,6 +612,16 @@ export function OwnerSheets() {
             setShowDuplicates(null)
             fetchContacts()
           }}
+        />
+      )}
+
+      {/* AI Search Modal */}
+      {workspaceId && (
+        <AISearchModal
+          open={showAiSearch}
+          onOpenChange={setShowAiSearch}
+          workspaceId={workspaceId}
+          onApplyFilters={handleApplyAiFilters}
         />
       )}
     </div>

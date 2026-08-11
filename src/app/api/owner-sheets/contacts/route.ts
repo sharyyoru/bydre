@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 
+export const dynamic = "force-dynamic"
+
 function getAdminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -20,8 +22,11 @@ export async function GET(request: NextRequest) {
     const nationality = searchParams.get("nationality")
     const duplicatesOnly = searchParams.get("duplicatesOnly") === "true"
     const search = searchParams.get("search")
-    const limit = parseInt(searchParams.get("limit") || "500")
-    const offset = parseInt(searchParams.get("offset") || "0")
+    
+    // Pagination params
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1"))
+    const perPage = Math.min(100, Math.max(10, parseInt(searchParams.get("perPage") || "50")))
+    const offset = (page - 1) * perPage
 
     if (!workspaceId) {
       return NextResponse.json({ error: "workspaceId required" }, { status: 400 })
@@ -35,7 +40,7 @@ export async function GET(request: NextRequest) {
       .select("*", { count: "exact" })
       .eq("workspace_id", workspaceId)
       .order("created_at", { ascending: false })
-      .range(offset, offset + limit - 1)
+      .range(offset, offset + perPage - 1)
 
     // Apply filters
     if (area) query = query.eq("area", area)
@@ -88,9 +93,15 @@ export async function GET(request: NextRequest) {
     const uniqueOwnerTypes = Array.from(new Set((ownerTypesRes.data || []).map((r) => r.owner_type).filter(Boolean)))
     const uniqueNationalities = Array.from(new Set((nationalitiesRes.data || []).map((r) => r.nationality).filter(Boolean)))
 
+    const total = count || 0
+    const totalPages = Math.ceil(total / perPage)
+
     return NextResponse.json({
       contacts: contacts || [],
-      total: count || 0,
+      total,
+      page,
+      perPage,
+      totalPages,
       filterOptions: {
         areas: uniqueAreas as string[],
         buildings: uniqueBuildings as string[],
