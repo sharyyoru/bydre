@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
     const snapshots = projects
       .filter(p => p.unit_types?.length > 0)
       .map(p => {
-        const totalUnits = p.unit_types.reduce((sum, ut) => sum + 1, 0) // Simplified
+        const totalUnits = p.unit_types.length // Simplified
         return {
           workspace_id,
           project_name: p.name,

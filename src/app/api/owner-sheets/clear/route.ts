@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
 
     // Step 2: Delete contacts in batches
     let totalDeleted = 0
-    let batchSize = 5000
+    const batchSize = 5000
     let keepDeleting = true
 
     while (keepDeleting) {
