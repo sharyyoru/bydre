@@ -368,6 +368,131 @@ export async function POST(request: NextRequest) {
       errors.push(`Crypto: ${cryptoError.message}`)
     }
 
+    // 7. Seed Demo Projects for Sales Brain
+    const demoProjects = [
+      { name: "Marina Vista", developer_name: "Emaar", district_name: "Dubai Marina", status: "available", price_min: 1200000, price_max: 3500000, total_units: 450, available_units: 120 },
+      { name: "Creek Heights", developer_name: "Emaar", district_name: "Dubai Creek Harbour", status: "available", price_min: 1500000, price_max: 4200000, total_units: 320, available_units: 85 },
+      { name: "Palm Residences", developer_name: "Nakheel", district_name: "Palm Jumeirah", status: "available", price_min: 2800000, price_max: 8500000, total_units: 180, available_units: 25 },
+      { name: "Hills Estate", developer_name: "Emaar", district_name: "Dubai Hills Estate", status: "available", price_min: 950000, price_max: 2800000, total_units: 520, available_units: 180 },
+      { name: "JVC Gardens", developer_name: "Danube", district_name: "JVC", status: "launch", price_min: 650000, price_max: 1400000, total_units: 380, available_units: 350 },
+      { name: "Business Bay Tower", developer_name: "DAMAC", district_name: "Business Bay", status: "available", price_min: 1100000, price_max: 2900000, total_units: 280, available_units: 95 },
+      { name: "Meydan One", developer_name: "Meydan", district_name: "Meydan", status: "available", price_min: 1400000, price_max: 3800000, total_units: 420, available_units: 220 },
+      { name: "Downtown Views", developer_name: "Emaar", district_name: "Downtown Dubai", status: "available", price_min: 2100000, price_max: 5500000, total_units: 250, available_units: 45 },
+    ]
+
+    // Delete existing demo projects
+    await supabase
+      .from("geniemap_projects")
+      .delete()
+      .eq("workspace_id", workspace_id)
+      .like("name", "%Vista%")
+
+    // Insert demo projects
+    const projectRows = demoProjects.map((p, idx) => ({
+      workspace_id,
+      external_id: 90000 + idx,
+      name: p.name,
+      developer_name: p.developer_name,
+      district_name: p.district_name,
+      status: p.status,
+      price_min: p.price_min,
+      price_max: p.price_max,
+      price_per_sqft: Math.round((p.price_min + p.price_max) / 2 / 1000),
+      handover_date: new Date(Date.now() + (idx + 6) * 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+      unit_types: [
+        { type: "1BR", beds: 1, area: 650, price: p.price_min },
+        { type: "2BR", beds: 2, area: 1100, price: (p.price_min + p.price_max) / 2 },
+        { type: "3BR", beds: 3, area: 1600, price: p.price_max },
+      ],
+      raw: { demo: true },
+    }))
+
+    const { data: insertedProjects, error: projectsError } = await supabase
+      .from("geniemap_projects")
+      .upsert(projectRows, { onConflict: "workspace_id, external_id" })
+      .select("id, name")
+
+    if (projectsError) {
+      errors.push(`Projects: ${projectsError.message}`)
+    }
+
+    // 8. Seed Inventory Snapshots (needed for velocity calculation)
+    const today = new Date()
+    const snapshotRows: Array<{
+      workspace_id: string
+      project_name: string
+      snapshot_date: string
+      total_units: number
+      available_units: number
+      sold_units: number
+      source: string
+    }> = []
+
+    for (const project of demoProjects) {
+      // Create 14 days of snapshots with decreasing inventory
+      for (let dayOffset = 14; dayOffset >= 0; dayOffset--) {
+        const snapshotDate = new Date(today)
+        snapshotDate.setDate(snapshotDate.getDate() - dayOffset)
+        
+        // Simulate sales: 1-5 units sold per day
+        const dailySales = Math.floor(Math.random() * 5) + 1
+        const unitsAtDate = Math.min(
+          project.total_units,
+          project.available_units + (dayOffset * dailySales)
+        )
+
+        snapshotRows.push({
+          workspace_id,
+          project_name: project.name,
+          snapshot_date: snapshotDate.toISOString().split("T")[0],
+          total_units: project.total_units,
+          available_units: unitsAtDate,
+          sold_units: project.total_units - unitsAtDate,
+          source: "demo_seed",
+        })
+      }
+    }
+
+    // Delete old demo snapshots
+    await supabase
+      .from("inventory_snapshots")
+      .delete()
+      .eq("workspace_id", workspace_id)
+      .eq("source", "demo_seed")
+
+    const { error: snapshotsError } = await supabase
+      .from("inventory_snapshots")
+      .insert(snapshotRows)
+
+    if (snapshotsError) {
+      errors.push(`Snapshots: ${snapshotsError.message}`)
+    }
+
+    // 9. Seed Project Commissions
+    const commissionRows = demoProjects.slice(0, 5).map((p) => ({
+      workspace_id,
+      project_name: p.name,
+      developer_name: p.developer_name,
+      base_commission_percent: 4 + Math.random() * 4, // 4-8%
+      early_bird_bonus_percent: Math.random() > 0.5 ? 1 + Math.random() : null,
+      is_active: true,
+      notes: "Demo commission",
+    }))
+
+    await supabase
+      .from("project_commissions")
+      .delete()
+      .eq("workspace_id", workspace_id)
+      .eq("notes", "Demo commission")
+
+    const { error: commissionsError } = await supabase
+      .from("project_commissions")
+      .insert(commissionRows)
+
+    if (commissionsError) {
+      errors.push(`Commissions: ${commissionsError.message}`)
+    }
+
     // Return results
     if (errors.length > 0 && results.market === 0 && results.sentiment === 0) {
       return NextResponse.json({
@@ -379,8 +504,13 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      inserted: results,
-      message: `Seeded ${results.market} market metrics, ${results.sentiment} sentiment metrics, ${results.briefs} content briefs`,
+      inserted: {
+        ...results,
+        projects: demoProjects.length,
+        snapshots: snapshotRows.length,
+        commissions: commissionRows.length,
+      },
+      message: `Seeded ${results.market} market metrics, ${results.sentiment} sentiment metrics, ${results.briefs} briefs, ${demoProjects.length} projects, ${snapshotRows.length} inventory snapshots, ${commissionRows.length} commissions`,
       warnings: errors.length > 0 ? errors : undefined,
     })
   } catch (error) {

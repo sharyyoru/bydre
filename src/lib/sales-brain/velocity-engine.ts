@@ -240,6 +240,8 @@ export async function createInventorySnapshot(params: {
 
   const soldUnits = params.soldUnits ?? (params.totalUnits - params.availableUnits)
 
+  // Use project_name for conflict resolution since that's the primary unique constraint
+  // The migration adds a partial index for project_id-based lookups
   await admin.from("inventory_snapshots").upsert(
     {
       workspace_id: params.workspaceId,
@@ -257,7 +259,7 @@ export async function createInventorySnapshot(params: {
       raw_data: params.rawData || null,
     },
     {
-      onConflict: "workspace_id, project_id, snapshot_date",
+      onConflict: "workspace_id, project_name, snapshot_date",
     }
   )
 }

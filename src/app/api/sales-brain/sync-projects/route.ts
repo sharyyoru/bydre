@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ synced: 0, message: "No projects found in GenieMap" })
     }
 
-    // Transform to database format
+    // Transform to geniemap_projects format
     const rows = projects.map(p => ({
       workspace_id,
       external_id: p.external_id,
@@ -60,24 +60,18 @@ export async function POST(request: NextRequest) {
       handover_date: p.handover_date,
       service_charge: p.service_charge,
       eoi_amount: p.eoi_amount,
-      unit_types: p.unit_types,
+      unit_types: p.unit_types || [],
       latitude: p.latitude,
       longitude: p.longitude,
       image_url: p.image_url,
-      images: p.images,
-      documents: p.documents,
-      description: p.description,
-      amenities: p.amenities,
-      payment_plans: p.payment_plans,
-      raw: p.raw,
-      last_synced_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      raw: p.raw || {},
+      ingested_at: new Date().toISOString(),
     }))
 
-    // Upsert projects
+    // Upsert projects to geniemap_projects (single source of truth)
     const admin = createAdminClient()
     const { error } = await admin
-      .from("offplan_projects")
+      .from("geniemap_projects")
       .upsert(rows, {
         onConflict: "workspace_id, external_id",
         ignoreDuplicates: false,

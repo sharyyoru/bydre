@@ -65,9 +65,9 @@ export async function generateRecommendations(
     .order("signal_date", { ascending: false })
     .limit(50)
 
-  // 4. Get project details from offplan_projects
+  // 4. Get project details from geniemap_projects (source of truth for project data)
   const { data: projects } = await admin
-    .from("offplan_projects")
+    .from("geniemap_projects")
     .select("id, name, developer_name, district_name, price_min, price_max, handover_date, status, image_url")
     .eq("workspace_id", workspace_id)
     .limit(100)

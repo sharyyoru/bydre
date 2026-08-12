@@ -1,49 +1,6 @@
 -- Sales Intelligence Brain Schema
 -- Transforms Social Monitor into AI-powered sales advisor
-
--- Off-plan projects table (synced from GenieMap)
-CREATE TABLE IF NOT EXISTS offplan_projects (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
-  external_id INTEGER,
-  name TEXT NOT NULL,
-  developer_name TEXT,
-  developer_id INTEGER,
-  district_name TEXT,
-  district_id INTEGER,
-  status TEXT, -- 'available', 'sold_out', 'launch'
-  price_min NUMERIC(15,2),
-  price_max NUMERIC(15,2),
-  price_per_sqft NUMERIC(10,2),
-  area_min NUMERIC(10,2),
-  area_max NUMERIC(10,2),
-  handover_date DATE,
-  service_charge NUMERIC(10,2),
-  eoi_amount NUMERIC(15,2),
-  unit_types JSONB DEFAULT '[]',
-  latitude NUMERIC(10,7),
-  longitude NUMERIC(10,7),
-  image_url TEXT,
-  images TEXT[] DEFAULT '{}',
-  documents TEXT[] DEFAULT '{}',
-  description TEXT,
-  amenities TEXT[] DEFAULT '{}',
-  payment_plans JSONB DEFAULT '[]',
-  raw JSONB,
-  last_synced_at TIMESTAMPTZ DEFAULT now(),
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now(),
-  UNIQUE(workspace_id, external_id)
-);
-
-CREATE INDEX IF NOT EXISTS idx_offplan_projects_workspace 
-  ON offplan_projects(workspace_id);
-
-CREATE INDEX IF NOT EXISTS idx_offplan_projects_developer 
-  ON offplan_projects(workspace_id, developer_name);
-
-CREATE INDEX IF NOT EXISTS idx_offplan_projects_status 
-  ON offplan_projects(workspace_id, status);
+-- Uses geniemap_projects (from migration 0032) as the source of truth for projects
 
 -- Developer profiles with track record
 CREATE TABLE IF NOT EXISTS developer_profiles (
@@ -71,7 +28,7 @@ CREATE TABLE IF NOT EXISTS developer_profiles (
 CREATE TABLE IF NOT EXISTS project_commissions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
-  project_id UUID REFERENCES offplan_projects(id) ON DELETE CASCADE,
+  project_id UUID REFERENCES geniemap_projects(id) ON DELETE SET NULL,
   project_name TEXT NOT NULL, -- Denormalized for quick lookup
   developer_name TEXT,
   base_commission_percent NUMERIC(4,2) NOT NULL DEFAULT 0,
@@ -94,7 +51,7 @@ CREATE TABLE IF NOT EXISTS project_commissions (
 CREATE TABLE IF NOT EXISTS inventory_snapshots (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
-  project_id UUID REFERENCES offplan_projects(id) ON DELETE CASCADE,
+  project_id UUID REFERENCES geniemap_projects(id) ON DELETE SET NULL,
   project_name TEXT NOT NULL,
   snapshot_date DATE NOT NULL DEFAULT CURRENT_DATE,
   total_units INTEGER,
@@ -114,7 +71,7 @@ CREATE TABLE IF NOT EXISTS inventory_snapshots (
 CREATE TABLE IF NOT EXISTS sales_opportunities (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
-  project_id UUID REFERENCES offplan_projects(id) ON DELETE CASCADE,
+  project_id UUID REFERENCES geniemap_projects(id) ON DELETE SET NULL,
   project_name TEXT NOT NULL,
   developer_name TEXT,
   
@@ -152,7 +109,7 @@ CREATE TABLE IF NOT EXISTS market_signals (
   source TEXT NOT NULL, -- 'google_trends', 'twitter', 'instagram', 'news_rss', 'developer_site'
   
   -- Related entities
-  project_id UUID REFERENCES offplan_projects(id) ON DELETE SET NULL,
+  project_id UUID REFERENCES geniemap_projects(id) ON DELETE SET NULL,
   project_name TEXT,
   developer_id UUID REFERENCES developer_profiles(id) ON DELETE SET NULL,
   developer_name TEXT,
@@ -185,7 +142,7 @@ CREATE TABLE IF NOT EXISTS project_alerts (
   alert_type TEXT NOT NULL, -- 'low_inventory', 'new_launch', 'price_change', 'velocity_spike'
   severity TEXT NOT NULL DEFAULT 'info', -- 'critical', 'warning', 'info'
   
-  project_id UUID REFERENCES offplan_projects(id) ON DELETE CASCADE,
+  project_id UUID REFERENCES geniemap_projects(id) ON DELETE SET NULL,
   project_name TEXT,
   developer_name TEXT,
   
@@ -232,8 +189,9 @@ CREATE TABLE IF NOT EXISTS daily_briefings (
 CREATE INDEX IF NOT EXISTS idx_inventory_snapshots_project_date 
   ON inventory_snapshots(project_id, snapshot_date DESC);
 
+-- Index for workspace rank lookups (filter by valid_until in queries, not index)
 CREATE INDEX IF NOT EXISTS idx_sales_opportunities_workspace_rank 
-  ON sales_opportunities(workspace_id, rank) WHERE valid_until > now();
+  ON sales_opportunities(workspace_id, valid_until DESC, rank);
 
 CREATE INDEX IF NOT EXISTS idx_market_signals_workspace_date 
   ON market_signals(workspace_id, signal_date DESC);
@@ -245,7 +203,6 @@ CREATE INDEX IF NOT EXISTS idx_project_commissions_workspace_active
   ON project_commissions(workspace_id) WHERE is_active = true;
 
 -- Enable RLS
-ALTER TABLE offplan_projects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE developer_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE project_commissions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE inventory_snapshots ENABLE ROW LEVEL SECURITY;
@@ -255,14 +212,6 @@ ALTER TABLE project_alerts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE daily_briefings ENABLE ROW LEVEL SECURITY;
 
 -- RLS policies (workspace members can read, admins can write)
-CREATE POLICY "Workspace members can view offplan projects"
-  ON offplan_projects FOR SELECT
-  USING (workspace_id IN (SELECT workspace_id FROM workspace_members WHERE user_id = auth.uid()));
-
-CREATE POLICY "Service role full access to offplan_projects"
-  ON offplan_projects FOR ALL
-  USING (auth.role() = 'service_role');
-
 CREATE POLICY "Workspace members can view developer profiles"
   ON developer_profiles FOR SELECT
   USING (workspace_id IN (SELECT workspace_id FROM workspace_members WHERE user_id = auth.uid()));
