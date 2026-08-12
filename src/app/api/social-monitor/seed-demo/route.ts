@@ -407,10 +407,9 @@ export async function POST(request: NextRequest) {
       raw: { demo: true },
     }))
 
-    const { data: insertedProjects, error: projectsError } = await supabase
+    const { error: projectsError } = await supabase
       .from("geniemap_projects")
       .upsert(projectRows, { onConflict: "workspace_id, external_id" })
-      .select("id, name")
 
     if (projectsError) {
       errors.push(`Projects: ${projectsError.message}`)
