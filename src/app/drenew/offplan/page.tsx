@@ -6,7 +6,7 @@ import { PropertyCard } from "@/components/drenew/shared/property-card"
 import { FilterSidebar } from "@/components/drenew/shared/filter-sidebar"
 import { Pagination } from "@/components/drenew/shared/pagination"
 import { CTABanner } from "@/components/drenew/shared/cta-banner"
-import { PROPERTIES, getPropertiesByType } from "@/components/drenew/data/properties"
+import { getPropertiesByType } from "@/components/drenew/data/properties"
 import { DEVELOPERS } from "@/components/drenew/data/developers"
 import { COMMUNITIES } from "@/components/drenew/data/communities"
 

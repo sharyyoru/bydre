@@ -3,7 +3,7 @@
 import { use } from "react"
 import { notFound } from "next/navigation"
 import Image from "next/image"
-import { Building2, Calendar, MapPin, Globe } from "lucide-react"
+import { Building2, Calendar, MapPin } from "lucide-react"
 import { Breadcrumbs } from "@/components/drenew/shared/breadcrumbs"
 import { PropertyCard } from "@/components/drenew/shared/property-card"
 import { InquiryForm } from "@/components/drenew/shared/inquiry-form"

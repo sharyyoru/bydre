@@ -7,7 +7,7 @@ import Link from "next/link"
 import { 
   MapPin, Bed, Bath, Maximize, Calendar, Building2, 
   ChevronLeft, ChevronRight, Phone, MessageCircle,
-  Download, FileText, Map, CheckCircle2
+  Download, FileText, Map
 } from "lucide-react"
 import { Breadcrumbs } from "@/components/drenew/shared/breadcrumbs"
 import { InquiryForm } from "@/components/drenew/shared/inquiry-form"

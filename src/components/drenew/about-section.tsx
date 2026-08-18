@@ -3,7 +3,7 @@
 import Image from "next/image"
 import { Play, CheckCircle2, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { DEVELOPERS, STATS } from "./data"
+import { DEVELOPERS } from "./data"
 
 export function AboutSection() {
   return (

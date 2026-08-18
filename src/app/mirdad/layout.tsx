@@ -105,6 +105,7 @@ export default function MirdadLayout({
           width="1"
           style={{ display: "none" }}
           src="https://www.facebook.com/tr?id=1436289015225741&ev=PageView&noscript=1"
+          alt=""
         />
       </noscript>
       {/* End Meta Pixel Code */}

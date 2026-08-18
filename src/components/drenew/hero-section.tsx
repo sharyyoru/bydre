@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Search, ChevronDown, Building2, Users, Award, Calendar, ArrowRight, Download } from "lucide-react"
+import { Search, Building2, Users, Award, Calendar, ArrowRight, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { AREAS, PROPERTY_TYPES, BEDROOM_OPTIONS, PRICE_RANGES, STATS } from "./data"
 

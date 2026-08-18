@@ -22,6 +22,7 @@ export function CTABanner({
   title = "Ready to Find Your Dream Home?",
   subtitle = "Our expert team is here to help you navigate Dubai's real estate market.",
   primaryAction = { label: "Contact Us", href: "/drenew/contact" },
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   secondaryAction = { label: "Browse Properties", href: "/drenew/offplan" },
   variant = "default",
 }: CTABannerProps) {
