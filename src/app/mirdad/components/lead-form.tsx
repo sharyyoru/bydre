@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Send, CheckCircle2, AlertCircle, Phone, MessageCircle, Mail } from "lucide-react"
+import { Send, CheckCircle2, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -228,62 +228,51 @@ export function LeadForm({ locale, dict, units }: LeadFormProps) {
             )}
           </div>
 
-          {/* Right: Contact Info */}
+          {/* Right: Why Register */}
           <div className="lg:pl-8">
             <div className="inline-flex items-center gap-2 mb-6">
               <div className="h-px w-8 bg-[#C9A962]" />
-              <span className="text-[#C9A962] text-sm tracking-[0.2em] uppercase">Contact</span>
+              <span className="text-[#C9A962] text-sm tracking-[0.2em] uppercase">Why Register</span>
             </div>
 
             <h3 className="text-2xl lg:text-3xl font-light text-white mb-4">
-              {dict.contact.title}
+              Exclusive Benefits
             </h3>
-            <p className="text-white/60 mb-8">{dict.contact.subtitle}</p>
+            <p className="text-white/60 mb-8">Register now to receive priority access and exclusive offers</p>
 
             <div className="space-y-4">
-              {/* Phone */}
-              <a
-                href="tel:+971800886466"
-                className="flex items-center gap-4 p-5 bg-white/5 border border-white/10 hover:border-[#C9A962]/50 transition-colors group"
-              >
-                <div className="w-12 h-12 rounded-full bg-[#C9A962]/10 flex items-center justify-center group-hover:bg-[#C9A962]/20">
-                  <Phone className="w-5 h-5 text-[#C9A962]" />
+              {/* Benefit 1 */}
+              <div className="flex items-center gap-4 p-5 bg-white/5 border border-white/10">
+                <div className="w-12 h-12 rounded-full bg-[#C9A962]/10 flex items-center justify-center">
+                  <CheckCircle2 className="w-5 h-5 text-[#C9A962]" />
                 </div>
                 <div>
-                  <p className="text-xs text-white/50 uppercase">{dict.contact.phone}</p>
-                  <p className="text-white font-medium">800 UPSALE (886466)</p>
+                  <p className="text-white font-medium">Priority Unit Selection</p>
+                  <p className="text-xs text-white/50">First access to the best units</p>
                 </div>
-              </a>
+              </div>
 
-              {/* WhatsApp */}
-              <a
-                href="https://wa.me/971800877253"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-4 p-5 bg-white/5 border border-white/10 hover:border-green-500/50 transition-colors group"
-              >
-                <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center group-hover:bg-green-500/20">
-                  <MessageCircle className="w-5 h-5 text-green-500" />
+              {/* Benefit 2 */}
+              <div className="flex items-center gap-4 p-5 bg-white/5 border border-white/10">
+                <div className="w-12 h-12 rounded-full bg-[#C9A962]/10 flex items-center justify-center">
+                  <CheckCircle2 className="w-5 h-5 text-[#C9A962]" />
                 </div>
                 <div>
-                  <p className="text-xs text-white/50 uppercase">{dict.contact.whatsapp}</p>
-                  <p className="text-white font-medium">+971 800 877253</p>
+                  <p className="text-white font-medium">Exclusive Launch Pricing</p>
+                  <p className="text-xs text-white/50">Special prices for early registrants</p>
                 </div>
-              </a>
+              </div>
 
-              {/* Email */}
-              <a
-                href="mailto:info@up.ae"
-                className="flex items-center gap-4 p-5 bg-white/5 border border-white/10 hover:border-[#C9A962]/50 transition-colors group"
-              >
-                <div className="w-12 h-12 rounded-full bg-[#C9A962]/10 flex items-center justify-center group-hover:bg-[#C9A962]/20">
-                  <Mail className="w-5 h-5 text-[#C9A962]" />
+              {/* Benefit 3 */}
+              <div className="flex items-center gap-4 p-5 bg-white/5 border border-white/10">
+                <div className="w-12 h-12 rounded-full bg-[#C9A962]/10 flex items-center justify-center">
+                  <CheckCircle2 className="w-5 h-5 text-[#C9A962]" />
                 </div>
                 <div>
-                  <p className="text-xs text-white/50 uppercase">{dict.contact.email}</p>
-                  <p className="text-white font-medium">info@up.ae</p>
+                  <p className="text-white font-medium">Flexible Payment Plans</p>
+                  <p className="text-xs text-white/50">30/70 payment structure available</p>
                 </div>
-              </a>
+              </div>
             </div>
 
             {/* Trust badge */}

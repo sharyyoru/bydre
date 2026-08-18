@@ -210,9 +210,7 @@
       },
       "contact": {
         "title": "Nous Contacter",
-        "content": "Pour toute question relative à la confidentialité ou pour exercer vos droits, veuillez nous contacter :",
-        "email": "Email : info@up.ae",
-        "phone": "Téléphone : 800 UPSALE (886466)",
+        "content": "Pour toute question relative à la confidentialité ou pour exercer vos droits, veuillez vous inscrire sur notre site web.",
         "address": "Adresse : Union Properties PJSC, Motor City, Dubaï, EAU"
       }
     }
@@ -267,9 +265,7 @@
       },
       "contact": {
         "title": "Informations de Contact",
-        "content": "Pour toute question concernant ces Conditions Générales, veuillez contacter :",
-        "email": "Email : info@up.ae",
-        "phone": "Téléphone : 800 UPSALE (886466)",
+        "content": "Pour toute question concernant ces Conditions Générales, veuillez vous inscrire sur notre site web.",
         "address": "Adresse : Union Properties PJSC, Motor City, Dubaï, EAU"
       }
     }

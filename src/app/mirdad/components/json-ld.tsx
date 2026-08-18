@@ -46,8 +46,7 @@ export function JsonLd({ units = [], project, locale = "en" }: JsonLdProps) {
     },
     contactPoint: {
       "@type": "ContactPoint",
-      telephone: project?.contact_phone || "+971 800 886466",
-      email: project?.contact_email || "info@up.ae",
+      url: `${baseUrl}/mirdad#register`,
       contactType: "sales",
       availableLanguage: ["English", "French", "Arabic"],
     },

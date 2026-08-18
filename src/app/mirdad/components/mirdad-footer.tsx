@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Phone, Mail, MapPin } from "lucide-react"
+import { Mail, MapPin } from "lucide-react"
 
 interface Project {
   contact_phone?: string
@@ -95,15 +95,9 @@ export function MirdadFooter({ locale, dict }: MirdadFooterProps) {
             </h4>
             <ul className="space-y-4">
               <li>
-                <a href="tel:+971800886466" className="flex items-center gap-3 text-white/60 hover:text-[#C9A962] transition-colors text-sm">
-                  <Phone className="h-4 w-4 text-[#C9A962]" />
-                  800 UPSALE (886466)
-                </a>
-              </li>
-              <li>
-                <a href="mailto:info@up.ae" className="flex items-center gap-3 text-white/60 hover:text-[#C9A962] transition-colors text-sm">
+                <a href="#register" className="flex items-center gap-3 text-white/60 hover:text-[#C9A962] transition-colors text-sm">
                   <Mail className="h-4 w-4 text-[#C9A962]" />
-                  info@up.ae
+                  {getLocalizedText("Register Your Interest", "Inscrivez-vous", "سجل اهتمامك")}
                 </a>
               </li>
               <li>

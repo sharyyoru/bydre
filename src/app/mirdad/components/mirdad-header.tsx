@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { Menu, X, Phone, Download } from "lucide-react"
+import { Menu, X, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { LanguageSwitcher } from "./language-switcher"
 import { cn } from "@/lib/utils"
@@ -57,13 +57,7 @@ export function MirdadHeader({ locale, dict }: MirdadHeaderProps) {
     >
       {/* Top bar */}
       <div className="hidden lg:block border-b border-white/10">
-        <div className="container mx-auto px-4 py-2 flex items-center justify-between text-sm">
-          <div className="flex items-center gap-6">
-            <a href="tel:+971800886466" className="text-white/60 hover:text-[#C9A962] flex items-center gap-2">
-              <Phone className="h-3 w-3" />
-              800 UPSALE (886466)
-            </a>
-          </div>
+        <div className="container mx-auto px-4 py-2 flex items-center justify-end text-sm">
           <div className="flex items-center gap-4">
             <span className="text-white/40">A Development by Union Properties</span>
             <LanguageSwitcher currentLocale={locale} />
