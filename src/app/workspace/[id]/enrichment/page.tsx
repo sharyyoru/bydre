@@ -40,6 +40,17 @@ interface EnrichedContact {
   company: string | null
   confidence: number | null
   error: string | null
+  detectedCountry?: string
+}
+
+const COUNTRY_FLAGS: Record<string, string> = {
+  QA: "🇶🇦 Qatar",
+  AE: "🇦🇪 UAE",
+  SA: "🇸🇦 Saudi",
+  BH: "🇧🇭 Bahrain",
+  KW: "🇰🇼 Kuwait",
+  OM: "🇴🇲 Oman",
+  Unknown: "🌍 Unknown",
 }
 
 interface EnrichmentResult {
@@ -116,6 +127,7 @@ export default function EnrichmentPage() {
       "Name",
       "Original_Phone",
       "Normalized_Phone",
+      "Country",
       "Email",
       "LinkedIn_URL",
       "Job_Title",
@@ -128,6 +140,7 @@ export default function EnrichmentPage() {
       r.name,
       r.originalPhone,
       r.phone,
+      r.detectedCountry || "",
       r.email || "",
       r.linkedinUrl || "",
       r.jobTitle || "",
@@ -360,7 +373,14 @@ export default function EnrichmentPage() {
                             {contact.name}
                           </TableCell>
                           <TableCell className="text-sm">
-                            <div>{contact.phone || contact.originalPhone}</div>
+                            <div className="flex items-center gap-2">
+                              <span>{contact.phone || contact.originalPhone}</span>
+                              {contact.detectedCountry && (
+                                <span className="text-xs bg-muted px-1.5 py-0.5 rounded">
+                                  {COUNTRY_FLAGS[contact.detectedCountry] || contact.detectedCountry}
+                                </span>
+                              )}
+                            </div>
                             {contact.phone && contact.phone !== contact.originalPhone && (
                               <div className="text-xs text-muted-foreground">
                                 was: {contact.originalPhone}
