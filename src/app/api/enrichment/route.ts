@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 
 const PDL_API_KEY = process.env.PDL_API_KEY
-const PDL_IDENTIFY_URL = "https://api.peopledatalabs.com/v5/person/identify"
+const PDL_ENRICH_URL = "https://api.peopledatalabs.com/v5/person/enrich"
 
 // GCC Country Detection Patterns
 const GCC_PATTERNS = {
@@ -164,17 +164,18 @@ async function enrichContact(
   }
 
   try {
-    const response = await fetch(PDL_IDENTIFY_URL, {
-      method: "POST",
+    // Use GET with query parameters for Person Enrich API
+    const params = new URLSearchParams({
+      phone: phone,
+      name: name,
+      min_likelihood: "2",
+    })
+    
+    const response = await fetch(`${PDL_ENRICH_URL}?${params.toString()}`, {
+      method: "GET",
       headers: {
         "X-Api-Key": PDL_API_KEY!,
-        "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        phone,
-        name,
-        min_likelihood: 2,
-      }),
     })
 
     if (response.status === 429) {
@@ -221,29 +222,15 @@ async function enrichContact(
     }
 
     const data = await response.json()
-    const matches = data.matches || []
-
-    if (matches.length === 0) {
-      return {
-        name,
-        phone,
-        originalPhone,
-        email: null,
-        linkedinUrl: null,
-        jobTitle: null,
-        company: null,
-        confidence: null,
-        error: "No matches found",
-      }
-    }
-
-    const bestMatch = matches[0]
-    const personData = bestMatch.data || {}
-
+    
+    // Person Enrich API returns data directly (not in matches array)
     // Get email (prefer work, then personal)
-    let email = personData.work_email || null
-    if (!email && personData.personal_emails?.length > 0) {
-      email = personData.personal_emails[0]
+    let email = data.work_email || null
+    if (!email && data.personal_emails?.length > 0) {
+      email = data.personal_emails[0]
+    }
+    if (!email && data.emails?.length > 0) {
+      email = data.emails[0].address
     }
 
     return {
@@ -251,10 +238,10 @@ async function enrichContact(
       phone,
       originalPhone,
       email,
-      linkedinUrl: personData.linkedin_url || null,
-      jobTitle: personData.job_title || null,
-      company: personData.job_company_name || null,
-      confidence: bestMatch.match_score || null,
+      linkedinUrl: data.linkedin_url || null,
+      jobTitle: data.job_title || null,
+      company: data.job_company_name || null,
+      confidence: data.likelihood || null,
       error: null,
     }
   } catch (error) {
