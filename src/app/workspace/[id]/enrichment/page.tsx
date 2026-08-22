@@ -232,7 +232,7 @@ export default function EnrichmentPage() {
                   Name, Phone_Number
                 </code>
                 <p className="text-xs text-muted-foreground mt-2">
-                  Phone numbers will be automatically normalized (e.g., "050 123 4567" → "+971501234567")
+                  Phone numbers will be automatically normalized (e.g., 050 123 4567 → +971501234567)
                 </p>
               </div>
 
