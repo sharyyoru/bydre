@@ -145,6 +145,7 @@ export default function AdSimulationPage() {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [filterScore, setFilterScore] = useState<number | null>(null)
+  const [onlyWithKeywords, setOnlyWithKeywords] = useState(false)
 
   useEffect(() => {
     fetchLeads()
@@ -194,7 +195,10 @@ export default function AdSimulationPage() {
     
     const matchesScore = filterScore === null || lead.re_potential_score >= filterScore
     
-    return matchesSearch && matchesScore
+    // Check if lead has keywords (spend > 20k OR score >= 30)
+    const hasKeywords = !onlyWithKeywords || generateKeywords(lead).length > 0
+    
+    return matchesSearch && matchesScore && hasKeywords
   })
 
   async function exportLeads() {
@@ -279,9 +283,13 @@ export default function AdSimulationPage() {
           </div>
           
           <div className="flex items-center gap-3">
-            <Button variant="outline" onClick={exportLeads}>
+            <Button 
+              variant="outline" 
+              onClick={exportLeads}
+              disabled={filteredLeads.length === 0}
+            >
               <Download className="h-4 w-4 mr-2" />
-              Export Qualified
+              Export {filteredLeads.length} Leads
             </Button>
           </div>
         </div>
@@ -445,6 +453,16 @@ export default function AdSimulationPage() {
                   <option value="60">60+ (Warm)</option>
                   <option value="40">40+ (Cold)</option>
                 </select>
+                
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={onlyWithKeywords}
+                    onChange={(e) => setOnlyWithKeywords(e.target.checked)}
+                    className="rounded border-gray-300"
+                  />
+                  <span className="text-gray-700">With Search Terms</span>
+                </label>
               </div>
             </div>
           </CardHeader>
