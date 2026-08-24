@@ -9,7 +9,6 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { 
   ArrowLeft,
   Bitcoin,
@@ -144,7 +143,7 @@ export default function LandingPagesPage() {
         
         {/* Form */}
         <div className="p-6">
-          <h3 className="font-semibold mb-4">Get instant access:</h3>
+          <h3 className="font-semibold mb-4">Get instant access</h3>
           <form className="space-y-4">
             <div>
               <Label htmlFor="name">Full Name</Label>
@@ -216,7 +215,7 @@ export default function LandingPagesPage() {
             )}
             
             <div className="pt-2">
-              <h4 className="text-sm font-medium mb-2">I'm interested in:</h4>
+              <h4 className="text-sm font-medium mb-2">I&apos;m interested in:</h4>
               <div className="space-y-2">
                 {["Crypto custody", "Tax optimization", "Private banking", "Real estate"].map((interest) => (
                   <div key={interest} className="flex items-center gap-2">

@@ -5,8 +5,7 @@ import { useParams, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -19,8 +18,7 @@ import {
   User,
   Bot,
   Sparkles,
-  RefreshCw,
-  ChevronDown
+  RefreshCw
 } from "lucide-react"
 
 interface Message {
@@ -293,7 +291,7 @@ export default function ChatSimulationPage() {
                     className="w-full justify-start text-left h-auto py-2 px-3 text-xs text-gray-600 hover:text-gray-900"
                     onClick={() => startConversation(starter)}
                   >
-                    "{starter}"
+                    &ldquo;{starter}&rdquo;
                   </Button>
                 ))}
               </CardContent>

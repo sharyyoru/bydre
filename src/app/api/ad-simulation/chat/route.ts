@@ -13,7 +13,7 @@ interface ChatMessage {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { messages, systemPrompt, leadId } = body
+    const { messages, systemPrompt, leadId: _leadId } = body
 
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json(

@@ -10,15 +10,13 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Progress } from "@/components/ui/progress"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { 
   Users, 
   TrendingUp, 
   MessageSquare, 
-  Image, 
+  Image as ImageIcon, 
   FileText,
   Download,
-  Filter,
   Search,
   Star,
   DollarSign,
@@ -254,7 +252,7 @@ export default function AdSimulationPage() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="p-3 bg-purple-100 rounded-lg">
-                      <Image className="h-6 w-6 text-purple-600" />
+                      <ImageIcon className="h-6 w-6 text-purple-600" />
                     </div>
                     <div>
                       <h3 className="font-semibold">Ad Mockups</h3>
