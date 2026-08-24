@@ -9,12 +9,15 @@
  */
 
 import { createClient } from '@supabase/supabase-js'
-import * as XLSX from 'xlsx'
+import xlsx from 'xlsx'
 import * as path from 'path'
 import * as fs from 'fs'
+import { config } from 'dotenv'
+
+const { readFile, utils } = xlsx
 
 // Load environment variables
-require('dotenv').config({ path: '.env.local' })
+config({ path: '.env.local' })
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -61,11 +64,11 @@ function parseXlsx(filePath: string): ClinicPatient[] {
     throw new Error(`File not found: ${filePath}`)
   }
   
-  const workbook = XLSX.readFile(filePath)
+  const workbook = readFile(filePath)
   const sheetName = workbook.SheetNames[0]
   const worksheet = workbook.Sheets[sheetName]
   
-  const data = XLSX.utils.sheet_to_json<ClinicPatient>(worksheet)
+  const data = utils.sheet_to_json<ClinicPatient>(worksheet)
   
   console.log(`📊 Parsed ${data.length} patients from xlsx`)
   
