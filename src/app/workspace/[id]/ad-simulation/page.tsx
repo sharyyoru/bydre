@@ -199,19 +199,34 @@ export default function AdSimulationPage() {
   })
 
   async function exportLeads() {
-    const qualified = leads.filter(l => l.re_potential_score >= 70)
+    // Export all filtered leads (not just 70+ score)
+    const toExport = filteredLeads.length > 0 ? filteredLeads : leads
     
     const csv = [
-      ["Name", "Email", "Phone", "Total Spend (CHF)", "Wealth Score", "RE Potential Score", "Status"].join(","),
-      ...qualified.map(l => [
-        `"${l.name}"`,
-        l.email || "",
-        l.phone || "",
-        l.total_spend,
-        l.wealth_score,
-        l.re_potential_score,
-        l.status
-      ].join(","))
+      ["Name", "Email", "Phone", "Total Spend (CHF)", "Wealth Score", "RE Potential Score", "Status", "Keywords (Crypto)", "Keywords (Tax)", "Keywords (Wealth)", "Keywords (Property)", "All Keywords"].join(","),
+      ...toExport.map(l => {
+        const keywords = generateKeywords(l)
+        const cryptoKw = keywords.filter(k => k.category === "crypto").map(k => k.term).join("; ")
+        const taxKw = keywords.filter(k => k.category === "tax").map(k => k.term).join("; ")
+        const wealthKw = keywords.filter(k => k.category === "wealth").map(k => k.term).join("; ")
+        const propertyKw = keywords.filter(k => k.category === "property").map(k => k.term).join("; ")
+        const allKw = keywords.map(k => k.term).join("; ")
+        
+        return [
+          `"${l.name}"`,
+          l.email || "",
+          l.phone || "",
+          l.total_spend,
+          l.wealth_score,
+          l.re_potential_score,
+          l.status,
+          `"${cryptoKw}"`,
+          `"${taxKw}"`,
+          `"${wealthKw}"`,
+          `"${propertyKw}"`,
+          `"${allKw}"`
+        ].join(",")
+      })
     ].join("\n")
     
     const blob = new Blob([csv], { type: "text/csv" })
