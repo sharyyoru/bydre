@@ -23,8 +23,15 @@ import {
   Globe,
   ChevronRight,
   Sparkles,
-  Building2
+  Building2,
+  Tag
 } from "lucide-react"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 interface Lead {
   id: string
@@ -59,6 +66,74 @@ const STATUS_COLORS: Record<string, string> = {
   qualified: "bg-green-100 text-green-800",
   contacted: "bg-orange-100 text-orange-800",
   converted: "bg-emerald-100 text-emerald-800",
+}
+
+// Generate likely search keywords based on wealth profile
+function generateKeywords(lead: Lead): { term: string; category: "crypto" | "tax" | "wealth" | "property" }[] {
+  const keywords: { term: string; category: "crypto" | "tax" | "wealth" | "property" }[] = []
+  const spend = lead.total_spend
+  const score = lead.wealth_score
+  
+  // High spenders - likely interested in wealth preservation
+  if (spend > 50000) {
+    keywords.push({ term: "Swiss private banking", category: "wealth" })
+    keywords.push({ term: "wealth management Switzerland", category: "wealth" })
+    keywords.push({ term: "family office Zurich", category: "wealth" })
+  }
+  
+  if (spend > 30000) {
+    keywords.push({ term: "forfait fiscal Switzerland", category: "tax" })
+    keywords.push({ term: "Swiss tax residency", category: "tax" })
+    keywords.push({ term: "lump sum taxation", category: "tax" })
+  }
+  
+  if (spend > 20000) {
+    keywords.push({ term: "crypto custody Switzerland", category: "crypto" })
+    keywords.push({ term: "Zug crypto valley", category: "crypto" })
+    keywords.push({ term: "Swiss bank account foreigner", category: "wealth" })
+  }
+  
+  // Based on score tiers
+  if (score >= 70) {
+    keywords.push({ term: "buy property Switzerland", category: "property" })
+    keywords.push({ term: "Swiss real estate investment", category: "property" })
+    keywords.push({ term: "Geneva luxury apartments", category: "property" })
+    keywords.push({ term: "Lex Koller permit", category: "property" })
+  } else if (score >= 50) {
+    keywords.push({ term: "relocate to Switzerland", category: "tax" })
+    keywords.push({ term: "Swiss B permit", category: "tax" })
+    keywords.push({ term: "invest in Switzerland", category: "wealth" })
+  } else if (score >= 30) {
+    keywords.push({ term: "Swiss investment opportunities", category: "wealth" })
+    keywords.push({ term: "offshore banking", category: "wealth" })
+    keywords.push({ term: "tax optimization Europe", category: "tax" })
+  }
+  
+  // International indicators from phone/email
+  if (lead.phone?.startsWith("+33")) {
+    keywords.push({ term: "immobilier Suisse français", category: "property" })
+  }
+  if (lead.phone?.startsWith("+7") || lead.phone?.startsWith("+971")) {
+    keywords.push({ term: "Swiss golden visa", category: "tax" })
+    keywords.push({ term: "Dubai to Switzerland relocation", category: "tax" })
+  }
+  if (lead.email?.includes(".ru") || lead.phone?.startsWith("+7")) {
+    keywords.push({ term: "Switzerland residency CIS", category: "tax" })
+  }
+  
+  // Dedupe and limit
+  const unique = keywords.filter((k, i, arr) => 
+    arr.findIndex(x => x.term === k.term) === i
+  )
+  
+  return unique.slice(0, 6)
+}
+
+const KEYWORD_COLORS = {
+  crypto: "bg-blue-50 text-blue-700 border-blue-200",
+  tax: "bg-green-50 text-green-700 border-green-200",
+  wealth: "bg-amber-50 text-amber-700 border-amber-200",
+  property: "bg-purple-50 text-purple-700 border-purple-200",
 }
 
 export default function AdSimulationPage() {
@@ -360,6 +435,7 @@ export default function AdSimulationPage() {
                     <TableHead className="text-right">Total Spend</TableHead>
                     <TableHead className="text-center">Wealth Score</TableHead>
                     <TableHead className="text-center">RE Potential</TableHead>
+                    <TableHead>Likely Search Terms</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead></TableHead>
                   </TableRow>
@@ -399,6 +475,41 @@ export default function AdSimulationPage() {
                             {lead.re_potential_score}
                           </span>
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        <TooltipProvider>
+                          <div className="flex flex-wrap gap-1 max-w-[280px]">
+                            {generateKeywords(lead).slice(0, 3).map((kw, i) => (
+                              <Tooltip key={i}>
+                                <TooltipTrigger asChild>
+                                  <span className={`text-[10px] px-1.5 py-0.5 rounded border cursor-help ${KEYWORD_COLORS[kw.category]}`}>
+                                    {kw.term.length > 20 ? kw.term.slice(0, 18) + "..." : kw.term}
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="text-xs">{kw.term}</p>
+                                  <p className="text-[10px] text-gray-400 capitalize">{kw.category} interest</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            ))}
+                            {generateKeywords(lead).length > 3 && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded border bg-gray-50 text-gray-600 border-gray-200 cursor-help">
+                                    +{generateKeywords(lead).length - 3} more
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <div className="space-y-1">
+                                    {generateKeywords(lead).slice(3).map((kw, i) => (
+                                      <p key={i} className="text-xs">{kw.term}</p>
+                                    ))}
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+                          </div>
+                        </TooltipProvider>
                       </TableCell>
                       <TableCell>
                         <Badge className={STATUS_COLORS[lead.status] || "bg-gray-100"}>
