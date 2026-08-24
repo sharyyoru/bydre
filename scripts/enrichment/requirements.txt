@@ -1,5 +1,18 @@
+# Core dependencies
 pandas>=2.0.0
 requests>=2.31.0
 python-dotenv>=1.0.0
 tenacity>=8.2.0
 phonenumbers>=8.13.0
+
+# Web scraping
+playwright>=1.40.0
+beautifulsoup4>=4.12.0
+lxml>=5.0.0
+
+# Text matching
+fuzzywuzzy>=0.18.0
+python-Levenshtein>=0.23.0
+
+# Progress bar
+tqdm>=4.66.0
