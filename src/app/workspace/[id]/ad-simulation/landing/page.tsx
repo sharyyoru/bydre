@@ -130,7 +130,7 @@ export default function LandingPagesPage() {
         
         {/* Benefits */}
         <div className="p-6 border-b">
-          <h3 className="font-semibold mb-3">What you'll get:</h3>
+          <h3 className="font-semibold mb-3">What you&apos;ll get:</h3>
           <ul className="space-y-2">
             {template.benefits.map((benefit, i) => (
               <li key={i} className="flex items-start gap-2 text-sm">
