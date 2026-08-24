@@ -23,8 +23,7 @@ import {
   Globe,
   ChevronRight,
   Sparkles,
-  Building2,
-  Tag
+  Building2
 } from "lucide-react"
 import {
   Tooltip,
