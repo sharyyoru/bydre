@@ -202,7 +202,7 @@ export default function AdSimulationPage() {
     const toExport = filteredLeads.length > 0 ? filteredLeads : leads
     
     const csv = [
-      ["Name", "Email", "Phone", "Total Spend (CHF)", "Wealth Score", "RE Potential Score", "Status", "Keywords (Crypto)", "Keywords (Tax)", "Keywords (Wealth)", "Keywords (Property)", "All Keywords"].join(","),
+      ["Name", "Email", "Phone", "Total Spend (CHF)", "Wealth Score", "RE Potential Score", "Status", "Keywords (Crypto)", "Keywords (Tax)", "Keywords (Wealth)", "Keywords (Property)", "All Keywords", "ChatGPT Prompt", "Google Ads Keywords", "Meta Audience Interests"].join(","),
       ...toExport.map(l => {
         const keywords = generateKeywords(l)
         const cryptoKw = keywords.filter(k => k.category === "crypto").map(k => k.term).join("; ")
@@ -210,6 +210,23 @@ export default function AdSimulationPage() {
         const wealthKw = keywords.filter(k => k.category === "wealth").map(k => k.term).join("; ")
         const propertyKw = keywords.filter(k => k.category === "property").map(k => k.term).join("; ")
         const allKw = keywords.map(k => k.term).join("; ")
+        
+        // ChatGPT-ready prompt for ad copy generation
+        const wealthTier = l.wealth_score >= 70 ? "ultra-high-net-worth" : l.wealth_score >= 50 ? "high-net-worth" : "affluent"
+        const interests = keywords.map(k => k.term).slice(0, 4).join(", ")
+        const chatGptPrompt = `Create a personalized Swiss investment ad for a ${wealthTier} individual interested in: ${interests}. Total spend: CHF ${l.total_spend.toLocaleString()}. Focus on wealth preservation and subtle real estate positioning.`
+        
+        // Google Ads keyword format (phrase match)
+        const googleAdsKw = keywords.map(k => `"${k.term}"`).join(", ")
+        
+        // Meta/Facebook audience interests format
+        const metaInterests = [
+          ...keywords.filter(k => k.category === "wealth").map(() => "Wealth management"),
+          ...keywords.filter(k => k.category === "crypto").map(() => "Cryptocurrency"),
+          ...keywords.filter(k => k.category === "tax").map(() => "Tax planning"),
+          ...keywords.filter(k => k.category === "property").map(() => "Luxury real estate"),
+          "Private banking", "Investment", "Switzerland"
+        ].filter((v, i, a) => a.indexOf(v) === i).join("; ")
         
         return [
           `"${l.name}"`,
@@ -223,7 +240,10 @@ export default function AdSimulationPage() {
           `"${taxKw}"`,
           `"${wealthKw}"`,
           `"${propertyKw}"`,
-          `"${allKw}"`
+          `"${allKw}"`,
+          `"${chatGptPrompt.replace(/"/g, '""')}"`,
+          `"${googleAdsKw}"`,
+          `"${metaInterests}"`
         ].join(",")
       })
     ].join("\n")
