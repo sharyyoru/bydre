@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { useDropzone } from "react-dropzone"
 import {
   Upload,
@@ -15,6 +15,9 @@ import {
   Linkedin,
   Building2,
   Briefcase,
+  ShieldCheck,
+  ShieldX,
+  Database,
 } from "lucide-react"
 import { AppShell } from "@/components/app-shell"
 import { Button } from "@/components/ui/button"
@@ -29,6 +32,9 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from "@/components/ui/label"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 interface EnrichedContact {
   name: string
@@ -41,6 +47,23 @@ interface EnrichedContact {
   confidence: number | null
   error: string | null
   detectedCountry?: string
+  // Multi-provider fields
+  source?: string
+  providersTried?: string[]
+  isVerified?: boolean
+  verificationStatus?: string
+  isDeliverable?: boolean
+}
+
+interface ProviderConfig {
+  configured: boolean
+  name: string
+  description: string
+}
+
+interface ProvidersInfo {
+  providers: Record<string, ProviderConfig>
+  canVerify: boolean
 }
 
 const COUNTRY_FLAGS: Record<string, string> = {
@@ -58,11 +81,27 @@ interface EnrichmentResult {
   stats: {
     total: number
     enriched: number
+    verified?: number
     failed: number
     noMatch: number
+    undeliverable?: number
     successRate: string
+    byProvider?: Record<string, number>
   }
+  configuredProviders?: Record<string, boolean>
   results: EnrichedContact[]
+}
+
+const PROVIDER_COLORS: Record<string, string> = {
+  pdl: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300",
+  apollo: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
+  hunter: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300",
+}
+
+const PROVIDER_NAMES: Record<string, string> = {
+  pdl: "PDL",
+  apollo: "Apollo",
+  hunter: "Hunter",
 }
 
 export default function EnrichmentPage() {
@@ -70,6 +109,24 @@ export default function EnrichmentPage() {
   const [processing, setProcessing] = useState(false)
   const [result, setResult] = useState<EnrichmentResult | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [providersInfo, setProvidersInfo] = useState<ProvidersInfo | null>(null)
+  const [enabledProviders, setEnabledProviders] = useState<string[]>(["pdl", "apollo", "hunter"])
+  const [verifyEmails, setVerifyEmails] = useState(true)
+
+  useEffect(() => {
+    // Fetch available providers on mount
+    fetch("/api/enrichment")
+      .then((res) => res.json())
+      .then((data) => {
+        setProvidersInfo(data)
+        // Only enable configured providers by default
+        const configured = Object.entries(data.providers)
+          .filter(([, config]) => (config as ProviderConfig).configured)
+          .map(([key]) => key)
+        setEnabledProviders(configured)
+      })
+      .catch(() => {})
+  }, [])
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const csvFile = acceptedFiles[0]
@@ -99,6 +156,8 @@ export default function EnrichmentPage() {
     try {
       const formData = new FormData()
       formData.append("file", file)
+      formData.append("providers", enabledProviders.join(","))
+      formData.append("verifyEmails", verifyEmails.toString())
 
       const response = await fetch("/api/enrichment", {
         method: "POST",
@@ -122,17 +181,21 @@ export default function EnrichmentPage() {
   const handleDownload = () => {
     if (!result) return
 
-    // Create CSV content
+    // Create CSV content with new fields
     const headers = [
       "Name",
       "Original_Phone",
       "Normalized_Phone",
       "Country",
       "Email",
+      "Email_Source",
       "LinkedIn_URL",
       "Job_Title",
       "Company",
       "Confidence",
+      "Verified",
+      "Verification_Status",
+      "Deliverable",
       "Status",
     ]
 
@@ -142,10 +205,14 @@ export default function EnrichmentPage() {
       r.phone,
       r.detectedCountry || "",
       r.email || "",
+      r.source || "",
       r.linkedinUrl || "",
       r.jobTitle || "",
       r.company || "",
       r.confidence?.toFixed(2) || "",
+      r.isVerified ? "Yes" : "No",
+      r.verificationStatus || "",
+      r.isDeliverable ? "Yes" : "No",
       r.error || "Enriched",
     ])
 
@@ -240,14 +307,79 @@ export default function EnrichmentPage() {
 
               {/* CSV Format Help */}
               <div className="rounded-lg bg-muted/50 p-4">
-                <p className="text-sm font-medium mb-2">Required CSV Format:</p>
+                <p className="text-sm font-medium mb-2">CSV Format:</p>
                 <code className="text-xs bg-background px-2 py-1 rounded">
-                  Name, Phone_Number
+                  Name, Phone_Number, Company (optional), Domain (optional)
                 </code>
                 <p className="text-xs text-muted-foreground mt-2">
-                  Phone numbers will be automatically normalized (e.g., 050 123 4567 → +971501234567)
+                  Add <strong>Company</strong> or <strong>Domain</strong> columns for better match rates with Apollo/Hunter
                 </p>
               </div>
+
+              {/* Provider Selection */}
+              {providersInfo && (
+                <div className="rounded-lg border p-4 space-y-3">
+                  <p className="text-sm font-medium flex items-center gap-2">
+                    <Database className="h-4 w-4" />
+                    Enrichment Providers
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    {Object.entries(providersInfo.providers).map(([key, config]) => (
+                      <div
+                        key={key}
+                        className={`flex items-start gap-2 p-2 rounded-lg border ${
+                          config.configured ? "" : "opacity-50"
+                        }`}
+                      >
+                        <Checkbox
+                          id={`provider-${key}`}
+                          checked={enabledProviders.includes(key)}
+                          disabled={!config.configured}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setEnabledProviders([...enabledProviders, key])
+                            } else {
+                              setEnabledProviders(enabledProviders.filter((p) => p !== key))
+                            }
+                          }}
+                        />
+                        <div className="flex-1">
+                          <Label
+                            htmlFor={`provider-${key}`}
+                            className="text-sm font-medium cursor-pointer"
+                          >
+                            {config.name}
+                            {!config.configured && (
+                              <Badge variant="outline" className="ml-2 text-xs">
+                                Not configured
+                              </Badge>
+                            )}
+                          </Label>
+                          <p className="text-xs text-muted-foreground">
+                            {config.description}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {/* Email Verification Toggle */}
+                  <div className="flex items-center gap-2 pt-2 border-t">
+                    <Checkbox
+                      id="verify-emails"
+                      checked={verifyEmails}
+                      disabled={!providersInfo.canVerify}
+                      onCheckedChange={(checked) => setVerifyEmails(!!checked)}
+                    />
+                    <Label htmlFor="verify-emails" className="text-sm cursor-pointer">
+                      Verify email deliverability
+                      {!providersInfo.canVerify && (
+                        <span className="text-muted-foreground ml-1">(requires Hunter API key)</span>
+                      )}
+                    </Label>
+                  </div>
+                </div>
+              )}
 
               {/* Error */}
               {error && (
@@ -281,7 +413,7 @@ export default function EnrichmentPage() {
                 <div className="space-y-2">
                   <Progress value={undefined} className="animate-pulse" />
                   <p className="text-sm text-center text-muted-foreground">
-                    Processing contacts via People Data Labs API...
+                    Processing contacts via {enabledProviders.map(p => PROVIDER_NAMES[p] || p).join(", ")}...
                   </p>
                 </div>
               )}
@@ -293,7 +425,7 @@ export default function EnrichmentPage() {
         {result && (
           <>
             {/* Stats Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
               <Card>
                 <CardContent className="pt-6">
                   <div className="flex items-center gap-2">
@@ -317,6 +449,17 @@ export default function EnrichmentPage() {
               <Card>
                 <CardContent className="pt-6">
                   <div className="flex items-center gap-2">
+                    <ShieldCheck className="h-5 w-5 text-emerald-500" />
+                    <span className="text-sm text-muted-foreground">Verified</span>
+                  </div>
+                  <p className="text-2xl font-bold mt-1 text-emerald-600">
+                    {result.stats.verified || 0}
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-2">
                     <AlertCircle className="h-5 w-5 text-yellow-500" />
                     <span className="text-sm text-muted-foreground">No Match</span>
                   </div>
@@ -332,7 +475,7 @@ export default function EnrichmentPage() {
                     <span className="text-sm text-muted-foreground">Failed</span>
                   </div>
                   <p className="text-2xl font-bold mt-1 text-red-600">
-                    {result.stats.failed}
+                    {result.stats.failed + (result.stats.undeliverable || 0)}
                   </p>
                 </CardContent>
               </Card>
@@ -346,6 +489,25 @@ export default function EnrichmentPage() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Provider Breakdown */}
+            {result.stats.byProvider && Object.keys(result.stats.byProvider).length > 0 && (
+              <Card>
+                <CardContent className="pt-6">
+                  <p className="text-sm font-medium mb-3">Emails Found By Provider</p>
+                  <div className="flex gap-4">
+                    {Object.entries(result.stats.byProvider).map(([provider, count]) => (
+                      <div key={provider} className="flex items-center gap-2">
+                        <Badge className={PROVIDER_COLORS[provider] || "bg-gray-100"}>
+                          {PROVIDER_NAMES[provider] || provider}
+                        </Badge>
+                        <span className="font-semibold">{count}</span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Results Table */}
             <Card>
@@ -389,13 +551,41 @@ export default function EnrichmentPage() {
                           </TableCell>
                           <TableCell>
                             {contact.email ? (
-                              <a
-                                href={`mailto:${contact.email}`}
-                                className="flex items-center gap-1 text-primary hover:underline"
-                              >
-                                <Mail className="h-3 w-3" />
-                                {contact.email}
-                              </a>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <div className="flex items-center gap-1">
+                                      <a
+                                        href={`mailto:${contact.email}`}
+                                        className="text-primary hover:underline flex items-center gap-1"
+                                      >
+                                        <Mail className="h-3 w-3" />
+                                        {contact.email}
+                                      </a>
+                                      {contact.isVerified && (
+                                        contact.isDeliverable ? (
+                                          <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
+                                        ) : (
+                                          <ShieldX className="h-3.5 w-3.5 text-red-500" />
+                                        )
+                                      )}
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <div className="text-xs space-y-1">
+                                      {contact.source && (
+                                        <p>Source: <strong>{PROVIDER_NAMES[contact.source] || contact.source}</strong></p>
+                                      )}
+                                      {contact.isVerified && (
+                                        <p>Status: <strong>{contact.verificationStatus}</strong></p>
+                                      )}
+                                      {contact.confidence && (
+                                        <p>Confidence: <strong>{(contact.confidence * 100).toFixed(0)}%</strong></p>
+                                      )}
+                                    </div>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             ) : (
                               <span className="text-muted-foreground">-</span>
                             )}
@@ -436,21 +626,30 @@ export default function EnrichmentPage() {
                             )}
                           </TableCell>
                           <TableCell>
-                            {contact.error ? (
-                              <Badge
-                                variant={
-                                  contact.error === "No match found"
-                                    ? "secondary"
-                                    : "destructive"
-                                }
-                              >
-                                {contact.error}
-                              </Badge>
-                            ) : (
-                              <Badge variant="default" className="bg-green-600">
-                                Enriched
-                              </Badge>
-                            )}
+                            <div className="flex items-center gap-1">
+                              {contact.error ? (
+                                <Badge
+                                  variant={
+                                    contact.error === "No match found"
+                                      ? "secondary"
+                                      : "destructive"
+                                  }
+                                >
+                                  {contact.error}
+                                </Badge>
+                              ) : (
+                                <>
+                                  <Badge variant="default" className="bg-green-600">
+                                    Enriched
+                                  </Badge>
+                                  {contact.source && (
+                                    <Badge className={`text-xs ${PROVIDER_COLORS[contact.source] || "bg-gray-100"}`}>
+                                      {PROVIDER_NAMES[contact.source] || contact.source}
+                                    </Badge>
+                                  )}
+                                </>
+                              )}
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
