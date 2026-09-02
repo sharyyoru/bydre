@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { fetchGenieMapProjects, GenieMapProjectInput } from "@/lib/social-monitor/geniemap"
+import { createAdminClient } from "@/lib/supabase/admin"
 
 export interface CryptoProperty {
   id: number
@@ -115,8 +116,23 @@ export async function GET(req: NextRequest) {
       return filterAndReturn(propertiesCache.data, { type, minPriceBtc, maxPriceBtc, location, beds, limit, offset, propertyId })
     }
 
-    // Get workspace ID (use first workspace or default)
-    const workspaceId = process.env.DEFAULT_WORKSPACE_ID || "drehomes"
+    // Get workspace ID by resolving slug to UUID
+    const admin = createAdminClient()
+    const { data: workspace } = await admin
+      .from("workspaces")
+      .select("id")
+      .eq("slug", "drehomes")
+      .single()
+
+    const workspaceId = workspace?.id
+    if (!workspaceId) {
+      console.error("Workspace 'drehomes' not found")
+      return NextResponse.json({ 
+        error: "Workspace not found",
+        properties: [],
+        total: 0
+      })
+    }
 
     // Fetch from GenieMap
     const projects = await fetchGenieMapProjects({ workspaceId })
