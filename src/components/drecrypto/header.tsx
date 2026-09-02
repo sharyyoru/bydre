@@ -3,9 +3,10 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { Menu, X, Bitcoin } from "lucide-react"
+import { Menu, X, Bitcoin, DollarSign } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useCryptoPrices } from "./crypto-price-context"
+import { useCurrency } from "./currency-context"
 
 const NAV_LINKS = [
   { label: "Buy", href: "/drecrypto/buy" },
@@ -19,6 +20,7 @@ export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const { prices, loading } = useCryptoPrices()
+  const { currency, setCurrency, getCurrencyColor } = useCurrency()
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50)
@@ -56,10 +58,33 @@ export function Header() {
                 </span>
               </div>
             </div>
-            <div className="flex items-center gap-2 text-white/50">
-              <span className="hidden sm:inline">🔴 Live Prices</span>
-              <span>|</span>
-              <span>Crypto-friendly</span>
+            <div className="flex items-center gap-3">
+              {/* Currency Toggle */}
+              <div className="flex items-center bg-white/10 rounded-full p-0.5">
+                <button
+                  onClick={() => setCurrency("BTC")}
+                  className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-all ${
+                    currency === "BTC"
+                      ? "bg-[#F7931A] text-white"
+                      : "text-white/60 hover:text-white"
+                  }`}
+                >
+                  <Bitcoin className="h-3 w-3" />
+                  BTC
+                </button>
+                <button
+                  onClick={() => setCurrency("USDT")}
+                  className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-all ${
+                    currency === "USDT"
+                      ? "bg-[#26A17B] text-white"
+                      : "text-white/60 hover:text-white"
+                  }`}
+                >
+                  <DollarSign className="h-3 w-3" />
+                  USDT
+                </button>
+              </div>
+              <span className="text-white/50 hidden sm:inline">🔴 Live</span>
             </div>
           </div>
         </div>

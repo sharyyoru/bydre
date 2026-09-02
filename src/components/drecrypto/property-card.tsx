@@ -2,8 +2,9 @@
 
 import Link from "next/link"
 import Image from "next/image"
-import { MapPin, Bed, Maximize, Bitcoin, Calendar } from "lucide-react"
+import { MapPin, Bed, Maximize, Bitcoin, Calendar, DollarSign } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import { useCurrency } from "./currency-context"
 
 interface PropertyCardProps {
   property: {
@@ -25,18 +26,14 @@ interface PropertyCardProps {
 }
 
 export function PropertyCard({ property, showContact }: PropertyCardProps) {
-  const formatPrice = (price: number) => new Intl.NumberFormat("en-AE").format(price)
-  
-  const formatBtc = (btc: number) => {
-    if (btc < 1) return `${(btc * 1000).toFixed(1)} mBTC`
-    return `${btc.toFixed(2)} BTC`
-  }
+  const { currency, formatPrice: formatCryptoPrice, getCurrencyColor } = useCurrency()
+  const formatAed = (price: number) => new Intl.NumberFormat("en-AE").format(price)
 
   return (
     <Link href={`/drecrypto/property/${property.id}`}>
-      <div className="group bg-white/5 border border-white/10 hover:border-[#C9A962]/50 transition-all duration-300 overflow-hidden">
+      <div className="group bg-white/5 border border-white/10 hover:border-[#C9A962]/50 transition-all duration-300 overflow-hidden rounded-lg">
         {/* Image */}
-        <div className="relative h-48 overflow-hidden">
+        <div className="relative h-52 overflow-hidden">
           <Image
             src={property.images[0] || "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&q=80"}
             alt={property.name}
@@ -44,14 +41,14 @@ export function PropertyCard({ property, showContact }: PropertyCardProps) {
             className="object-cover group-hover:scale-105 transition-transform duration-500"
           />
           
-          {/* Square Logo Badge */}
-          <div className="absolute top-3 right-3">
+          {/* Watermark Logo */}
+          <div className="absolute bottom-3 right-3">
             <Image
               src="/square.png"
               alt="DreCrypto"
-              width={32}
-              height={32}
-              className="rounded-sm opacity-80"
+              width={40}
+              height={40}
+              className="rounded-sm opacity-60"
             />
           </div>
 
@@ -62,18 +59,24 @@ export function PropertyCard({ property, showContact }: PropertyCardProps) {
                 property.type === "off-plan" 
                   ? "bg-purple-600/90 text-white" 
                   : "bg-green-600/90 text-white"
-              } text-xs`}
+              } text-xs px-2 py-1`}
             >
               {property.type === "off-plan" ? "Off-Plan" : "Ready"}
             </Badge>
           </div>
 
-          {/* BTC Price Overlay */}
-          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
-            <div className="flex items-center gap-2">
-              <Bitcoin className="h-4 w-4 text-[#F7931A]" />
-              <span className="text-white font-bold">{formatBtc(property.priceBtc)}</span>
-              <span className="text-white/60 text-sm">≈ {formatPrice(property.priceUsdt)} USDT</span>
+          {/* Crypto Price Overlay */}
+          <div className="absolute top-3 right-3">
+            <div 
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-white text-sm font-bold"
+              style={{ backgroundColor: getCurrencyColor() }}
+            >
+              {currency === "BTC" ? (
+                <Bitcoin className="h-4 w-4" />
+              ) : (
+                <DollarSign className="h-4 w-4" />
+              )}
+              {formatCryptoPrice(property.priceBtc, property.priceUsdt)}
             </div>
           </div>
         </div>
@@ -118,7 +121,7 @@ export function PropertyCard({ property, showContact }: PropertyCardProps) {
           <div className="pt-3 border-t border-white/10">
             <p className="text-white/40 text-xs">Starting from</p>
             <p className="text-white text-lg font-light">
-              AED {formatPrice(property.priceAed)}
+              AED {formatAed(property.priceAed)}
             </p>
           </div>
 

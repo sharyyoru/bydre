@@ -31,7 +31,9 @@ interface CachEntry {
 }
 
 let propertiesCache: CachEntry | null = null
-const CACHE_DURATION = 300000 // 5 minutes
+const CACHE_DURATION = 600000 // 10 minutes
+const STALE_DURATION = 1800000 // 30 minutes (serve stale while refreshing)
+let isRefreshing = false
 
 async function getCryptoPrices(): Promise<{ btc: number; eth: number; usdt: number }> {
   try {
@@ -98,6 +100,40 @@ function transformToProperty(project: GenieMapProjectInput, prices: { btc: numbe
   }
 }
 
+async function refreshCache(): Promise<CryptoProperty[]> {
+  try {
+    const admin = createAdminClient()
+    const { data: workspace } = await admin
+      .from("workspaces")
+      .select("id")
+      .eq("slug", "drehomes")
+      .single()
+
+    const workspaceId = workspace?.id
+    if (!workspaceId) {
+      console.error("Workspace 'drehomes' not found")
+      return []
+    }
+
+    const projects = await fetchGenieMapProjects({ workspaceId })
+    const prices = await getCryptoPrices()
+
+    const properties = projects
+      .map(p => transformToProperty(p, prices))
+      .filter((p): p is CryptoProperty => p !== null)
+      .sort((a, b) => b.priceAed - a.priceAed)
+
+    // Update cache
+    propertiesCache = { data: properties, timestamp: Date.now() }
+    console.log(`Cache refreshed with ${properties.length} properties`)
+    
+    return properties
+  } catch (error) {
+    console.error("Error refreshing cache:", error)
+    return []
+  }
+}
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url)
@@ -110,44 +146,41 @@ export async function GET(req: NextRequest) {
     const offset = parseInt(searchParams.get("offset") || "0")
     const propertyId = searchParams.get("id")
 
-    // Check cache
+    // Check cache - stale-while-revalidate pattern
     const now = Date.now()
-    if (propertiesCache && (now - propertiesCache.timestamp) < CACHE_DURATION) {
-      return filterAndReturn(propertiesCache.data, { type, minPriceBtc, maxPriceBtc, location, beds, limit, offset, propertyId })
+    const cacheAge = propertiesCache ? now - propertiesCache.timestamp : Infinity
+    
+    // Fresh cache - return immediately
+    if (propertiesCache && cacheAge < CACHE_DURATION) {
+      const response = filterAndReturn(propertiesCache.data, { type, minPriceBtc, maxPriceBtc, location, beds, limit, offset, propertyId })
+      response.headers.set("X-Cache-Status", "HIT")
+      return response
+    }
+    
+    // Stale cache - return stale and refresh in background
+    if (propertiesCache && cacheAge < STALE_DURATION && !isRefreshing) {
+      // Trigger background refresh
+      isRefreshing = true
+      refreshCache().finally(() => { isRefreshing = false })
+      
+      const response = filterAndReturn(propertiesCache.data, { type, minPriceBtc, maxPriceBtc, location, beds, limit, offset, propertyId })
+      response.headers.set("X-Cache-Status", "STALE")
+      return response
+    }
+    
+    // No cache or very stale - fetch fresh
+    const properties = await refreshCache()
+    
+    if (properties.length === 0 && propertiesCache) {
+      // GenieMap failed but we have old cache - use it
+      const response = filterAndReturn(propertiesCache.data, { type, minPriceBtc, maxPriceBtc, location, beds, limit, offset, propertyId })
+      response.headers.set("X-Cache-Status", "FALLBACK")
+      return response
     }
 
-    // Get workspace ID by resolving slug to UUID
-    const admin = createAdminClient()
-    const { data: workspace } = await admin
-      .from("workspaces")
-      .select("id")
-      .eq("slug", "drehomes")
-      .single()
-
-    const workspaceId = workspace?.id
-    if (!workspaceId) {
-      console.error("Workspace 'drehomes' not found")
-      return NextResponse.json({ 
-        error: "Workspace not found",
-        properties: [],
-        total: 0
-      })
-    }
-
-    // Fetch from GenieMap
-    const projects = await fetchGenieMapProjects({ workspaceId })
-    const prices = await getCryptoPrices()
-
-    // Transform all projects
-    const properties = projects
-      .map(p => transformToProperty(p, prices))
-      .filter((p): p is CryptoProperty => p !== null)
-      .sort((a, b) => b.priceAed - a.priceAed)
-
-    // Update cache
-    propertiesCache = { data: properties, timestamp: now }
-
-    return filterAndReturn(properties, { type, minPriceBtc, maxPriceBtc, location, beds, limit, offset, propertyId })
+    const response = filterAndReturn(properties, { type, minPriceBtc, maxPriceBtc, location, beds, limit, offset, propertyId })
+    response.headers.set("X-Cache-Status", "MISS")
+    return response
   } catch (error) {
     console.error("Error fetching properties:", error)
     return NextResponse.json({ 
