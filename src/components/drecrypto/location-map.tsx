@@ -30,9 +30,6 @@ export function LocationMap({ latitude, longitude, location, propertyName }: Loc
     { name: "Dubai Airport", type: "Airport", distance: "20 min", icon: Plane },
   ]
 
-  // Google Maps embed URL
-  const mapUrl = `https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${lat},${lng}&zoom=15&maptype=roadmap`
-
   return (
     <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
       {/* Map Header */}

@@ -2,7 +2,7 @@
 
 import { useMemo } from "react"
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts"
-import { TrendingUp, TrendingDown, DollarSign, Bitcoin } from "lucide-react"
+import { TrendingUp, TrendingDown, DollarSign } from "lucide-react"
 
 interface PriceChartProps {
   priceAed: number
