@@ -60,7 +60,7 @@ export default function PropertyPage({ params }: PropertyPageProps) {
         const data = await res.json()
         if (data.property) {
           setProperty(data.property)
-          fetchSimilar(data.property.location)
+          fetchSimilar()
         }
       }
     } catch (error) {
@@ -70,7 +70,7 @@ export default function PropertyPage({ params }: PropertyPageProps) {
     }
   }
 
-  async function fetchSimilar(_location: string) {
+  async function fetchSimilar() {
     try {
       const res = await fetch(`/api/drecrypto/properties?limit=4`)
       if (res.ok) {

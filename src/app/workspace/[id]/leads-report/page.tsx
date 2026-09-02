@@ -78,8 +78,7 @@ const QUICK_QUERIES = [
 ]
 
 export default function LeadsReportPage() {
-  const params = useParams()
-  const _workspaceId = params.id as string
+  useParams() // workspace context
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const [files, setFiles] = useState<ExcelFile[]>([])
@@ -201,7 +200,7 @@ export default function LeadsReportPage() {
       }
       
       setMessages(prev => [...prev, assistantMessage])
-    } catch (_error) {
+    } catch {
       const errorMessage: Message = {
         id: `error-${Date.now()}`,
         role: "assistant",
