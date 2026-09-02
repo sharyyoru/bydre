@@ -1,5 +1,4 @@
 export { CryptoPriceProvider, useCryptoPrices } from "./crypto-price-context"
-export { WalletProvider } from "./wallet-provider"
 export { Header } from "./header"
 export { Footer } from "./footer"
 export { HeroSection } from "./hero-section"

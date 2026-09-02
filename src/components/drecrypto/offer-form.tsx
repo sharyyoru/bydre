@@ -1,8 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import { useAccount } from "wagmi"
-import { ConnectButton } from "@rainbow-me/rainbowkit"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -17,7 +15,6 @@ interface OfferFormProps {
 }
 
 export function OfferForm({ propertyId, propertyName, priceAed }: OfferFormProps) {
-  const { address, isConnected } = useAccount()
   const { convertToCrypto, formatCrypto } = useCryptoPrices()
   
   const [formData, setFormData] = useState({
@@ -26,6 +23,7 @@ export function OfferForm({ propertyId, propertyName, priceAed }: OfferFormProps
     phone: "",
     cryptoType: "BTC",
     offerAmount: priceAed.toString(),
+    walletAddress: "",
     message: ""
   })
   const [submitting, setSubmitting] = useState(false)
@@ -50,7 +48,7 @@ export function OfferForm({ propertyId, propertyName, priceAed }: OfferFormProps
           offerAmountAed: parseFloat(formData.offerAmount),
           offerAmountCrypto: offerCrypto,
           cryptoType: formData.cryptoType,
-          walletAddress: isConnected ? address : null,
+          walletAddress: formData.walletAddress || null,
           message: formData.message
         })
       })
@@ -166,42 +164,20 @@ export function OfferForm({ propertyId, propertyName, priceAed }: OfferFormProps
           </p>
         </div>
 
-        {/* Wallet Connection */}
-        <div className="border border-white/10 p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Wallet className="h-4 w-4 text-white/60" />
-              <span className="text-white/80 text-sm">Verify Wallet (Optional)</span>
-            </div>
-            {isConnected && (
-              <span className="text-green-500 text-xs flex items-center gap-1">
-                <CheckCircle className="h-3 w-3" />
-                Verified
-              </span>
-            )}
-          </div>
-          
-          {isConnected ? (
-            <div className="bg-green-500/10 border border-green-500/30 p-3 rounded">
-              <p className="text-green-400 text-sm font-mono truncate">{address}</p>
-            </div>
-          ) : (
-            <ConnectButton.Custom>
-              {({ openConnectModal }) => (
-                <Button
-                  type="button"
-                  onClick={openConnectModal}
-                  variant="outline"
-                  className="w-full border-[#C9A962]/50 text-[#C9A962] hover:bg-[#C9A962]/10"
-                >
-                  <Wallet className="h-4 w-4 mr-2" />
-                  Connect Wallet
-                </Button>
-              )}
-            </ConnectButton.Custom>
-          )}
-          <p className="text-white/40 text-xs">
-            Connecting your wallet helps verify you have the funds for faster processing
+        {/* Wallet Address */}
+        <div>
+          <label className="text-white/60 text-sm mb-1.5 block flex items-center gap-2">
+            <Wallet className="h-4 w-4" />
+            Wallet Address (Optional)
+          </label>
+          <Input
+            value={formData.walletAddress}
+            onChange={(e) => setFormData({ ...formData, walletAddress: e.target.value })}
+            className="bg-white/5 border-white/20 text-white font-mono text-sm"
+            placeholder="0x... or bc1..."
+          />
+          <p className="text-white/40 text-xs mt-1">
+            Providing your wallet address helps verify you have the funds for faster processing
           </p>
         </div>
 

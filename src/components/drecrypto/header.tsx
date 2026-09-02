@@ -6,7 +6,6 @@ import Image from "next/image"
 import { Menu, X, Bitcoin, Wallet } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useCryptoPrices } from "./crypto-price-context"
-import { ConnectButton } from "@rainbow-me/rainbowkit"
 
 const NAV_LINKS = [
   { label: "Buy", href: "/drecrypto/buy" },
@@ -97,27 +96,6 @@ export function Header() {
 
           {/* Actions */}
           <div className="flex items-center gap-3">
-            {/* Wallet Connect */}
-            <div className="hidden md:block">
-              <ConnectButton.Custom>
-                {({ account, chain, openConnectModal, mounted }) => {
-                  const connected = mounted && account && chain
-                  return (
-                    <Button
-                      onClick={openConnectModal}
-                      variant="outline"
-                      className="border-[#C9A962]/50 text-[#C9A962] hover:bg-[#C9A962]/10 text-sm h-9"
-                    >
-                      <Wallet className="h-4 w-4 mr-2" />
-                      {connected
-                        ? `${account.displayName}`
-                        : "Connect Wallet"}
-                    </Button>
-                  )
-                }}
-              </ConnectButton.Custom>
-            </div>
-
             {/* Contact CTA */}
             <Link href="/drecrypto#contact" className="hidden sm:block">
               <Button className="bg-[#C9A962] hover:bg-[#b8994d] text-black text-sm h-9">
@@ -151,7 +129,6 @@ export function Header() {
               </Link>
             ))}
             <div className="pt-4 border-t border-white/10 space-y-3">
-              <ConnectButton />
               <Link href="/drecrypto#contact" className="block">
                 <Button className="w-full bg-[#C9A962] hover:bg-[#b8994d] text-black">
                   Get Started
