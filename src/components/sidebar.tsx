@@ -30,6 +30,8 @@ import {
   Shield,
   FileSpreadsheet,
   Target,
+  BarChart3,
+  Bitcoin,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -228,6 +230,30 @@ export function Sidebar({ mobile, collapsed = false, onToggle }: { mobile?: bool
             >
               <Target className="h-4 w-4" />
               {!collapsed && "Ad Simulation"}
+            </Button>
+          </Link>
+
+          <Link href={`/workspace/${workspaceId || "drehomes"}/leads-report`}>
+            <Button
+              variant="ghost"
+              className={`w-full justify-start gap-3 text-white/80 hover:bg-white/10 hover:text-white ${
+                pathname.includes("/leads-report") ? "bg-white/10 text-white" : ""
+              }`}
+            >
+              <BarChart3 className="h-4 w-4" />
+              {!collapsed && "Leads Report"}
+            </Button>
+          </Link>
+
+          <Link href="/drecrypto">
+            <Button
+              variant="ghost"
+              className={`w-full justify-start gap-3 text-white/80 hover:bg-white/10 hover:text-white ${
+                pathname.includes("/drecrypto") ? "bg-white/10 text-white" : ""
+              }`}
+            >
+              <Bitcoin className="h-4 w-4" />
+              {!collapsed && "DreCrypto"}
             </Button>
           </Link>
 
