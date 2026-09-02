@@ -84,7 +84,7 @@ export default function DreCryptoHomePage() {
   const [totalProperties, setTotalProperties] = useState(0)
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
-  const { currency, getCurrencyColor } = useCurrency()
+  useCurrency() // Currency context available
   const { prices } = useCryptoPrices()
 
   useEffect(() => {

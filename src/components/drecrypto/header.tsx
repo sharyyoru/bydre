@@ -20,7 +20,7 @@ export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const { prices, loading } = useCryptoPrices()
-  const { currency, setCurrency, getCurrencyColor } = useCurrency()
+  const { currency, setCurrency } = useCurrency()
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50)
