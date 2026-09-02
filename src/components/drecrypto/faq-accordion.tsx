@@ -150,7 +150,7 @@ export function FAQAccordion({ items = FAQ_DATA, showCategories = true }: FAQAcc
             <div className="space-y-2">
               {items
                 .filter(item => item.category === category)
-                .map((item, idx) => renderItem(item, items.indexOf(item)))}
+                .map((item) => renderItem(item, items.indexOf(item)))}
             </div>
           </div>
         ))}

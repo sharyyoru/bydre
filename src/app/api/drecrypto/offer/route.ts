@@ -6,7 +6,8 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-const NOTIFICATION_EMAIL = "wilson@drehomes.com"
+// Notification email for offers
+// const NOTIFICATION_EMAIL = "wilson@drehomes.com"
 
 export async function POST(req: NextRequest) {
   try {

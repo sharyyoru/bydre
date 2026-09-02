@@ -57,7 +57,7 @@ export function OfferForm({ propertyId, propertyName, priceAed }: OfferFormProps
 
       setSubmitted(true)
       toast.success("Offer submitted successfully!")
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to submit offer. Please try again.")
     } finally {
       setSubmitting(false)

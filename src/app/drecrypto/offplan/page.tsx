@@ -4,8 +4,7 @@ import { useEffect, useState, useMemo } from "react"
 import { PropertyCard } from "@/components/drecrypto"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Badge } from "@/components/ui/badge"
-import { Search, Bitcoin, Calendar, Loader2, X } from "lucide-react"
+import { Search, Calendar, Loader2, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 interface Property {

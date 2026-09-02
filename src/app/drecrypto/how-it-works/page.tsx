@@ -125,7 +125,7 @@ export default function HowItWorksPage() {
             <div className="absolute left-8 top-0 bottom-0 w-px bg-gradient-to-b from-[#C9A962] via-[#627EEA] to-[#26A17B] hidden md:block" />
 
             <div className="space-y-8">
-              {STEPS.map((step, index) => (
+              {STEPS.map((step) => (
                 <div key={step.number} className="relative flex gap-8">
                   {/* Icon */}
                   <div 

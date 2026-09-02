@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { Menu, X, Bitcoin, Wallet } from "lucide-react"
+import { Menu, X, Bitcoin } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useCryptoPrices } from "./crypto-price-context"
 

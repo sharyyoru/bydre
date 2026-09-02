@@ -7,7 +7,7 @@ import { notFound } from "next/navigation"
 import { 
   MapPin, Bed, Bath, Maximize, Calendar, Building2, 
   ChevronLeft, ChevronRight, Bitcoin, ArrowLeft, Loader2,
-  Phone, MessageCircle, Share2
+  Phone, MessageCircle
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -49,6 +49,7 @@ export default function PropertyPage({ params }: PropertyPageProps) {
 
   useEffect(() => {
     fetchProperty()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
   async function fetchProperty() {
@@ -69,7 +70,7 @@ export default function PropertyPage({ params }: PropertyPageProps) {
     }
   }
 
-  async function fetchSimilar(location: string) {
+  async function fetchSimilar(_location: string) {
     try {
       const res = await fetch(`/api/drecrypto/properties?limit=4`)
       if (res.ok) {

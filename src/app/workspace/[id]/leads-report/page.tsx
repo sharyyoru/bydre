@@ -22,14 +22,11 @@ import {
   User,
   Sparkles,
   TrendingUp,
-  TrendingDown,
   Users,
   Phone,
   CheckCircle,
-  XCircle,
   Clock,
   RefreshCw,
-  Download,
   ChevronDown,
   ChevronUp,
   Loader2
@@ -82,7 +79,7 @@ const QUICK_QUERIES = [
 
 export default function LeadsReportPage() {
   const params = useParams()
-  const workspaceId = params.id as string
+  const _workspaceId = params.id as string
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const [files, setFiles] = useState<ExcelFile[]>([])
@@ -204,7 +201,7 @@ export default function LeadsReportPage() {
       }
       
       setMessages(prev => [...prev, assistantMessage])
-    } catch (error) {
+    } catch (_error) {
       const errorMessage: Message = {
         id: `error-${Date.now()}`,
         role: "assistant",
