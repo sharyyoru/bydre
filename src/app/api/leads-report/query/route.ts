@@ -1,13 +1,25 @@
 import { NextRequest, NextResponse } from "next/server"
 import OpenAI from "openai"
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-})
+// Lazy-initialized to avoid build-time errors
+let openai: OpenAI | null = null
+
+function getOpenAI() {
+  if (!openai) {
+    openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY
+    })
+  }
+  return openai
+}
 
 export async function POST(req: NextRequest) {
   try {
     const { query, data, context } = await req.json()
+    
+    if (!process.env.OPENAI_API_KEY) {
+      return NextResponse.json({ error: "OpenAI API key not configured" }, { status: 500 })
+    }
     
     if (!query || !data) {
       return NextResponse.json({ error: "Missing query or data" }, { status: 400 })
@@ -33,7 +45,7 @@ Format your response in markdown for readability.`
 
     const dataContext = `Here is the current data context:\n${JSON.stringify(data, null, 2)}\n\n${context || ""}`
 
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: "gpt-4o",
       messages: [
         { role: "system", content: systemPrompt },
