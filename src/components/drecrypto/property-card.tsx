@@ -25,9 +25,29 @@ interface PropertyCardProps {
   showContact?: boolean
 }
 
+// Default fallback images by area/developer
+const FALLBACK_IMAGES = [
+  "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=800&q=80",
+  "https://images.unsplash.com/photo-1518684079-3c830dcef090?w=800&q=80",
+  "https://images.unsplash.com/photo-1582407947304-fd86f028f716?w=800&q=80",
+  "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&q=80",
+  "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80",
+  "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&q=80",
+]
+
+function getPropertyImage(property: PropertyCardProps["property"]): string {
+  // If property has valid images, use the first one
+  if (property.images && property.images.length > 0 && property.images[0]) {
+    return property.images[0]
+  }
+  // Otherwise return a consistent fallback based on property ID
+  return FALLBACK_IMAGES[property.id % FALLBACK_IMAGES.length]
+}
+
 export function PropertyCard({ property, showContact }: PropertyCardProps) {
   const { currency, formatPrice: formatCryptoPrice, getCurrencyColor } = useCurrency()
   const formatAed = (price: number) => new Intl.NumberFormat("en-AE").format(price)
+  const propertyImage = getPropertyImage(property)
 
   return (
     <Link href={`/drecrypto/property/${property.id}`}>
@@ -35,7 +55,7 @@ export function PropertyCard({ property, showContact }: PropertyCardProps) {
         {/* Image */}
         <div className="relative h-52 overflow-hidden">
           <Image
-            src={property.images[0] || "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&q=80"}
+            src={propertyImage}
             alt={property.name}
             fill
             className="object-cover group-hover:scale-105 transition-transform duration-500"

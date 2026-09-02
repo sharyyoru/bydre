@@ -35,6 +35,136 @@ const CACHE_DURATION = 600000 // 10 minutes
 const STALE_DURATION = 1800000 // 30 minutes (serve stale while refreshing)
 let isRefreshing = false
 
+// Static fallback properties with real Dubai images
+const FALLBACK_PROPERTIES: CryptoProperty[] = [
+  {
+    id: 999001,
+    name: "Burj Vista Residences",
+    developer: "Emaar Properties",
+    location: "Downtown Dubai",
+    status: "available",
+    type: "off-plan",
+    priceAed: 2850000,
+    priceBtc: 8.14,
+    priceEth: 219.23,
+    priceUsdt: 776566,
+    beds: "1-3 BR",
+    baths: "2+",
+    sqft: "750 - 2,200",
+    handover: "2026-12",
+    description: "Luxury residences with stunning Burj Khalifa views",
+    images: ["https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=800&q=80"],
+    amenities: ["Pool", "Gym", "Concierge", "Parking"],
+    latitude: 25.1972,
+    longitude: 55.2744
+  },
+  {
+    id: 999002,
+    name: "Marina Pearl Tower",
+    developer: "DAMAC Properties",
+    location: "Dubai Marina",
+    status: "available",
+    type: "ready",
+    priceAed: 1950000,
+    priceBtc: 5.57,
+    priceEth: 150.0,
+    priceUsdt: 531335,
+    beds: "Studio - 2 BR",
+    baths: "1-2",
+    sqft: "450 - 1,400",
+    handover: null,
+    description: "Waterfront living in the heart of Dubai Marina",
+    images: ["https://images.unsplash.com/photo-1518684079-3c830dcef090?w=800&q=80"],
+    amenities: ["Beach Access", "Marina View", "Gym", "Pool"],
+    latitude: 25.0805,
+    longitude: 55.1403
+  },
+  {
+    id: 999003,
+    name: "Palm Signature Villas",
+    developer: "Nakheel",
+    location: "Palm Jumeirah",
+    status: "available",
+    type: "ready",
+    priceAed: 15500000,
+    priceBtc: 44.29,
+    priceEth: 1192.31,
+    priceUsdt: 4223433,
+    beds: "5-7 BR",
+    baths: "6+",
+    sqft: "8,000 - 15,000",
+    handover: null,
+    description: "Exclusive beachfront villas on Palm Jumeirah",
+    images: ["https://images.unsplash.com/photo-1582407947304-fd86f028f716?w=800&q=80"],
+    amenities: ["Private Beach", "Pool", "Garden", "Smart Home"],
+    latitude: 25.1124,
+    longitude: 55.1390
+  },
+  {
+    id: 999004,
+    name: "Business Bay Executive Tower",
+    developer: "Sobha Realty",
+    location: "Business Bay",
+    status: "available",
+    type: "off-plan",
+    priceAed: 1750000,
+    priceBtc: 5.0,
+    priceEth: 134.62,
+    priceUsdt: 476839,
+    beds: "1-2 BR",
+    baths: "1-2",
+    sqft: "650 - 1,200",
+    handover: "2025-09",
+    description: "Modern apartments in Dubai's business district",
+    images: ["https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&q=80"],
+    amenities: ["Gym", "Pool", "Business Center", "Parking"],
+    latitude: 25.1850,
+    longitude: 55.2650
+  },
+  {
+    id: 999005,
+    name: "JBR Beach Residence",
+    developer: "Meraas",
+    location: "Jumeirah Beach Residence",
+    status: "available",
+    type: "ready",
+    priceAed: 3200000,
+    priceBtc: 9.14,
+    priceEth: 246.15,
+    priceUsdt: 871935,
+    beds: "2-3 BR",
+    baths: "2-3",
+    sqft: "1,200 - 2,500",
+    handover: null,
+    description: "Beachfront apartments with panoramic sea views",
+    images: ["https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80"],
+    amenities: ["Beach Access", "Pool", "Gym", "Kids Area"],
+    latitude: 25.0785,
+    longitude: 55.1338
+  },
+  {
+    id: 999006,
+    name: "Dubai Hills Estate Villa",
+    developer: "Emaar Properties",
+    location: "Dubai Hills Estate",
+    status: "available",
+    type: "off-plan",
+    priceAed: 8500000,
+    priceBtc: 24.29,
+    priceEth: 653.85,
+    priceUsdt: 2316076,
+    beds: "4-6 BR",
+    baths: "5+",
+    sqft: "4,500 - 8,000",
+    handover: "2026-06",
+    description: "Premium villas overlooking Dubai Hills Golf Course",
+    images: ["https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&q=80"],
+    amenities: ["Golf Course View", "Pool", "Garden", "Maid Room"],
+    latitude: 25.1034,
+    longitude: 55.2378
+  }
+]
+
 async function getCryptoPrices(): Promise<{ btc: number; eth: number; usdt: number }> {
   try {
     const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/drecrypto/prices`)
@@ -168,18 +298,16 @@ export async function GET(req: NextRequest) {
       return response
     }
     
-    // No cache or very stale - fetch fresh
-    const properties = await refreshCache()
-    
-    if (properties.length === 0 && propertiesCache) {
-      // GenieMap failed but we have old cache - use it
-      const response = filterAndReturn(propertiesCache.data, { type, minPriceBtc, maxPriceBtc, location, beds, limit, offset, propertyId })
-      response.headers.set("X-Cache-Status", "FALLBACK")
-      return response
+    // No cache or very stale - return fallback immediately, fetch in background
+    if (!isRefreshing) {
+      isRefreshing = true
+      refreshCache().finally(() => { isRefreshing = false })
     }
-
-    const response = filterAndReturn(properties, { type, minPriceBtc, maxPriceBtc, location, beds, limit, offset, propertyId })
-    response.headers.set("X-Cache-Status", "MISS")
+    
+    // Use old cache if available, otherwise use static fallback
+    const dataToUse = propertiesCache?.data || FALLBACK_PROPERTIES
+    const response = filterAndReturn(dataToUse, { type, minPriceBtc, maxPriceBtc, location, beds, limit, offset, propertyId })
+    response.headers.set("X-Cache-Status", propertiesCache ? "REVALIDATING" : "FALLBACK")
     return response
   } catch (error) {
     console.error("Error fetching properties:", error)

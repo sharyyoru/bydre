@@ -4,7 +4,6 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { MapPin, Bed, Maximize, ArrowRight, Bitcoin, DollarSign, Sparkles } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import { useCurrency } from "./currency-context"
 
 interface Property {
@@ -56,6 +55,16 @@ export function PropertySpotlight() {
   }
 
   const formatAed = (price: number) => new Intl.NumberFormat("en-AE").format(price)
+  
+  // Get a valid image or fallback
+  const FALLBACK_IMAGES = [
+    "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=800&q=80",
+    "https://images.unsplash.com/photo-1518684079-3c830dcef090?w=800&q=80",
+    "https://images.unsplash.com/photo-1582407947304-fd86f028f716?w=800&q=80",
+  ]
+  const propertyImage = (property.images && property.images.length > 0 && property.images[0])
+    ? property.images[0]
+    : FALLBACK_IMAGES[property.id % FALLBACK_IMAGES.length]
 
   return (
     <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#0a0a0a] to-[#1a1a1a] border border-white/10">
@@ -63,7 +72,7 @@ export function PropertySpotlight() {
         {/* Image Side */}
         <div className="relative h-[300px] lg:h-[500px]">
           <Image
-            src={property.images[0] || "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&q=80"}
+            src={propertyImage}
             alt={property.name}
             fill
             className="object-cover"
@@ -151,15 +160,15 @@ export function PropertySpotlight() {
           {/* CTA */}
           <div className="flex flex-wrap gap-3">
             <Link href={`/drecrypto/property/${property.id}`}>
-              <Button size="lg" className="bg-[#C9A962] hover:bg-[#b8994d] text-black gap-2">
+              <button className="inline-flex items-center gap-2 px-6 py-3 text-base font-medium text-black bg-[#C9A962] hover:bg-[#b8994d] rounded-md transition-colors">
                 View Property
                 <ArrowRight className="h-4 w-4" />
-              </Button>
+              </button>
             </Link>
             <a href={`https://wa.me/+971527543243?text=Hi, I'm interested in ${property.name}`}>
-              <Button size="lg" variant="outline" className="border-white/30 text-white hover:bg-white/10">
+              <button className="inline-flex items-center gap-2 px-6 py-3 text-base font-medium text-white bg-transparent border border-white/30 rounded-md hover:bg-white/10 transition-colors">
                 Inquire Now
-              </Button>
+              </button>
             </a>
           </div>
         </div>

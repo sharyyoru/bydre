@@ -173,22 +173,22 @@ export default function DreCryptoHomePage() {
             {/* Quick Links */}
             <div className="flex flex-wrap gap-3 mt-6">
               <Link href="/drecrypto/buy">
-                <Button variant="outline" size="sm" className="border-white/30 text-white hover:bg-white/10">
-                  <MapPin className="h-4 w-4 mr-2" />
+                <button className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-transparent border border-white/30 rounded-md hover:bg-white/10 transition-colors">
+                  <MapPin className="h-4 w-4" />
                   All Properties
-                </Button>
+                </button>
               </Link>
               <Link href="/drecrypto/offplan">
-                <Button variant="outline" size="sm" className="border-white/30 text-white hover:bg-white/10">
-                  <Building2 className="h-4 w-4 mr-2" />
+                <button className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-transparent border border-white/30 rounded-md hover:bg-white/10 transition-colors">
+                  <Building2 className="h-4 w-4" />
                   Off-Plan
-                </Button>
+                </button>
               </Link>
               <Link href="/drecrypto/how-it-works">
-                <Button variant="outline" size="sm" className="border-white/30 text-white hover:bg-white/10">
-                  <FileText className="h-4 w-4 mr-2" />
+                <button className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-transparent border border-white/30 rounded-md hover:bg-white/10 transition-colors">
+                  <FileText className="h-4 w-4" />
                   How It Works
-                </Button>
+                </button>
               </Link>
             </div>
           </div>
@@ -295,10 +295,10 @@ export default function DreCryptoHomePage() {
 
           <div className="text-center mt-12">
             <Link href="/drecrypto/how-it-works">
-              <Button variant="outline" className="border-white/30 text-white hover:bg-white/10">
+              <button className="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium text-white bg-transparent border border-white/30 rounded-md hover:bg-white/10 transition-colors">
                 Learn More
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
+                <ArrowRight className="h-4 w-4" />
+              </button>
             </Link>
           </div>
         </div>
@@ -317,10 +317,10 @@ export default function DreCryptoHomePage() {
               </h2>
             </div>
             <Link href="/drecrypto/buy" className="hidden md:block">
-              <Button variant="outline" className="border-white/30 text-white hover:bg-white/10">
+              <button className="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium text-white bg-transparent border border-white/30 rounded-md hover:bg-white/10 transition-colors">
                 View All
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
+                <ArrowRight className="h-4 w-4" />
+              </button>
             </Link>
           </div>
 
@@ -411,10 +411,10 @@ export default function DreCryptoHomePage() {
 
             <div className="text-center mt-8">
               <Link href="/drecrypto/faq">
-                <Button variant="outline" className="border-white/30 text-white hover:bg-white/10">
+                <button className="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium text-white bg-transparent border border-white/30 rounded-md hover:bg-white/10 transition-colors">
                   View All FAQs
-                  <ArrowRight className="h-4 w-4 ml-2" />
-                </Button>
+                  <ArrowRight className="h-4 w-4" />
+                </button>
               </Link>
             </div>
           </div>
