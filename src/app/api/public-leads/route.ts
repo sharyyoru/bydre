@@ -64,6 +64,7 @@ export async function POST(request: NextRequest) {
         full_name: body.full_name,
         email: body.email,
         phone: body.phone,
+        country: body.country || 'Not specified',
         interest: body.interest || null,
         lead_source: body.lead_source || 'website',
         ip_address: ip,
