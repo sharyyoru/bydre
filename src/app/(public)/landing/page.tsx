@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight, CheckCircle, MapPin, Building2, Users, Award, Phone, Mail, Loader2 } from 'lucide-react';
 
