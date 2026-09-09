@@ -32,6 +32,7 @@ import {
   Target,
   BarChart3,
   Bitcoin,
+  Megaphone,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -62,6 +63,7 @@ export function Sidebar({ mobile, collapsed = false, onToggle }: { mobile?: bool
   const [boards, setBoards] = useState<Board[]>([])
   const [workspaceName, setWorkspaceName] = useState("DreHomes")
   const [isAdmin, setIsAdmin] = useState(false)
+  const [seiLeadsCount, setSeiLeadsCount] = useState(0)
 
   useEffect(() => {
     const supabase = createClient()
@@ -102,6 +104,25 @@ export function Sidebar({ mobile, collapsed = false, onToggle }: { mobile?: bool
     }
 
     fetchData()
+  }, [])
+
+  // Fetch SEI leads count and poll every 60 seconds
+  useEffect(() => {
+    const fetchSeiLeadsCount = async () => {
+      try {
+        const response = await fetch("/api/sei-leads/count")
+        const data = await response.json()
+        if (data.count !== undefined) {
+          setSeiLeadsCount(data.count)
+        }
+      } catch (error) {
+        console.error("Failed to fetch SEI leads count:", error)
+      }
+    }
+
+    fetchSeiLeadsCount()
+    const interval = setInterval(fetchSeiLeadsCount, 60000)
+    return () => clearInterval(interval)
   }, [])
 
   return (
@@ -242,6 +263,28 @@ export function Sidebar({ mobile, collapsed = false, onToggle }: { mobile?: bool
             >
               <BarChart3 className="h-4 w-4" />
               {!collapsed && "Leads Report"}
+            </Button>
+          </Link>
+
+          <Link href={`/workspace/${workspaceId || "drehomes"}/sei-ads`}>
+            <Button
+              variant="ghost"
+              className={`w-full justify-start gap-3 text-white/80 hover:bg-white/10 hover:text-white ${
+                pathname.includes("/sei-ads") ? "bg-white/10 text-white" : ""
+              }`}
+            >
+              <Megaphone className="h-4 w-4" />
+              {!collapsed && "SEI Saadiyat Ads"}
+              {!collapsed && seiLeadsCount > 0 && (
+                <span className="ml-auto bg-red-500 text-white text-xs font-bold rounded-full h-5 min-w-[20px] px-1 flex items-center justify-center">
+                  {seiLeadsCount > 99 ? "99+" : seiLeadsCount}
+                </span>
+              )}
+              {collapsed && seiLeadsCount > 0 && (
+                <span className="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold rounded-full h-4 min-w-[16px] px-0.5 flex items-center justify-center">
+                  {seiLeadsCount > 9 ? "9+" : seiLeadsCount}
+                </span>
+              )}
             </Button>
           </Link>
 
