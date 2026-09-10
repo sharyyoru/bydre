@@ -33,6 +33,7 @@ import {
   BarChart3,
   Bitcoin,
   Megaphone,
+  Building2,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -64,6 +65,7 @@ export function Sidebar({ mobile, collapsed = false, onToggle }: { mobile?: bool
   const [workspaceName, setWorkspaceName] = useState("DreHomes")
   const [isAdmin, setIsAdmin] = useState(false)
   const [seiLeadsCount, setSeiLeadsCount] = useState(0)
+  const [modonLeadsCount, setModonLeadsCount] = useState(0)
 
   useEffect(() => {
     const supabase = createClient()
@@ -122,6 +124,25 @@ export function Sidebar({ mobile, collapsed = false, onToggle }: { mobile?: bool
 
     fetchSeiLeadsCount()
     const interval = setInterval(fetchSeiLeadsCount, 60000)
+    return () => clearInterval(interval)
+  }, [])
+
+  // Fetch Modon leads count and poll every 60 seconds
+  useEffect(() => {
+    const fetchModonLeadsCount = async () => {
+      try {
+        const response = await fetch("/api/modon-leads/count")
+        const data = await response.json()
+        if (data.count !== undefined) {
+          setModonLeadsCount(data.count)
+        }
+      } catch (error) {
+        console.error("Failed to fetch Modon leads count:", error)
+      }
+    }
+
+    fetchModonLeadsCount()
+    const interval = setInterval(fetchModonLeadsCount, 60000)
     return () => clearInterval(interval)
   }, [])
 
@@ -283,6 +304,28 @@ export function Sidebar({ mobile, collapsed = false, onToggle }: { mobile?: bool
               {collapsed && seiLeadsCount > 0 && (
                 <span className="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold rounded-full h-4 min-w-[16px] px-0.5 flex items-center justify-center">
                   {seiLeadsCount > 9 ? "9+" : seiLeadsCount}
+                </span>
+              )}
+            </Button>
+          </Link>
+
+          <Link href={`/workspace/${workspaceId || "drehomes"}/modon-leads`}>
+            <Button
+              variant="ghost"
+              className={`w-full justify-start gap-3 text-white/80 hover:bg-white/10 hover:text-white ${
+                pathname.includes("/modon-leads") ? "bg-white/10 text-white" : ""
+              }`}
+            >
+              <Building2 className="h-4 w-4" />
+              {!collapsed && "Modon Wadeem"}
+              {!collapsed && modonLeadsCount > 0 && (
+                <span className="ml-auto bg-blue-600 text-white text-xs font-bold rounded-full h-5 min-w-[20px] px-1 flex items-center justify-center">
+                  {modonLeadsCount > 99 ? "99+" : modonLeadsCount}
+                </span>
+              )}
+              {collapsed && modonLeadsCount > 0 && (
+                <span className="absolute top-0 right-0 bg-blue-600 text-white text-[10px] font-bold rounded-full h-4 min-w-[16px] px-0.5 flex items-center justify-center">
+                  {modonLeadsCount > 9 ? "9+" : modonLeadsCount}
                 </span>
               )}
             </Button>
