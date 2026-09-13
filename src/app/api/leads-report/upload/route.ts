@@ -2,6 +2,19 @@ import { NextRequest, NextResponse } from "next/server"
 import * as XLSX from "xlsx"
 import { createAdminClient } from "@/lib/supabase/admin"
 
+async function resolveWorkspaceId(idOrSlug: string): Promise<string | null> {
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrSlug)) {
+    return idOrSlug
+  }
+  const admin = createAdminClient()
+  const { data } = await admin
+    .from("workspaces")
+    .select("id")
+    .eq("slug", idOrSlug)
+    .single()
+  return data?.id || null
+}
+
 export interface SheetData {
   name: string
   headers: string[]
@@ -64,14 +77,20 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData()
     const file = formData.get("file") as File | null
-    const workspaceId = formData.get("workspaceId") as string | null
+    const rawWorkspaceId = formData.get("workspaceId") as string | null
 
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 })
     }
 
-    if (!workspaceId) {
+    if (!rawWorkspaceId) {
       return NextResponse.json({ error: "workspaceId required" }, { status: 400 })
+    }
+
+    // Resolve workspace slug to UUID
+    const workspaceId = await resolveWorkspaceId(rawWorkspaceId)
+    if (!workspaceId) {
+      return NextResponse.json({ error: "Workspace not found" }, { status: 404 })
     }
 
     // Validate file type
@@ -142,10 +161,15 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const workspaceId = searchParams.get("workspaceId")
+    const rawWorkspaceId = searchParams.get("workspaceId")
 
-    if (!workspaceId) {
+    if (!rawWorkspaceId) {
       return NextResponse.json({ error: "workspaceId required" }, { status: 400 })
+    }
+
+    const workspaceId = await resolveWorkspaceId(rawWorkspaceId)
+    if (!workspaceId) {
+      return NextResponse.json({ error: "Workspace not found" }, { status: 404 })
     }
 
     const admin = createAdminClient()

@@ -1,8 +1,24 @@
 import { NextRequest, NextResponse } from "next/server"
 import { GoogleGenerativeAI } from "@google/generative-ai"
 import { getCredential } from "@/lib/social-monitor/credentials"
+import { createAdminClient } from "@/lib/supabase/admin"
 
 const FALLBACK_MODELS = ["gemini-2.0-flash", "gemini-1.5-flash-latest", "gemini-1.5-pro"]
+
+async function resolveWorkspaceId(idOrSlug: string): Promise<string | null> {
+  // If it's already a UUID, return it
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrSlug)) {
+    return idOrSlug
+  }
+  // Otherwise, look up by slug
+  const admin = createAdminClient()
+  const { data } = await admin
+    .from("workspaces")
+    .select("id")
+    .eq("slug", idOrSlug)
+    .single()
+  return data?.id || null
+}
 
 const SYSTEM_PROMPT = `You are an expert leads data analyst for a real estate company. You analyze campaign performance, lead conversion, and agent productivity data.
 
@@ -48,10 +64,16 @@ Format your response in markdown for readability. Be concise but thorough.`
 
 export async function POST(request: NextRequest) {
   try {
-    const { query, data, workspaceId, context } = await request.json()
+    const { query, data, workspaceId: rawWorkspaceId, context } = await request.json()
 
-    if (!query || !workspaceId) {
+    if (!query || !rawWorkspaceId) {
       return NextResponse.json({ error: "query and workspaceId required" }, { status: 400 })
+    }
+
+    // Resolve workspace slug to UUID if needed
+    const workspaceId = await resolveWorkspaceId(rawWorkspaceId)
+    if (!workspaceId) {
+      return NextResponse.json({ error: "Workspace not found" }, { status: 404 })
     }
 
     // Get Gemini credentials
