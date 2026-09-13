@@ -4,14 +4,12 @@ import { useState, useEffect, useMemo } from "react"
 import { useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   FileSpreadsheet,
-  Search,
   BarChart3,
   Table2,
   Bot,
@@ -27,7 +25,11 @@ import {
   LeadFunnelChart,
   AgentLeaderboard,
   AIChatPanel,
-  FileUploadZone
+  FileUploadZone,
+  SmartFilters,
+  useFilteredData,
+  ColumnFilter,
+  DateFilter
 } from "@/components/leads-report"
 
 interface SheetData {
@@ -67,11 +69,21 @@ export default function LeadsReportPage() {
   const [loading, setLoading] = useState(true)
   const [selectedFile, setSelectedFile] = useState<string>("")
   const [selectedSheet, setSelectedSheet] = useState<string>("")
-  const [searchQuery, setSearchQuery] = useState("")
   const [sortColumn, setSortColumn] = useState<string>("")
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc")
   const [activeTab, setActiveTab] = useState("dashboard")
   const [showUpload, setShowUpload] = useState(false)
+  
+  // Smart filter state
+  const [filters, setFilters] = useState<{
+    columnFilters: ColumnFilter[]
+    dateFilter: DateFilter | null
+    searchQuery: string
+  }>({
+    columnFilters: [],
+    dateFilter: null,
+    searchQuery: ""
+  })
 
   useEffect(() => {
     fetchData()
@@ -99,15 +111,19 @@ export default function LeadsReportPage() {
   const currentFile = files.find(f => f.name === selectedFile)
   const currentSheet = currentFile?.sheets.find(s => s.name === selectedSheet)
 
-  const filteredRows = useMemo(() => {
-    if (!currentSheet) return []
-    if (!searchQuery) return currentSheet.rows
-    return currentSheet.rows.filter(row =>
-      Object.values(row).some(val =>
-        String(val).toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    )
-  }, [currentSheet, searchQuery])
+  // Detect date column for filtering
+  const dateColumn = currentSheet?.headers.find(h =>
+    h.toLowerCase().includes("date") ||
+    h.toLowerCase().includes("created") ||
+    h.toLowerCase().includes("time")
+  )
+
+  // Apply smart filters
+  const filteredRows = useFilteredData(
+    currentSheet?.rows || [],
+    filters,
+    dateColumn
+  )
 
   const sortedRows = useMemo(() => {
     if (!sortColumn) return filteredRows
@@ -356,7 +372,7 @@ export default function LeadsReportPage() {
           {/* Data Table Tab */}
           <TabsContent value="data">
             <Card>
-              <CardHeader>
+              <CardHeader className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <Select value={selectedSheet} onValueChange={setSelectedSheet}>
@@ -369,22 +385,22 @@ export default function LeadsReportPage() {
                         ))}
                       </SelectContent>
                     </Select>
-
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                      <Input
-                        placeholder="Search data..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-9 w-64"
-                      />
-                    </div>
                   </div>
 
                   <Badge variant="outline">
-                    {sortedRows.length} rows
+                    {sortedRows.length} of {currentSheet?.rows.length || 0} rows
                   </Badge>
                 </div>
+
+                {/* Smart Filters */}
+                {currentSheet && (
+                  <SmartFilters
+                    headers={currentSheet.headers}
+                    rows={currentSheet.rows}
+                    dateColumn={dateColumn}
+                    onFiltersChange={setFilters}
+                  />
+                )}
               </CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
