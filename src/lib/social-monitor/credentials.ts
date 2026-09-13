@@ -8,6 +8,7 @@ export interface ResolvedCredential {
 
 const ENV_FALLBACK: Record<IntegrationProvider, string | undefined> = {
   gemini: process.env.GEMINI_API_KEY,
+  openai: process.env.OPENAI_API_KEY,
   dubai_pulse: process.env.DUBAI_PULSE_API_KEY,
   youtube: process.env.YOUTUBE_API_KEY,
   meta: process.env.META_ACCESS_TOKEN,

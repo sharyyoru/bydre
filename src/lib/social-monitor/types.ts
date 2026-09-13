@@ -1,5 +1,6 @@
 export type IntegrationProvider =
   | "gemini"
+  | "openai"
   | "dubai_pulse"
   | "youtube"
   | "meta"

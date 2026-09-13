@@ -10,7 +10,7 @@ import { Plug, KeyRound, Check, Trash2, Copy, Plus } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { resolveWorkspaceId } from "@/lib/workspace-client"
 
-type Provider = "gemini" | "dubai_pulse" | "youtube" | "meta" | "tiktok" | "geniemap" | "google_maps" | "canva"
+type Provider = "gemini" | "openai" | "dubai_pulse" | "youtube" | "meta" | "tiktok" | "geniemap" | "google_maps" | "canva"
 
 interface CredentialStatus {
   provider: Provider
@@ -30,6 +30,7 @@ interface FeedToken {
 
 const PROVIDER_META: Record<Provider, { label: string; hint: string; hasBaseUrl?: boolean; hasAppId?: boolean }> = {
   gemini: { label: "Google Gemini", hint: "LLM for arbitrage analysis & content generation" },
+  openai: { label: "OpenAI", hint: "GPT models for leads analysis & AI features" },
   dubai_pulse: { label: "Dubai Pulse / DLD", hint: "Market transaction data", hasBaseUrl: true },
   youtube: { label: "YouTube Data API v3", hint: "YouTube Shorts publishing & engagement signals" },
   meta: { label: "Meta / Facebook App", hint: "Instagram OAuth login & QR Compliance Monitor", hasAppId: true },
