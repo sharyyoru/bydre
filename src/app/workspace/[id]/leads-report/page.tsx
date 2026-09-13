@@ -1,36 +1,34 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   FileSpreadsheet,
   Search,
-  Filter,
   BarChart3,
   Table2,
-  Send,
   Bot,
-  User,
-  Sparkles,
-  TrendingUp,
-  Users,
-  Phone,
-  CheckCircle,
-  Clock,
+  Upload,
   RefreshCw,
   ChevronDown,
   ChevronUp,
-  Loader2
+  LayoutDashboard
 } from "lucide-react"
+
+import {
+  KPIGrid,
+  LeadFunnelChart,
+  AgentLeaderboard,
+  AIChatPanel,
+  FileUploadZone
+} from "@/components/leads-report"
 
 interface SheetData {
   name: string
@@ -48,13 +46,6 @@ interface ExcelFile {
   sheets: SheetData[]
 }
 
-interface Message {
-  id: string
-  role: "user" | "assistant"
-  content: string
-  timestamp: Date
-}
-
 const STATUS_COLORS: Record<string, string> = {
   "Meeting Done": "bg-green-100 text-green-800",
   "Meeting Scheduled": "bg-blue-100 text-blue-800",
@@ -68,18 +59,9 @@ const STATUS_COLORS: Record<string, string> = {
   "Switched Off": "bg-gray-100 text-gray-800",
 }
 
-const QUICK_QUERIES = [
-  "Who are the top 3 performing vendors?",
-  "What's the conversion rate from Fresh Lead to Meeting Done?",
-  "Which campaigns have the most Invalid/Wrong Numbers?",
-  "Compare performance across all agents",
-  "What percentage of leads are qualified vs not qualified?",
-  "Show me the bottom performers that need attention"
-]
-
 export default function LeadsReportPage() {
-  useParams() // workspace context
-  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const params = useParams()
+  const workspaceId = params.id as string
 
   const [files, setFiles] = useState<ExcelFile[]>([])
   const [loading, setLoading] = useState(true)
@@ -88,20 +70,12 @@ export default function LeadsReportPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [sortColumn, setSortColumn] = useState<string>("")
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc")
-  const [activeTab, setActiveTab] = useState("overview")
-  
-  // AI Chat state
-  const [messages, setMessages] = useState<Message[]>([])
-  const [inputValue, setInputValue] = useState("")
-  const [isQuerying, setIsQuerying] = useState(false)
+  const [activeTab, setActiveTab] = useState("dashboard")
+  const [showUpload, setShowUpload] = useState(false)
 
   useEffect(() => {
     fetchData()
   }, [])
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages])
 
   async function fetchData() {
     setLoading(true)
@@ -125,24 +99,29 @@ export default function LeadsReportPage() {
   const currentFile = files.find(f => f.name === selectedFile)
   const currentSheet = currentFile?.sheets.find(s => s.name === selectedSheet)
 
-  const filteredRows = currentSheet?.rows.filter(row => {
-    if (!searchQuery) return true
-    return Object.values(row).some(val => 
-      String(val).toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredRows = useMemo(() => {
+    if (!currentSheet) return []
+    if (!searchQuery) return currentSheet.rows
+    return currentSheet.rows.filter(row =>
+      Object.values(row).some(val =>
+        String(val).toLowerCase().includes(searchQuery.toLowerCase())
+      )
     )
-  }) || []
+  }, [currentSheet, searchQuery])
 
-  const sortedRows = [...filteredRows].sort((a, b) => {
-    if (!sortColumn) return 0
-    const aVal = a[sortColumn]
-    const bVal = b[sortColumn]
-    if (typeof aVal === "number" && typeof bVal === "number") {
-      return sortDirection === "asc" ? aVal - bVal : bVal - aVal
-    }
-    return sortDirection === "asc" 
-      ? String(aVal).localeCompare(String(bVal))
-      : String(bVal).localeCompare(String(aVal))
-  })
+  const sortedRows = useMemo(() => {
+    if (!sortColumn) return filteredRows
+    return [...filteredRows].sort((a, b) => {
+      const aVal = a[sortColumn]
+      const bVal = b[sortColumn]
+      if (typeof aVal === "number" && typeof bVal === "number") {
+        return sortDirection === "asc" ? aVal - bVal : bVal - aVal
+      }
+      return sortDirection === "asc"
+        ? String(aVal).localeCompare(String(bVal))
+        : String(bVal).localeCompare(String(aVal))
+    })
+  }, [filteredRows, sortColumn, sortDirection])
 
   function handleSort(column: string) {
     if (sortColumn === column) {
@@ -153,124 +132,29 @@ export default function LeadsReportPage() {
     }
   }
 
-  async function sendQuery(query: string) {
-    if (!query.trim() || isQuerying) return
-    
-    const userMessage: Message = {
-      id: `user-${Date.now()}`,
-      role: "user",
-      content: query.trim(),
-      timestamp: new Date()
+  function handleFileUploaded(fileData: unknown) {
+    const newFile = fileData as ExcelFile
+    setFiles(prev => [newFile, ...prev])
+    setSelectedFile(newFile.name)
+    if (newFile.sheets?.length > 0) {
+      setSelectedSheet(newFile.sheets[0].name)
     }
-    
-    setMessages(prev => [...prev, userMessage])
-    setInputValue("")
-    setIsQuerying(true)
-    
-    try {
-      // Prepare data summary for AI
-      const dataSummary = files.map(f => ({
-        file: f.name,
-        sheets: f.sheets.map(s => ({
-          name: s.name,
-          rowCount: s.summary.totalRows,
-          columns: s.headers,
-          totals: s.summary.totals,
-          sampleRows: s.rows.slice(0, 10)
-        }))
+    setShowUpload(false)
+  }
+
+  // Prepare data for AI chat
+  const aiDataContext = useMemo(() => {
+    return files.map(f => ({
+      file: f.name,
+      sheets: f.sheets.map(s => ({
+        name: s.name,
+        rowCount: s.summary.totalRows,
+        columns: s.headers,
+        totals: s.summary.totals,
+        sampleRows: s.rows.slice(0, 15)
       }))
-
-      const res = await fetch("/api/leads-report/query", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          query,
-          data: dataSummary,
-          context: `Current file: ${selectedFile}, Current sheet: ${selectedSheet}`
-        })
-      })
-      
-      const data = await res.json()
-      
-      const assistantMessage: Message = {
-        id: `assistant-${Date.now()}`,
-        role: "assistant",
-        content: data.answer || data.error || "Unable to process query",
-        timestamp: new Date()
-      }
-      
-      setMessages(prev => [...prev, assistantMessage])
-    } catch {
-      const errorMessage: Message = {
-        id: `error-${Date.now()}`,
-        role: "assistant",
-        content: "Sorry, I encountered an error processing your query. Please try again.",
-        timestamp: new Date()
-      }
-      setMessages(prev => [...prev, errorMessage])
-    } finally {
-      setIsQuerying(false)
-    }
-  }
-
-  function handleKeyPress(e: React.KeyboardEvent) {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault()
-      sendQuery(inputValue)
-    }
-  }
-
-  // Calculate KPIs
-  const calculateKPIs = () => {
-    if (!currentSheet) return null
-    
-    const totals = currentSheet.summary.totals
-    const totalLeads = totals["Lead Ref No. Count"] || totals["Lead Ref No.\nCount"] || 0
-    const meetingsDone = totals["Meeting Done"] || 0
-    const meetingsScheduled = totals["Meeting Scheduled"] || 0
-    const interested = totals["Interested"] || 0
-    const notQualified = totals["Not Qualified"] || 0
-    const noAnswer = totals["No Answer/Busy"] || 0
-    const invalid = totals["Invalid/Wrong Number"] || 0
-    
-    return {
-      totalLeads,
-      meetingsDone,
-      meetingsScheduled,
-      interested,
-      conversionRate: totalLeads > 0 ? ((meetingsDone / totalLeads) * 100).toFixed(1) : "0",
-      qualificationRate: totalLeads > 0 ? (((totalLeads - notQualified) / totalLeads) * 100).toFixed(1) : "0",
-      contactRate: totalLeads > 0 ? (((totalLeads - noAnswer - invalid) / totalLeads) * 100).toFixed(1) : "0"
-    }
-  }
-
-  const kpis = calculateKPIs()
-
-  // Get top performers
-  const getTopPerformers = () => {
-    if (!currentSheet) return []
-    const nameColumn = currentSheet.headers.find(h => 
-      h.toLowerCase().includes("vendor") || 
-      h.toLowerCase().includes("agent") || 
-      h.toLowerCase().includes("owner")
-    )
-    if (!nameColumn) return []
-    
-    return [...currentSheet.rows]
-      .filter(row => row[nameColumn])
-      .sort((a, b) => {
-        const aTotal = (a["Meeting Done"] as number || 0) + (a["Meeting Scheduled"] as number || 0)
-        const bTotal = (b["Meeting Done"] as number || 0) + (b["Meeting Scheduled"] as number || 0)
-        return bTotal - aTotal
-      })
-      .slice(0, 5)
-      .map(row => ({
-        name: String(row[nameColumn]),
-        meetingsDone: row["Meeting Done"] as number || 0,
-        meetingsScheduled: row["Meeting Scheduled"] as number || 0,
-        interested: row["Interested"] as number || 0
-      }))
-  }
+    }))
+  }, [files])
 
   if (loading) {
     return (
@@ -278,7 +162,7 @@ export default function LeadsReportPage() {
         <div className="max-w-7xl mx-auto space-y-6">
           <Skeleton className="h-12 w-64" />
           <div className="grid grid-cols-4 gap-4">
-            {[1,2,3,4].map(i => <Skeleton key={i} className="h-32" />)}
+            {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-32" />)}
           </div>
           <Skeleton className="h-96" />
         </div>
@@ -297,11 +181,19 @@ export default function LeadsReportPage() {
               Leads Report Center
             </h1>
             <p className="text-gray-600">
-              Analyze campaign performance and lead metrics
+              AI-powered campaign performance and lead analytics
             </p>
           </div>
-          
+
           <div className="flex items-center gap-3">
+            <Button
+              variant={showUpload ? "default" : "outline"}
+              onClick={() => setShowUpload(!showUpload)}
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              Upload
+            </Button>
+
             <Select value={selectedFile} onValueChange={(v) => {
               setSelectedFile(v)
               const file = files.find(f => f.name === v)
@@ -318,7 +210,7 @@ export default function LeadsReportPage() {
                 ))}
               </SelectContent>
             </Select>
-            
+
             <Button variant="outline" onClick={fetchData}>
               <RefreshCw className="h-4 w-4 mr-2" />
               Refresh
@@ -326,140 +218,55 @@ export default function LeadsReportPage() {
           </div>
         </div>
 
-        {/* KPI Cards */}
-        {kpis && (
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-6">
-            <Card>
-              <CardContent className="pt-4">
-                <div className="flex items-center justify-between">
-                  <Users className="h-5 w-5 text-blue-600" />
-                  <Badge variant="outline">Total</Badge>
-                </div>
-                <p className="text-2xl font-bold mt-2">{kpis.totalLeads.toLocaleString()}</p>
-                <p className="text-xs text-gray-500">Total Leads</p>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardContent className="pt-4">
-                <div className="flex items-center justify-between">
-                  <CheckCircle className="h-5 w-5 text-green-600" />
-                  <Badge className="bg-green-100 text-green-800">Done</Badge>
-                </div>
-                <p className="text-2xl font-bold mt-2">{kpis.meetingsDone.toLocaleString()}</p>
-                <p className="text-xs text-gray-500">Meetings Done</p>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardContent className="pt-4">
-                <div className="flex items-center justify-between">
-                  <Clock className="h-5 w-5 text-blue-600" />
-                  <Badge className="bg-blue-100 text-blue-800">Scheduled</Badge>
-                </div>
-                <p className="text-2xl font-bold mt-2">{kpis.meetingsScheduled.toLocaleString()}</p>
-                <p className="text-xs text-gray-500">Scheduled</p>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardContent className="pt-4">
-                <div className="flex items-center justify-between">
-                  <Sparkles className="h-5 w-5 text-purple-600" />
-                  <Badge className="bg-purple-100 text-purple-800">Hot</Badge>
-                </div>
-                <p className="text-2xl font-bold mt-2">{kpis.interested.toLocaleString()}</p>
-                <p className="text-xs text-gray-500">Interested</p>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardContent className="pt-4">
-                <div className="flex items-center justify-between">
-                  <TrendingUp className="h-5 w-5 text-green-600" />
-                </div>
-                <p className="text-2xl font-bold mt-2">{kpis.conversionRate}%</p>
-                <p className="text-xs text-gray-500">Conversion Rate</p>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardContent className="pt-4">
-                <div className="flex items-center justify-between">
-                  <Phone className="h-5 w-5 text-cyan-600" />
-                </div>
-                <p className="text-2xl font-bold mt-2">{kpis.contactRate}%</p>
-                <p className="text-xs text-gray-500">Contact Rate</p>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardContent className="pt-4">
-                <div className="flex items-center justify-between">
-                  <Filter className="h-5 w-5 text-orange-600" />
-                </div>
-                <p className="text-2xl font-bold mt-2">{kpis.qualificationRate}%</p>
-                <p className="text-xs text-gray-500">Qualification Rate</p>
-              </CardContent>
-            </Card>
+        {/* Upload Zone */}
+        {showUpload && (
+          <div className="mb-6">
+            <FileUploadZone
+              workspaceId={workspaceId}
+              onFileUploaded={handleFileUploaded}
+            />
+          </div>
+        )}
+
+        {/* KPI Grid */}
+        {currentSheet && (
+          <div className="mb-6">
+            <KPIGrid totals={currentSheet.summary.totals} />
           </div>
         )}
 
         {/* Main Content */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="mb-4">
-            <TabsTrigger value="overview" className="gap-2">
-              <BarChart3 className="h-4 w-4" />
-              Overview
+            <TabsTrigger value="dashboard" className="gap-2">
+              <LayoutDashboard className="h-4 w-4" />
+              Dashboard
+            </TabsTrigger>
+            <TabsTrigger value="ai" className="gap-2">
+              <Bot className="h-4 w-4" />
+              AI Analyst
             </TabsTrigger>
             <TabsTrigger value="data" className="gap-2">
               <Table2 className="h-4 w-4" />
               Data Table
             </TabsTrigger>
-            <TabsTrigger value="ai" className="gap-2">
-              <Bot className="h-4 w-4" />
-              AI Query
-            </TabsTrigger>
           </TabsList>
 
-          {/* Overview Tab */}
-          <TabsContent value="overview">
+          {/* Dashboard Tab */}
+          <TabsContent value="dashboard">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Top Performers */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5 text-green-600" />
-                    Top Performers
-                  </CardTitle>
-                  <CardDescription>By meetings done + scheduled</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {getTopPerformers().map((performer, i) => (
-                      <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold ${
-                            i === 0 ? "bg-yellow-500" : i === 1 ? "bg-gray-400" : i === 2 ? "bg-orange-400" : "bg-blue-400"
-                          }`}>
-                            {i + 1}
-                          </div>
-                          <div>
-                            <p className="font-medium">{performer.name}</p>
-                            <p className="text-xs text-gray-500">
-                              {performer.interested} interested
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-bold text-green-600">{performer.meetingsDone} done</p>
-                          <p className="text-xs text-blue-600">{performer.meetingsScheduled} scheduled</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+              {/* Funnel Chart */}
+              {currentSheet && (
+                <LeadFunnelChart data={currentSheet.summary.totals} />
+              )}
+
+              {/* Agent Leaderboard */}
+              {currentSheet && (
+                <AgentLeaderboard
+                  rows={currentSheet.rows}
+                  headers={currentSheet.headers}
+                />
+              )}
 
               {/* Status Distribution */}
               <Card>
@@ -477,9 +284,10 @@ export default function LeadsReportPage() {
                       .slice(0, 10)
                       .map(status => {
                         const value = currentSheet.summary.totals[status] || 0
-                        const total = kpis?.totalLeads || 1
-                        const percentage = ((value / total) * 100).toFixed(1)
-                        
+                        const totalLeads = currentSheet.summary.totals["Lead Ref No. Count"] ||
+                          currentSheet.summary.totals["Lead Ref No.\nCount"] || 1
+                        const percentage = ((value / totalLeads) * 100).toFixed(1)
+
                         return (
                           <div key={status}>
                             <div className="flex justify-between text-sm mb-1">
@@ -487,7 +295,7 @@ export default function LeadsReportPage() {
                               <span className="text-gray-600">{value.toLocaleString()} ({percentage}%)</span>
                             </div>
                             <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                              <div 
+                              <div
                                 className="h-full bg-blue-600 rounded-full transition-all"
                                 style={{ width: `${Math.min(parseFloat(percentage), 100)}%` }}
                               />
@@ -499,26 +307,50 @@ export default function LeadsReportPage() {
                 </CardContent>
               </Card>
 
-              {/* Quick Stats */}
-              <Card className="lg:col-span-2">
+              {/* File Summary */}
+              <Card>
                 <CardHeader>
-                  <CardTitle>File Summary</CardTitle>
+                  <CardTitle>Loaded Files</CardTitle>
+                  <CardDescription>
+                    {files.length} file(s) • {files.reduce((sum, f) =>
+                      sum + f.sheets.reduce((s, sh) => s + sh.summary.totalRows, 0), 0
+                    ).toLocaleString()} total rows
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 gap-3">
                     {files.map(file => (
-                      <div key={file.name} className="p-4 bg-gray-50 rounded-lg">
+                      <div
+                        key={file.name}
+                        className={`p-4 rounded-lg cursor-pointer transition-colors ${selectedFile === file.name
+                          ? "bg-blue-50 border-2 border-blue-500"
+                          : "bg-gray-50 hover:bg-gray-100 border-2 border-transparent"
+                          }`}
+                        onClick={() => {
+                          setSelectedFile(file.name)
+                          if (file.sheets[0]) setSelectedSheet(file.sheets[0].name)
+                        }}
+                      >
                         <p className="font-medium text-sm truncate">{file.name.replace(".xlsx", "")}</p>
                         <p className="text-2xl font-bold text-blue-600">
-                          {file.sheets.reduce((sum, s) => sum + s.summary.totalRows, 0)}
+                          {file.sheets.reduce((sum, s) => sum + s.summary.totalRows, 0).toLocaleString()}
                         </p>
-                        <p className="text-xs text-gray-500">Total rows • {file.sheets.length} sheet(s)</p>
+                        <p className="text-xs text-gray-500">{file.sheets.length} sheet(s)</p>
                       </div>
                     ))}
                   </div>
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          {/* AI Analyst Tab */}
+          <TabsContent value="ai">
+            <AIChatPanel
+              workspaceId={workspaceId}
+              data={aiDataContext}
+              context={`Current file: ${selectedFile}, Current sheet: ${selectedSheet}`}
+            />
           </TabsContent>
 
           {/* Data Table Tab */}
@@ -537,7 +369,7 @@ export default function LeadsReportPage() {
                         ))}
                       </SelectContent>
                     </Select>
-                    
+
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                       <Input
@@ -548,7 +380,7 @@ export default function LeadsReportPage() {
                       />
                     </div>
                   </div>
-                  
+
                   <Badge variant="outline">
                     {sortedRows.length} rows
                   </Badge>
@@ -560,15 +392,15 @@ export default function LeadsReportPage() {
                     <thead>
                       <tr className="border-b bg-gray-50">
                         {currentSheet?.headers.map(header => (
-                          <th 
-                            key={header} 
+                          <th
+                            key={header}
                             className="px-4 py-3 text-left font-medium text-gray-600 cursor-pointer hover:bg-gray-100"
                             onClick={() => handleSort(header)}
                           >
                             <div className="flex items-center gap-1">
                               {header}
                               {sortColumn === header && (
-                                sortDirection === "asc" 
+                                sortDirection === "asc"
                                   ? <ChevronUp className="h-4 w-4" />
                                   : <ChevronDown className="h-4 w-4" />
                               )}
@@ -618,124 +450,6 @@ export default function LeadsReportPage() {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
-
-          {/* AI Query Tab */}
-          <TabsContent value="ai">
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-              {/* Quick Queries Sidebar */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm">Quick Queries</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {QUICK_QUERIES.map((q, i) => (
-                    <Button
-                      key={i}
-                      variant="ghost"
-                      className="w-full justify-start text-left h-auto py-2 px-3 text-xs text-gray-600 hover:text-gray-900"
-                      onClick={() => sendQuery(q)}
-                    >
-                      &ldquo;{q}&rdquo;
-                    </Button>
-                  ))}
-                </CardContent>
-              </Card>
-
-              {/* Chat Area */}
-              <Card className="lg:col-span-3 flex flex-col h-[600px]">
-                <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center gap-2">
-                    <Sparkles className="h-5 w-5 text-purple-600" />
-                    AI Data Analyst
-                  </CardTitle>
-                  <CardDescription>
-                    Ask questions about your leads data in natural language
-                  </CardDescription>
-                </CardHeader>
-                
-                <ScrollArea className="flex-1 p-4">
-                  <div className="space-y-4">
-                    {messages.length === 0 && (
-                      <div className="text-center py-12 text-gray-500">
-                        <Bot className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                        <p>Ask me anything about your leads data!</p>
-                        <p className="text-sm">Try one of the quick queries on the left</p>
-                      </div>
-                    )}
-                    
-                    {messages.map((message) => (
-                      <div 
-                        key={message.id}
-                        className={`flex gap-3 ${message.role === "user" ? "flex-row-reverse" : ""}`}
-                      >
-                        <Avatar className="h-8 w-8 flex-shrink-0">
-                          <AvatarFallback className={
-                            message.role === "user" 
-                              ? "bg-blue-100 text-blue-700" 
-                              : "bg-purple-100 text-purple-700"
-                          }>
-                            {message.role === "user" ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
-                          </AvatarFallback>
-                        </Avatar>
-                        
-                        <div className={`max-w-[85%] ${message.role === "user" ? "text-right" : ""}`}>
-                          <div className={`rounded-lg px-4 py-3 ${
-                            message.role === "user" 
-                              ? "bg-blue-600 text-white" 
-                              : "bg-gray-100 text-gray-900"
-                          }`}>
-                            <div className="text-sm whitespace-pre-wrap prose prose-sm max-w-none">
-                              {message.content}
-                            </div>
-                          </div>
-                          <p className="text-xs text-gray-400 mt-1">
-                            {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                    
-                    {isQuerying && (
-                      <div className="flex gap-3">
-                        <Avatar className="h-8 w-8">
-                          <AvatarFallback className="bg-purple-100 text-purple-700">
-                            <Bot className="h-4 w-4" />
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="bg-gray-100 rounded-lg px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            <span className="text-sm text-gray-600">Analyzing data...</span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    
-                    <div ref={messagesEndRef} />
-                  </div>
-                </ScrollArea>
-                
-                <div className="p-4 border-t">
-                  <div className="flex gap-2">
-                    <Input 
-                      placeholder="Ask about your leads data..."
-                      value={inputValue}
-                      onChange={(e) => setInputValue(e.target.value)}
-                      onKeyPress={handleKeyPress}
-                      disabled={isQuerying}
-                      className="flex-1"
-                    />
-                    <Button 
-                      onClick={() => sendQuery(inputValue)}
-                      disabled={!inputValue.trim() || isQuerying}
-                    >
-                      <Send className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </Card>
-            </div>
           </TabsContent>
         </Tabs>
       </div>
