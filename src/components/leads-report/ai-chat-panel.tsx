@@ -25,14 +25,14 @@ interface AIChatPanelProps {
 }
 
 const QUICK_QUERIES = [
-  "Who are the top 3 performing vendors?",
-  "What's the conversion rate from Fresh Lead to Meeting?",
-  "Show me status distribution as a pie chart",
-  "Compare performance across all agents",
-  "Which campaigns have the most invalid numbers?",
-  "Show leads funnel visualization",
-  "What percentage of leads are qualified?",
-  "Show trends by lead owner"
+  "Top 3 vendors?",
+  "Conversion rate?",
+  "Status pie chart",
+  "Compare agents",
+  "Invalid numbers?",
+  "Funnel chart",
+  "Qualification %?",
+  "Trends by owner"
 ]
 
 export function AIChatPanel({ workspaceId, data, context }: AIChatPanelProps) {
@@ -103,32 +103,32 @@ export function AIChatPanel({ workspaceId, data, context }: AIChatPanelProps) {
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
       {/* Quick Queries Sidebar */}
-      <Card className="lg:col-span-1">
-        <CardHeader className="pb-2">
+      <Card className="lg:col-span-1 min-w-0">
+        <CardHeader className="pb-2 px-3">
           <CardTitle className="text-sm flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-purple-500" />
-            Quick Queries
+            <Sparkles className="h-4 w-4 text-purple-500 flex-shrink-0" />
+            <span className="truncate">Queries</span>
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-1">
+        <CardContent className="space-y-1 px-2">
           {QUICK_QUERIES.map((q, i) => (
             <Button
               key={i}
               variant="ghost"
-              className="w-full justify-start text-left h-auto py-2 px-3 text-xs text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+              className="w-full justify-start text-left h-auto py-2 px-2 text-xs text-gray-600 hover:text-gray-900 hover:bg-gray-100 truncate"
               onClick={() => sendQuery(q)}
               disabled={isQuerying}
             >
-              {q}
+              <span className="truncate">{q}</span>
             </Button>
           ))}
         </CardContent>
       </Card>
 
       {/* Chat Area */}
-      <Card className="lg:col-span-3 flex flex-col h-[600px]">
+      <Card className="lg:col-span-4 flex flex-col h-[600px]">
         <CardHeader className="pb-2 border-b">
           <CardTitle className="flex items-center gap-2">
             <Bot className="h-5 w-5 text-purple-600" />

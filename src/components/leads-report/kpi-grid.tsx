@@ -50,13 +50,13 @@ export function KPIGrid({ totals }: KPIGridProps) {
       badge: { text: "Total", color: "bg-blue-100 text-blue-800" }
     },
     {
-      label: "Meetings Done",
+      label: "Done",
       value: meetingsDone.toLocaleString(),
       icon: <CheckCircle className="h-5 w-5 text-green-600" />,
       badge: { text: "Won", color: "bg-green-100 text-green-800" }
     },
     {
-      label: "Meetings Scheduled",
+      label: "Scheduled",
       value: meetingsScheduled.toLocaleString(),
       icon: <Clock className="h-5 w-5 text-blue-600" />,
       badge: { text: "Pipeline", color: "bg-blue-100 text-blue-800" }
@@ -68,28 +68,28 @@ export function KPIGrid({ totals }: KPIGridProps) {
       badge: { text: "Hot", color: "bg-purple-100 text-purple-800" }
     },
     {
-      label: "Conversion Rate",
+      label: "Conversion",
       value: `${conversionRate}%`,
       icon: <TrendingUp className="h-5 w-5 text-green-600" />,
-      description: "Leads → Meetings"
+      description: "Leads → Mtg"
     },
     {
-      label: "Contact Rate",
+      label: "Contact",
       value: `${contactRate}%`,
       icon: <Phone className="h-5 w-5 text-cyan-600" />,
-      description: "Successfully reached"
+      description: "Reached"
     },
     {
-      label: "Qualification Rate",
+      label: "Qualified",
       value: `${qualificationRate}%`,
       icon: <Filter className="h-5 w-5 text-orange-600" />,
-      description: "Meet criteria"
+      description: "Criteria"
     },
     {
-      label: "Hot Lead Rate",
+      label: "Hot Leads",
       value: `${hotLeadRate}%`,
       icon: <Target className="h-5 w-5 text-red-600" />,
-      description: "In active pipeline"
+      description: "Pipeline"
     }
   ]
 
@@ -103,22 +103,22 @@ export function KPIGrid({ totals }: KPIGridProps) {
   return (
     <div className="space-y-4">
       {/* Main KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2">
         {kpis.map((kpi) => (
-          <Card key={kpi.label} className="hover:shadow-md transition-shadow">
-            <CardContent className="pt-4 pb-3">
-              <div className="flex items-center justify-between mb-2">
-                {kpi.icon}
+          <Card key={kpi.label} className="hover:shadow-md transition-shadow min-w-0 overflow-hidden">
+            <CardContent className="pt-3 pb-2 px-3">
+              <div className="flex items-center justify-between mb-1 gap-1">
+                <span className="flex-shrink-0">{kpi.icon}</span>
                 {kpi.badge && (
-                  <Badge className={kpi.badge.color} variant="outline">
+                  <Badge className={`${kpi.badge.color} text-[10px] px-1.5 py-0`} variant="outline">
                     {kpi.badge.text}
                   </Badge>
                 )}
               </div>
-              <p className="text-2xl font-bold text-gray-900">{kpi.value}</p>
-              <p className="text-xs text-gray-500 truncate">{kpi.label}</p>
+              <p className="text-xl font-bold text-gray-900 truncate">{kpi.value}</p>
+              <p className="text-[11px] text-gray-500 truncate">{kpi.label}</p>
               {kpi.description && (
-                <p className="text-[10px] text-gray-400 mt-1">{kpi.description}</p>
+                <p className="text-[9px] text-gray-400 truncate">{kpi.description}</p>
               )}
             </CardContent>
           </Card>
@@ -126,14 +126,14 @@ export function KPIGrid({ totals }: KPIGridProps) {
       </div>
 
       {/* Secondary KPIs */}
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
         {secondaryKpis.map((kpi) => (
           <div 
             key={kpi.label} 
-            className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+            className="flex items-center justify-between p-3 bg-gray-50 rounded-lg min-w-0 gap-2"
           >
-            <span className="text-sm text-gray-600">{kpi.label}</span>
-            <span className={`font-bold ${kpi.color}`}>
+            <span className="text-xs text-gray-600 truncate">{kpi.label}</span>
+            <span className={`font-bold flex-shrink-0 ${kpi.color}`}>
               {kpi.value.toLocaleString()}
             </span>
           </div>
