@@ -57,6 +57,7 @@ export default function LandingPage() {
   const [gallery, setGallery] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
   const [shareError, setShareError] = useState(false);
+  const [mapType, setMapType] = useState<"m" | "k">("m");
   const share = async () => {
     try {
       await navigator.clipboard.writeText(window.location.href);
@@ -334,23 +335,37 @@ export default function LandingPage() {
                 to Sheikh Zayed Road, the Red Line Metro and one of the region’s
                 most established business and logistics districts.
               </p>
-              <a
-                className={styles.locationCard}
-                href="https://www.google.com/maps?q=24.9510,55.0388"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <span className={styles.mapLines} />
-                <span className={styles.mapPin}>
-                  <MapPin size={30} />
-                </span>
-                <span className={styles.mapLabel}>
-                  <strong>Jebel Ali, Dubai</strong>
-                  <span>
-                    Explore the neighbourhood <ArrowUpRight size={14} />
-                  </span>
-                </span>
-              </a>
+              <div className={styles.locationCard}>
+                <div className={styles.mapToolbar}>
+                  <strong>
+                    <MapPin size={16} /> Jebel Ali, Dubai
+                  </strong>
+                  <div role="group" aria-label="Map view">
+                    <button
+                      type="button"
+                      aria-pressed={mapType === "m"}
+                      onClick={() => setMapType("m")}
+                    >
+                      Map
+                    </button>
+                    <button
+                      type="button"
+                      aria-pressed={mapType === "k"}
+                      onClick={() => setMapType("k")}
+                    >
+                      Satellite
+                    </button>
+                  </div>
+                </div>
+                <iframe
+                  title={`Jebel Ali interactive Google ${mapType === "k" ? "satellite" : "street"} map`}
+                  src={`https://maps.google.com/maps?q=24.9510,55.0388&z=13&t=${mapType}&output=embed`}
+                  className={styles.mapFrame}
+                  loading="lazy"
+                  allowFullScreen
+                  referrerPolicy="no-referrer-when-downgrade"
+                />
+              </div>
               <p className={styles.caption}>
                 Area location only. Exact project location to be confirmed by
                 the developer.
