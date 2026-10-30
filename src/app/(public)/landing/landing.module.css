@@ -259,7 +259,7 @@
   padding: 27px 0 20px;
   border-bottom: 1px solid var(--line);
   font-size: 11px;
-  overflow: auto;
+  flex-wrap: wrap;
   white-space: nowrap;
 }
 .tabs a {
