@@ -3,6 +3,9 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
 import ts from "typescript";
+import { createRequire } from "node:module";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 
 const source = ts.transpileModule(
   fs.readFileSync(
@@ -141,6 +144,42 @@ const postRequest = (body = lead) => ({
   json: async () => body,
 });
 
+test("the registration form offers 3, 4, and 5 bedrooms with no preference by default", () => {
+  const exports = {};
+  const formSource = ts.transpileModule(
+    fs.readFileSync(
+      new URL("../src/components/landing/RegisterSection.tsx", import.meta.url),
+      "utf8",
+    ),
+    {
+      compilerOptions: {
+        module: ts.ModuleKind.CommonJS,
+        target: ts.ScriptTarget.ES2022,
+        jsx: ts.JsxEmit.ReactJSX,
+      },
+    },
+  ).outputText;
+  vm.runInNewContext(formSource, {
+    exports,
+    require: createRequire(import.meta.url),
+  });
+  const html = renderToStaticMarkup(createElement(exports.RegisterSection));
+  const select = html.match(
+    /<select[^>]*name="bedrooms"[^>]*>([\s\S]*?)<\/select>/,
+  )?.[1];
+  assert(select);
+  for (const count of [3, 4, 5]) assert(select.includes(`value="${count}"`));
+  assert.match(
+    select,
+    /<option\b(?=[^>]*\bvalue="")(?=[^>]*\bselected="")[^>]*>/,
+  );
+  assert(select.includes("No preference"));
+  assert.match(
+    html,
+    /<option\b(?=[^>]*\bvalue="United Arab Emirates")(?=[^>]*\bselected="")[^>]*>/,
+  );
+});
+
 test("anonymous users cannot list leads", async () => {
   const { handlers, calls } = setup({ signedIn: false });
   const response = await handlers.GET(getRequest());
@@ -227,6 +266,55 @@ test("public registrations save to the database without Google Sheets or email",
   assert.equal(saved.full_name, lead.full_name);
   assert.equal(saved.country, lead.country);
   assert.equal(saved.lead_source, "landing_page");
+});
+
+test("bedroom choices are saved alongside the lead interest", async () => {
+  for (const bedrooms of [3, 4, 5, "3", "4", "5"]) {
+    const { handlers, calls } = setup();
+    const response = await handlers.POST(postRequest({ ...lead, bedrooms }));
+    assert.equal(response.status, 201);
+    const saved = calls.find(([action]) => action === "insert")[1];
+    assert.equal(saved.interest, `Buying Property · ${bedrooms} bedrooms`);
+    assert.equal("bedrooms" in saved, false);
+  }
+});
+
+test("bedroom preference can be saved without selecting a general interest", async () => {
+  const { handlers, calls } = setup();
+  assert.equal(
+    (await handlers.POST(postRequest({ ...lead, bedrooms: "4", interest: "" })))
+      .status,
+    201,
+  );
+  assert.equal(
+    calls.find(([action]) => action === "insert")[1].interest,
+    "4 bedrooms",
+  );
+});
+
+test("no bedroom preference preserves the original interest and existing forms", async () => {
+  for (const bedrooms of [undefined, null, ""]) {
+    const { handlers, calls } = setup();
+    assert.equal(
+      (await handlers.POST(postRequest({ ...lead, bedrooms }))).status,
+      201,
+    );
+    assert.equal(
+      calls.find(([action]) => action === "insert")[1].interest,
+      lead.interest,
+    );
+  }
+});
+
+test("unsupported bedroom choices are rejected without saving a lead", async () => {
+  for (const bedrooms of [0, 1, 2, 6, "3.0", "four", true, {}, [3]]) {
+    const { handlers, calls } = setup();
+    assert.equal(
+      (await handlers.POST(postRequest({ ...lead, bedrooms }))).status,
+      400,
+    );
+    assert(!calls.some(([action]) => action === "insert"));
+  }
 });
 
 test("failed database writes are not reported as successful registrations", async () => {

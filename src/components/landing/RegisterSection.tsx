@@ -31,6 +31,7 @@ export function RegisterSection() {
     phone: '',
     country: 'United Arab Emirates',
     interest: '',
+    bedrooms: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -160,6 +161,26 @@ export function RegisterSection() {
                       ))}
                     </select>
                   </div>
+                </div>
+
+                <div>
+                  <label htmlFor="preferred-bedrooms" className="block text-white/80 text-sm font-medium mb-2">
+                    Preferred Bedrooms
+                  </label>
+                  <select
+                    id="preferred-bedrooms"
+                    name="bedrooms"
+                    value={formData.bedrooms}
+                    onChange={(e) => setFormData({ ...formData, bedrooms: e.target.value })}
+                    className="w-full px-4 py-3 bg-slate-900 border border-white/10 rounded-lg text-white focus:outline-none focus:border-amber-500 transition-colors"
+                  >
+                    <option value="" className="bg-slate-900">No preference</option>
+                    {[3, 4, 5].map((bedrooms) => (
+                      <option key={bedrooms} value={bedrooms} className="bg-slate-900">
+                        {bedrooms} Bedrooms
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>

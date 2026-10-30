@@ -152,6 +152,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const bedrooms = body.bedrooms;
+    if (
+      bedrooms !== undefined &&
+      bedrooms !== null &&
+      bedrooms !== "" &&
+      ![3, 4, 5, "3", "4", "5"].includes(bedrooms)
+    ) {
+      return NextResponse.json(
+        { error: "Please select 3, 4, or 5 bedrooms, or no preference." },
+        { status: 400 },
+      );
+    }
+    if (
+      body.interest != null &&
+      (typeof body.interest !== "string" || body.interest.length > 200)
+    ) {
+      return NextResponse.json(
+        { error: "Please select a valid interest." },
+        { status: 400 },
+      );
+    }
+    const interest =
+      [body.interest?.trim(), bedrooms ? `${bedrooms} bedrooms` : ""]
+        .filter(Boolean)
+        .join(" · ") || null;
+
     // Insert lead into database
     const { data, error } = await getAdminClient()
       .from("public_leads")
@@ -160,7 +186,7 @@ export async function POST(request: NextRequest) {
         email: body.email,
         phone: body.phone,
         country: body.country || "Not specified",
-        interest: body.interest || null,
+        interest,
         lead_source: body.lead_source || "website",
         ip_address: ip,
         user_agent: request.headers.get("user-agent") || "",
