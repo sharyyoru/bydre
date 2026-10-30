@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "DreHomes | Premium Real Estate Services in UAE",
-  description: "Discover exceptional properties and investment opportunities with DreHomes. From off-plan developments to ready homes, we deliver excellence in UAE real estate.",
+  title: "Palm Springs, Jebel Ali | Discover with DRE",
+  description:
+    "Explore Palm Springs by Nakheel in Jebel Ali with DRE. Discover the anticipated 3–5 bedroom residences, proposed payment plan and latest launch information.",
   openGraph: {
-    title: "DreHomes | Premium Real Estate Services",
-    description: "Your trusted partner for luxury real estate in the UAE.",
+    title: "Palm Springs, Jebel Ali | Discover with DRE",
+    description:
+      "A new chapter by Nakheel. Explore the anticipated Palm Springs collection with your DRE property advisor.",
     url: "https://bydre.vercel.app/landing",
   },
 };
