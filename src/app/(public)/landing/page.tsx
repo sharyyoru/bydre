@@ -28,16 +28,16 @@ import styles from "./landing.module.css";
 
 const photos = [
   {
-    src: "https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=1800&q=85",
-    alt: "Contemporary villa overlooking a private swimming pool",
+    src: "/images/palm-springs-coastal-view.jpg",
+    alt: "Coastal panorama with landscaped villas and the palm-shaped island beyond",
   },
   {
-    src: "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1000&q=85",
-    alt: "Light-filled living room with natural finishes",
+    src: "/images/palm-springs-community.jpg",
+    alt: "Palm-lined villa community with landscaped paths and sports courts",
   },
   {
-    src: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1000&q=85",
-    alt: "Modern home framed by landscaped gardens",
+    src: "/images/palm-springs-location.jpg",
+    alt: "Aerial location illustration with a highlighted site near the palm-shaped island",
   },
 ];
 const units = [
@@ -214,7 +214,7 @@ export default function LandingPage() {
             </button>
           ))}
           <span className={styles.imageNote}>
-            Lifestyle imagery · for illustration only
+            Project gallery · imagery and location indicative
           </span>
         </div>
 
@@ -538,7 +538,7 @@ export default function LandingPage() {
               }}
             >
               <Dialog.Title className="sr-only">
-                Property lifestyle gallery
+                Project image gallery
               </Dialog.Title>
               <button
                 className={styles.closeGallery}
@@ -564,8 +564,8 @@ export default function LandingPage() {
                   sizes="85vw"
                 />
                 <p>
-                  {gallery + 1} / {photos.length} · Lifestyle imagery, not
-                  project renders
+                  {gallery + 1} / {photos.length} · Imagery and location
+                  indicative
                 </p>
               </div>
               <button
