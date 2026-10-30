@@ -285,7 +285,7 @@ export default function LandingPage() {
               <p>
                 Morning light. Open spaces. A place where the everyday feels a
                 little more exceptional. Welcome to Palm Springs, an upcoming
-                collection of townhouses and standalone villas in Jebel Ali by
+                collection of townhouses and standalone villas in Jebel Ali by{' '}
                 <NakheelLogo />, part of Dubai Holding.
               </p>
               <p>
