@@ -329,7 +329,7 @@ export default function LandingPage() {
                 {documents.map((document) => (
                   <a
                     key={document.filename}
-                    href={`/landing/documents/${document.filename}`}
+                    href={`/landing/documents/${document.filename}?v=2`}
                     download={document.filename}
                     className={styles.documentCard}
                   >

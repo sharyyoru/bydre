@@ -890,6 +890,7 @@
 .footer img {
   width: 86px;
   height: auto;
+  mix-blend-mode: multiply;
 }
 .footer p {
   border-left: 1px solid #d7d4cc;

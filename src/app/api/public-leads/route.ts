@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { appendLeadToGoogleSheet } from '@/lib/google-sheets';
 
 export const dynamic = 'force-dynamic';
 
@@ -82,7 +83,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ success: true, id: data.id }, { status: 201 });
+    let googleSheetSynced = false;
+    try {
+      googleSheetSynced = await appendLeadToGoogleSheet({
+        full_name: data.full_name,
+        email: data.email,
+        phone: data.phone,
+        country: data.country,
+        interest: data.interest,
+      });
+    } catch {
+      console.error('Google Sheets delivery failed for saved lead:', data.id);
+      return NextResponse.json(
+        { error: 'Your inquiry was saved, but delivery to our sales sheet could not be confirmed. Please contact our team directly.', id: data.id },
+        { status: 502 }
+      );
+    }
+    if (!googleSheetSynced) console.warn('Google Sheets is not configured; lead saved to Supabase only:', data.id);
+
+    return NextResponse.json({ success: true, id: data.id, google_sheet_synced: googleSheetSynced }, { status: 201 });
   } catch (error) {
     console.error('Lead submission error:', error);
     return NextResponse.json(
