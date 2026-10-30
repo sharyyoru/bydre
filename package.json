@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "test:public-leads": "node --test scripts/test-public-leads.mjs",
     "seed:user": "node --env-file=.env.local scripts/seed-user.mjs",
     "import:trello": "node --env-file=.env.local scripts/import-trello-marketing.mjs",
     "reassign:marketing": "node --env-file=.env.local scripts/reassign-imported-marketing-work.mjs",

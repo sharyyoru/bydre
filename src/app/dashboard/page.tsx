@@ -141,6 +141,17 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
+          <Card className="rounded-2xl border-border/60">
+            <CardHeader>
+              <div className="p-2 rounded-lg bg-[#D4AF37]/10 text-[#D4AF37] w-fit"><FileText className="h-5 w-5" /></div>
+              <CardTitle className="text-lg mt-3">Landing Leads</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-3 text-sm text-muted-foreground">View registrations from the Palm Springs landing page.</p>
+              <Button asChild variant="ghost" className="p-0 h-auto text-[#D4AF37] hover:text-[#D4AF37]/80 font-medium"><Link href="/dashboard/leads">View registrations <ArrowRight className="ml-1 h-4 w-4" /></Link></Button>
+            </CardContent>
+          </Card>
+
           {boards.length === 0 && (
             <Card className="rounded-2xl border-dashed border-border/60 col-span-1 md:col-span-3 bg-white">
               <CardContent className="p-6 text-center">

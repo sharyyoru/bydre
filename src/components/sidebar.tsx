@@ -201,6 +201,13 @@ export function Sidebar({ mobile, collapsed = false, onToggle }: { mobile?: bool
             </Button>
           </Link>
 
+          <Button asChild variant="ghost" className={`w-full justify-start gap-3 text-white/80 hover:bg-white/10 hover:text-white ${pathname === "/dashboard/leads" ? "bg-white/10 text-white" : ""}`}>
+            <Link href="/dashboard/leads" title="Landing Leads" aria-current={pathname === "/dashboard/leads" ? "page" : undefined}>
+              <Users className="h-4 w-4" />
+              <span className={collapsed && !mobile ? "sr-only" : ""}>Landing Leads</span>
+            </Link>
+          </Button>
+
           <Link href={`/workspace/${workspaceId || "drehomes"}/users`}>
             <Button
               variant="ghost"
