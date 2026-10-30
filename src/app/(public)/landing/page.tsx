@@ -14,7 +14,10 @@ import {
   Copy,
   Expand,
   MapPin,
+  Mail,
+  MessageCircle,
   Menu,
+  Phone,
   ShieldCheck,
   Trees,
   Waves,
@@ -51,6 +54,33 @@ const sections = [
   ["location", "Location"],
   ["developer", "Developer"],
 ];
+
+function ContactButtons() {
+  return (
+    <div className={styles.contactButtons}>
+      <a
+        href="https://wa.me/971585837346"
+        target="_blank"
+        rel="noopener noreferrer"
+        className={styles.whatsappButton}
+      >
+        <MessageCircle size={18} /> WhatsApp us <ArrowUpRight size={16} />
+      </a>
+      <a href="tel:+971527543243">
+        <Phone size={16} />
+        <span>
+          Hotline<strong>+971 52 754 3243</strong>
+        </span>
+      </a>
+      <a href="mailto:sales@drehomes.com">
+        <Mail size={16} />
+        <span>
+          Mail<strong>sales@drehomes.com</strong>
+        </span>
+      </a>
+    </div>
+  );
+}
 
 export default function LandingPage() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -409,6 +439,7 @@ export default function LandingPage() {
               <a href="#residences" className={styles.secondaryButton}>
                 Explore the residences <ArrowDown size={16} />
               </a>
+              <ContactButtons />
               <div className={styles.advisor}>
                 <Image src="/dre-logo.png" width={70} height={37} alt="DRE" />
                 <div>
@@ -448,6 +479,7 @@ export default function LandingPage() {
               <ShieldCheck size={18} /> Personal guidance, every step of the
               way.
             </span>
+            <ContactButtons />
           </div>
           <RegisterSection />
         </div>

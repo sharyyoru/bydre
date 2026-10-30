@@ -29,7 +29,7 @@ export function RegisterSection() {
     full_name: '',
     email: '',
     phone: '',
-    country: '',
+    country: 'United Arab Emirates',
     interest: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
