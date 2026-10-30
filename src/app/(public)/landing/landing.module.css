@@ -362,6 +362,56 @@
   margin: 0;
   line-height: 1.7;
 }
+.documents {
+  display: grid;
+  gap: 12px;
+  margin-top: 24px;
+}
+.documentCard {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: #fff;
+}
+.documentCard:hover {
+  background: #f1eee7;
+}
+.pdfIcon {
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+  color: #927c63;
+  flex-shrink: 0;
+}
+.pdfIcon > span {
+  font-size: 8px;
+  letter-spacing: 1px;
+}
+.documentInfo {
+  display: grid;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+.documentInfo > span {
+  color: #8a7561;
+  font-size: 9px;
+}
+.documentInfo strong {
+  font-size: 12px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.documentInfo small {
+  font-size: 9px;
+  color: #747c7c;
+}
+.documentCard > svg {
+  flex-shrink: 0;
+}
 .sectionHeading {
   display: flex;
   align-items: center;
@@ -530,7 +580,37 @@
   color: #927c63;
   text-align: center;
 }
-.developerMark span {
+.nakheelLogo,
+.eyebrow > .nakheelLogo {
+  position: relative;
+  display: inline-block;
+  width: 70px;
+  height: 16px;
+  vertical-align: -3px;
+  overflow: hidden;
+  background: transparent;
+  border-radius: 0;
+  flex-shrink: 0;
+}
+.nakheelLogo img {
+  position: absolute;
+  width: 100%;
+  height: auto;
+  max-width: none;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+}
+.page h2 .nakheelLogo {
+  width: 140px;
+  height: 30px;
+  vertical-align: -1px;
+}
+.developerMark .nakheelLogo {
+  width: clamp(100px, 14vw, 180px);
+  height: 40px;
+}
+.developerMark > span:last-child {
   display: block;
   letter-spacing: 1px;
   font-size: 6px;

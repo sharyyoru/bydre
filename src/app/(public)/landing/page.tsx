@@ -13,6 +13,8 @@ import {
   ChevronRight,
   Copy,
   Expand,
+  Download,
+  FileText,
   MapPin,
   Mail,
   MessageCircle,
@@ -40,6 +42,26 @@ const photos = [
     alt: "Aerial location illustration with a highlighted site near the palm-shaped island",
   },
 ];
+const documents = [
+  {
+    filename: "DRE_La_Tilia_Floor_Plans.pdf",
+    title: "La Tilia floor plans",
+    category: "Floor plans",
+    size: "7.97 MB",
+  },
+  {
+    filename: "DRE_Palm_Springs_vs_JVA_and_Al_Furjan.pdf",
+    title: "Palm Springs vs JVA & Al Furjan",
+    category: "Comparison",
+    size: "347 KB",
+  },
+  {
+    filename: "DRE_Palm_Springs_vs_JVA_and_Murooj_Al_Furjan.pdf",
+    title: "Palm Springs vs JVA & Murooj Al Furjan",
+    category: "Comparison",
+    size: "356 KB",
+  },
+];
 const units = [
   ["3-bedroom townhouse", "Mid unit", "2,300", "3.80M"],
   ["4-bedroom townhouse", "G+1", "2,800", "4.62M"],
@@ -49,11 +71,25 @@ const units = [
 ];
 const sections = [
   ["overview", "Overview"],
+  ["documents", "Documents"],
   ["residences", "Residences"],
   ["payment-plan", "Payment plan"],
   ["location", "Location"],
   ["developer", "Developer"],
 ];
+
+function NakheelLogo() {
+  return (
+    <span className={styles.nakheelLogo}>
+      <Image
+        src="/images/nakheel-logo.png"
+        alt="Nakheel"
+        width={338}
+        height={265}
+      />
+    </span>
+  );
+}
 
 function ContactButtons() {
   return (
@@ -167,7 +203,7 @@ export default function LandingPage() {
         <div className={styles.titleRow}>
           <div>
             <p className={styles.eyebrow}>
-              <span /> A NEW CHAPTER BY NAKHEEL
+              <span /> A NEW CHAPTER BY <NakheelLogo />
             </p>
             <h1>
               Palm Springs<span>.</span>
@@ -250,7 +286,7 @@ export default function LandingPage() {
                 Morning light. Open spaces. A place where the everyday feels a
                 little more exceptional. Welcome to Palm Springs, an upcoming
                 collection of townhouses and standalone villas in Jebel Ali by
-                Nakheel, part of Dubai Holding.
+                <NakheelLogo />, part of Dubai Holding.
               </p>
               <p>
                 Designed around the possibilities of family life, this planned
@@ -281,6 +317,41 @@ export default function LandingPage() {
                   Our advisors can help you understand the latest availability.
                 </p>
               </div>
+            </section>
+            <section id="documents" className={styles.section}>
+              <p className={styles.eyebrow}>THE DETAILS, AT YOUR FINGERTIPS</p>
+              <h2>Take a closer look.</h2>
+              <p>
+                Download floor plans and community comparisons to explore at
+                your own pace.
+              </p>
+              <div className={styles.documents}>
+                {documents.map((document) => (
+                  <a
+                    key={document.filename}
+                    href={`/landing/documents/${document.filename}`}
+                    download={document.filename}
+                    className={styles.documentCard}
+                  >
+                    <span className={styles.pdfIcon}>
+                      <FileText size={22} />
+                      <span>PDF</span>
+                    </span>
+                    <span className={styles.documentInfo}>
+                      <span>{document.category}</span>
+                      <strong>{document.title}</strong>
+                      <small>PDF · {document.size}</small>
+                    </span>
+                    <Download size={18} aria-hidden="true" />
+                    <span className="sr-only">Download PDF</span>
+                  </a>
+                ))}
+              </div>
+              <p className={styles.caption}>
+                La Tilia floor plans are provided as a separate reference
+                document, not confirmed Palm Springs layouts. Final project
+                details remain subject to developer confirmation.
+              </p>
             </section>
             <section id="residences" className={styles.section}>
               <div className={styles.sectionHeading}>
@@ -408,18 +479,19 @@ export default function LandingPage() {
               <div>
                 <p className={styles.eyebrow}>A VISION, BUILT ON EXPERIENCE</p>
                 <h2>
-                  By Nakheel.
+                  By <NakheelLogo />.
                   <br />
                   For what comes next.
                 </h2>
                 <p>
-                  Part of Dubai Holding, Nakheel is the master developer behind
-                  Palm Jumeirah, The World and Jumeirah Islands. Palm Springs
-                  brings that vision to a new chapter in Jebel Ali.
+                  Part of Dubai Holding, <NakheelLogo /> is the master developer
+                  behind Palm Jumeirah, The World and Jumeirah Islands. Palm
+                  Springs brings that vision to a new chapter in Jebel Ali.
                 </p>
               </div>
               <div className={styles.developerMark}>
-                NAKHEEL<span>PART OF DUBAI HOLDING</span>
+                <NakheelLogo />
+                <span>PART OF DUBAI HOLDING</span>
               </div>
             </section>
           </div>
@@ -440,6 +512,9 @@ export default function LandingPage() {
                 Explore the residences <ArrowDown size={16} />
               </a>
               <ContactButtons />
+              <a href="#documents" className={styles.secondaryButton}>
+                Project documents <Download size={16} />
+              </a>
               <div className={styles.advisor}>
                 <Image src="/dre-logo.png" width={70} height={37} alt="DRE" />
                 <div>
