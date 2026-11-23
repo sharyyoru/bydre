@@ -163,14 +163,17 @@ interface POpts {
 }
 function P(t: string, l: Lang, o: POpts = {}): string {
   const { size = 15, lh = 24, color = INK, w = 400, mt = 0, mb = 0, extra = "" } = o;
-  return `<p style="margin:${mt}px 0 ${mb}px 0;font-family:${FONT[l]};font-size:${size}px;line-height:${lh}px;font-weight:${w};color:${color};${extra}">${t}</p>`;
+  return `<p style="margin:${mt}px 0 ${mb}px 0;font-family:${FONT[l]};font-size:${size}px;line-height:${lh}px;mso-line-height-rule:exactly;font-weight:${w};color:${color};${extra}">${t}</p>`;
 }
 
 function button(label: string, href: string, l: Lang, primary: boolean): string {
   const bg = primary ? GREEN : "#FFFFFF",
     fg = primary ? "#FFFFFF" : NAVY,
     bd = primary ? GREEN : "#C9D5DB";
-  return `<td style="padding:0 4px 8px 4px;"><a href="${href}" target="_blank" style="display:inline-block;padding:12px 20px;border-radius:999px;background:${bg};border:1px solid ${bd};color:${fg};font-family:${FONT[l]};font-size:14px;line-height:18px;font-weight:700;text-decoration:none;white-space:nowrap;">${label}</a></td>`;
+  // Color and padding live on a <td bgcolor> cell rather than the <a>:
+  // Outlook's paste sanitizer strips the background: shorthand from inline
+  // anchors, which left the primary button white-on-white.
+  return `<td style="padding:0 4px 8px 4px;"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="${bg}" style="background-color:${bg};border:1px solid ${bd};border-radius:999px;padding:12px 20px;"><a href="${href}" target="_blank" style="display:inline-block;color:${fg};font-family:${FONT[l]};font-size:14px;line-height:18px;font-weight:700;text-decoration:none;white-space:nowrap;">${label}</a></td></tr></table></td>`;
 }
 
 function section(l: Lang, st: UaeNationalState): string {
@@ -184,7 +187,7 @@ function section(l: Lang, st: UaeNationalState): string {
     st.agentAr.trim();
   const note = (l === "ar" ? st.noteAr : st.noteEn).trim();
   let h = `<tr><td dir="${dir}" style="padding:26px 32px 0 32px;text-align:${al};">`;
-  h += `<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="${al}"><tr><td style="background:#E6F3EC;border-radius:999px;padding:6px 14px;font-family:${FONT[l]};font-size:13px;line-height:18px;font-weight:700;color:${GREEN};">${t.pill}</td></tr></table>`;
+  h += `<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="${al}"><tr><td bgcolor="#E6F3EC" style="background-color:#E6F3EC;border-radius:999px;padding:6px 14px;font-family:${FONT[l]};font-size:13px;line-height:18px;font-weight:700;color:${GREEN};">${t.pill}</td></tr></table>`;
   h += `<div style="clear:both;height:14px;line-height:14px;font-size:0;">&nbsp;</div>`;
   h += P(t.eyebrow, l, {
     size: 12,
@@ -205,7 +208,7 @@ function section(l: Lang, st: UaeNationalState): string {
   h += P(t.body, l, { size: 15, lh: 25, mb: 0 });
   if (note) {
     const side = l === "ar" ? "border-right" : "border-left";
-    h += `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:16px;"><tr><td dir="${dir}" style="background:#F3F7F9;${side}:3px solid ${GREEN};border-radius:6px;padding:14px 16px;text-align:${al};">${P(
+    h += `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:16px;"><tr><td dir="${dir}" bgcolor="#F3F7F9" style="background-color:#F3F7F9;${side}:3px solid ${GREEN};border-radius:6px;padding:14px 16px;text-align:${al};">${P(
       para(note),
       l,
       { size: 15, lh: 24, color: NAVY }
@@ -213,7 +216,7 @@ function section(l: Lang, st: UaeNationalState): string {
   }
   h += `</td></tr>`;
   // details
-  h += `<tr><td dir="${dir}" style="padding:20px 32px 0 32px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid ${LINE};border-radius:10px;background:#FFFFFF;">`;
+  h += `<tr><td dir="${dir}" style="padding:20px 32px 0 32px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#FFFFFF" style="border:1px solid ${LINE};border-radius:10px;background-color:#FFFFFF;">`;
   t.details.forEach(([k, v], i) => {
     const bt = i ? `border-top:1px solid ${LINE};` : "";
     h += `<tr><td width="28%" valign="top" style="${bt}padding:12px 16px;text-align:${al};font-family:${FONT[l]};font-size:12px;line-height:20px;font-weight:700;color:#8394A0;${
@@ -246,7 +249,7 @@ function section(l: Lang, st: UaeNationalState): string {
           c1 = hi ? "#FFFFFF" : RED,
           c2 = hi ? "#FFFFFF" : INK;
         h +=
-          `<td width="50%" valign="top" style="padding:0 6px 12px 6px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${bg};border:1px solid ${bd};border-radius:10px;"><tr><td dir="${dir}" style="padding:14px 16px;text-align:${al};">` +
+          `<td width="50%" valign="top" style="padding:0 6px 12px 6px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${bg}" style="background-color:${bg};border:1px solid ${bd};border-radius:10px;"><tr><td dir="${dir}" style="padding:14px 16px;text-align:${al};">` +
           (l === "ar"
             ? P(small, l, { size: 13, lh: 19, color: c2 }) +
               P(big, l, { size: 18, lh: 25, color: c1, w: 700, mt: 2 })
@@ -316,14 +319,15 @@ function section(l: Lang, st: UaeNationalState): string {
 export function buildEmail(st: UaeNationalState): string {
   const langs: Lang[] = st.lang === "both" ? ["ar", "en"] : [st.lang];
   const dir0 = langs[0] === "ar" ? "rtl" : "ltr";
-  let h = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#F4F8FA;"><tr><td align="center" style="padding:20px 8px;">`;
-  h += `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background:#FFFFFF;border:1px solid ${LINE};border-radius:14px;overflow:hidden;">`;
+  let h = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#F4F8FA" style="background-color:#F4F8FA;"><tr><td align="center" style="padding:20px 8px;">`;
+  // width="600" attribute (not just max-width) because Outlook ignores max-width.
+  h += `<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" bgcolor="#FFFFFF" style="max-width:600px;width:100%;background-color:#FFFFFF;border:1px solid ${LINE};border-radius:14px;overflow:hidden;">`;
   h +=
     `<tr><td style="font-size:0;line-height:0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>` +
     ["#C8102E", "#00843D", "#FFFFFF", "#000000"]
       .map(
         (c) =>
-          `<td width="25%" height="5" style="background:${c};font-size:0;line-height:0;">&nbsp;</td>`
+          `<td width="25%" height="5" bgcolor="${c}" style="background-color:${c};font-size:0;line-height:0;">&nbsp;</td>`
       )
       .join("") +
     `</tr></table></td></tr>`;
@@ -351,7 +355,7 @@ export function buildEmail(st: UaeNationalState): string {
     h += section(l, st);
   });
   h +=
-    `<tr><td style="background:${NAVY};padding:16px 32px;text-align:center;">` +
+    `<tr><td bgcolor="${NAVY}" style="background-color:${NAVY};padding:16px 32px;text-align:center;">` +
     langs
       .map((l) => P(T[l].footer, l, { size: 12, lh: 18, color: "#B8C6CF" }))
       .join("") +
@@ -369,5 +373,5 @@ export function emailSubject(lang: UaeNationalLang): string {
 export function fullDoc(st: UaeNationalState): string {
   return `<!DOCTYPE html><html lang="${st.lang === "ar" ? "ar" : "en"}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(
     emailSubject(st.lang)
-  )}</title></head><body style="margin:0;padding:0;background:#F4F8FA;">${buildEmail(st)}</body></html>`;
+  )}</title></head><body bgcolor="#F4F8FA" style="margin:0;padding:0;background-color:#F4F8FA;">${buildEmail(st)}</body></html>`;
 }
