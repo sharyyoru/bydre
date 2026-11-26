@@ -276,11 +276,33 @@ function drawFlyer(
     ctx.fillRect(mid - 1, perksY - 25, 2, 32);
   }
 
+  drawAgentBand(ctx, { photo, name, title, phone, accent: GOLD, textX: dealsX });
+}
+
+const UAE_RED = "#C8102E";
+const UAE_GREEN = "#00843D";
+
+type AgentInfo = {
+  photo: HTMLImageElement | null;
+  name: string;
+  title: string;
+  phone: string;
+};
+
+// Agent photo block + navy contact band, shared by both designs so the agent
+// area is identical whichever design is chosen.
+function drawAgentBand(
+  ctx: CanvasRenderingContext2D,
+  o: AgentInfo & { accent: string; textX: number }
+) {
+  const { photo, name, title, phone, accent, textX } = o;
+  const M = 72;
+  ctx.textAlign = "left";
   // Bottom navy band with gold top edge
   const bandY = 938;
   ctx.fillStyle = NAVY;
   ctx.fillRect(0, bandY, W, H - bandY);
-  ctx.fillStyle = GOLD;
+  ctx.fillStyle = accent;
   ctx.fillRect(0, bandY, W, 4);
 
   // Large agent photo block — bottom-left corner, popping above the band.
@@ -308,17 +330,17 @@ function drawFlyer(
   }
   ctx.restore();
   // Gold accents on the photo block edges.
-  ctx.fillStyle = GOLD;
+  ctx.fillStyle = accent;
   ctx.fillRect(pX, pY, pW, 4);
   ctx.fillRect(pX + pW - 4, pY, 4, pH);
 
   // Agent details (right of photo) — vertically centred in the band.
   ctx.fillStyle = "#FFFFFF";
   ctx.font = "700 38px Inter, Arial, sans-serif";
-  ctx.fillText(name || "Your Name", dealsX, bandY + 62);
+  ctx.fillText(name || "Your Name", textX, bandY + 62);
   ctx.fillStyle = "#B8C6CF";
   ctx.font = "400 27px Inter, Arial, sans-serif";
-  ctx.fillText(title || "Real Estate Consultant", dealsX, bandY + 102);
+  ctx.fillText(title || "Real Estate Consultant", textX, bandY + 102);
 
   // Phone (right column, vertically centred)
   ctx.textAlign = "right";
@@ -326,10 +348,204 @@ function drawFlyer(
     ctx.fillStyle = "#FFFFFF";
     ctx.font = "700 36px Inter, Arial, sans-serif";
     const tw = ctx.measureText(phone).width;
-    drawIcon(ctx, ICONS.phone, W - M - tw - 52, bandY + 50, 36, GOLD);
+    drawIcon(ctx, ICONS.phone, W - M - tw - 52, bandY + 50, 36, accent);
     ctx.fillText(phone, W - M, bandY + 82);
   }
   ctx.textAlign = "left";
+}
+
+type Run = { t: string; size: number; weight: number; color: string; sup?: boolean };
+
+const runFont = (r: Run) =>
+  `${r.weight} ${r.sup ? Math.round(r.size * 0.58) : r.size}px Inter, Arial, sans-serif`;
+
+function runsWidth(ctx: CanvasRenderingContext2D, runs: Run[]) {
+  return runs.reduce((sum, r) => {
+    ctx.font = runFont(r);
+    return sum + ctx.measureText(r.t).width;
+  }, 0);
+}
+
+// Text runs centred as one line; `sup` runs are raised and smaller ("2nd").
+function drawRuns(ctx: CanvasRenderingContext2D, runs: Run[], cx: number, y: number) {
+  let x = cx - runsWidth(ctx, runs) / 2;
+  ctx.textAlign = "left";
+  for (const r of runs) {
+    ctx.font = runFont(r);
+    ctx.fillStyle = r.color;
+    ctx.fillText(r.t, x, r.sup ? y - r.size * 0.42 : y);
+    x += ctx.measureText(r.t).width;
+  }
+}
+
+// Waving UAE flag entering from the top-right corner, drawn in thin slices so
+// each slice can ripple and catch light/shadow like satin.
+function drawUaeFlag(ctx: CanvasRenderingContext2D) {
+  const L = 760,
+    FH = 300,
+    redW = L / 4,
+    step = 3;
+  ctx.save();
+  ctx.translate(W + 60, 60);
+  ctx.rotate(0.62);
+  // Local frame: hoist at x = 0, fly end at x = -L; y = 0 is the green edge.
+  for (let x = -L; x < 0; x += step) {
+    const t = (x + L) / L;
+    const damp = 1 - t * 0.85;
+    const ph = (x / L) * Math.PI * 3.1;
+    const dy = 22 * damp * Math.sin(ph);
+    const shade = Math.cos(ph) * damp * 0.32;
+    const stripes: [string, number, number][] =
+      x > -redW
+        ? [[UAE_RED, 0, FH]]
+        : [
+            [UAE_GREEN, 0, FH / 3],
+            ["#F4F4F4", FH / 3, FH / 3],
+            ["#151515", (2 * FH) / 3, FH / 3],
+          ];
+    for (const [c, y0, h] of stripes) {
+      ctx.fillStyle = c;
+      ctx.fillRect(x, y0 + dy, step + 0.6, h);
+    }
+    ctx.fillStyle =
+      shade >= 0 ? `rgba(255,255,255,${shade * 0.9})` : `rgba(0,0,0,${-shade})`;
+    ctx.fillRect(x, dy, step + 0.6, FH);
+  }
+  ctx.restore();
+}
+
+// Faint Dubai skyline (Burj Khalifa + towers) as a watermark.
+function drawSkyline(ctx: CanvasRenderingContext2D, baseY: number) {
+  ctx.save();
+  ctx.fillStyle = "rgba(120,135,145,0.10)";
+  const towers: [number, number, number][] = [
+    [20, 70, 300], [92, 54, 230], [300, 60, 210], [370, 46, 270],
+    [430, 70, 190], [610, 52, 240], [672, 64, 205], [760, 48, 280],
+    [820, 66, 215], [905, 58, 250], [975, 74, 195],
+  ];
+  for (const [x, w, h] of towers) ctx.fillRect(x, baseY - h, w, h);
+  const bx = 205;
+  const tiers: [number, number][] = [
+    [64, 120], [52, 110], [42, 100], [32, 90], [24, 80], [16, 70], [10, 60],
+  ];
+  let y = baseY;
+  for (const [hw, h] of tiers) {
+    ctx.fillRect(bx - hw, y - h, hw * 2, h);
+    y -= h;
+  }
+  ctx.beginPath();
+  ctx.moveTo(bx - 6, y);
+  ctx.lineTo(bx, y - 170);
+  ctx.lineTo(bx + 6, y);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawFlyerUae(
+  ctx: CanvasRenderingContext2D,
+  o: AgentInfo & { logo: HTMLImageElement | null }
+) {
+  const { logo } = o;
+  ctx.clearRect(0, 0, W, H);
+
+  // Paper background: soft vignette plus fine deterministic grain.
+  const bg = ctx.createRadialGradient(W * 0.45, H * 0.45, 100, W / 2, H / 2, W * 0.8);
+  bg.addColorStop(0, "#F7F6F3");
+  bg.addColorStop(1, "#E4E3DF");
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+  let seed = 7;
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  for (let i = 0; i < 9000; i++) {
+    ctx.fillStyle = rnd() > 0.5 ? "rgba(0,0,0,0.035)" : "rgba(255,255,255,0.5)";
+    ctx.fillRect(rnd() * W, rnd() * H, 1.4, 1.4);
+  }
+
+  drawSkyline(ctx, 940);
+  drawUaeFlag(ctx);
+
+  if (logo) {
+    const lh = 84;
+    ctx.drawImage(logo, 64, 56, (logo.width / logo.height) * lh, lh);
+  } else {
+    ctx.fillStyle = NAVY;
+    ctx.font = "700 56px Inter, Arial, sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillText("dre", 64, 120);
+  }
+
+  const cx = W / 2;
+  ctx.textBaseline = "alphabetic";
+  ctx.textAlign = "center";
+  ctx.fillStyle = NAVY;
+  ctx.font = "400 168px 'Great Vibes', 'Segoe Script', cursive";
+  ctx.fillText("welcome", cx - 20, 300);
+
+  ctx.font = "500 30px Inter, Arial, sans-serif";
+  ctx.fillText("to the DRE Homes - Eid Al Etihad", cx, 362);
+
+  ctx.font = "800 112px Inter, Arial, sans-serif";
+  ctx.fillText("Open House", cx, 472);
+
+  ctx.font = "400 31px Inter, Arial, sans-serif";
+  ctx.fillStyle = INK;
+  ctx.fillText("Explore residential and commercial properties from", cx, 538);
+
+  ctx.fillStyle = UAE_RED;
+  ctx.font = "800 64px Inter, Arial, sans-serif";
+  ctx.fillText("AED 550K ONLY", cx, 616);
+
+  // Split pill: solid red label + outlined offer text.
+  const pillH = 70,
+    pillY = 652;
+  const leftT = "ONE DAY ONLY";
+  ctx.font = "500 30px Inter, Arial, sans-serif";
+  const lw = ctx.measureText(leftT).width + 52;
+  const rightRuns: Run[] = [
+    { t: "Exclusive Offers on 2", size: 30, weight: 500, color: UAE_RED },
+    { t: "nd", size: 30, weight: 500, color: UAE_RED, sup: true },
+    { t: " Dec Only", size: 30, weight: 500, color: UAE_RED },
+  ];
+  const rw = runsWidth(ctx, rightRuns) + 56;
+  const px = cx - (lw + rw) / 2;
+  ctx.fillStyle = "rgba(255,255,255,0.7)";
+  rr(ctx, px, pillY, lw + rw, pillH, pillH / 2);
+  ctx.fill();
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = UAE_RED;
+  ctx.stroke();
+  ctx.fillStyle = UAE_RED;
+  rr(ctx, px, pillY, lw, pillH, pillH / 2);
+  ctx.fill();
+  ctx.fillStyle = "#FFFFFF";
+  ctx.font = "500 30px Inter, Arial, sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText(leftT, px + lw / 2, pillY + 46);
+  drawRuns(ctx, rightRuns, px + lw + rw / 2, pillY + 46);
+
+  ctx.textAlign = "center";
+  ctx.fillStyle = NAVY;
+  ctx.font = "400 30px Inter, Arial, sans-serif";
+  ctx.fillText("Meet our property advisors to explore today\u2019s offers", cx, 776);
+
+  // Date + address sit right of centre so they clear the agent photo block.
+  const infoX = cx + 106;
+  drawRuns(
+    ctx,
+    [
+      { t: "Wednesday | 2", size: 32, weight: 700, color: UAE_RED },
+      { t: "nd", size: 32, weight: 700, color: UAE_RED, sup: true },
+      { t: " Dec 26 | 10 AM onwards", size: 32, weight: 700, color: UAE_RED },
+    ],
+    infoX,
+    834
+  );
+  ctx.textAlign = "center";
+  ctx.fillStyle = NAVY;
+  ctx.font = "400 29px Inter, Arial, sans-serif";
+  ctx.fillText("DRE, Park Heights Square 2, Office 401, DHE", infoX, 878);
+
+  drawAgentBand(ctx, { ...o, accent: UAE_RED, textX: 268 });
 }
 
 export default function FlyerBuilder() {
@@ -337,6 +553,7 @@ export default function FlyerBuilder() {
   const bannerRef = useRef<HTMLImageElement | null>(null);
   const logoRef = useRef<HTMLImageElement | null>(null);
   const [photo, setPhoto] = useState<HTMLImageElement | null>(null);
+  const [design, setDesign] = useState<"classic" | "uae">("classic");
   const [name, setName] = useState("");
   const [title, setTitle] = useState("");
   const [phone, setPhone] = useState("");
@@ -375,15 +592,10 @@ export default function FlyerBuilder() {
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    drawFlyer(ctx, {
-      banner: bannerRef.current,
-      logo: logoRef.current,
-      photo,
-      name,
-      title,
-      phone,
-    });
-  }, [photo, name, title, phone]);
+    const info = { logo: logoRef.current, photo, name, title, phone };
+    if (design === "uae") drawFlyerUae(ctx, info);
+    else drawFlyer(ctx, { ...info, banner: bannerRef.current });
+  }, [design, photo, name, title, phone]);
 
   useEffect(() => {
     let alive = true;
@@ -426,7 +638,10 @@ export default function FlyerBuilder() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "dre-open-house-invite.png";
+      a.download =
+        design === "uae"
+          ? "dre-open-house-invite-eid-al-etihad.png"
+          : "dre-open-house-invite.png";
       a.click();
       URL.revokeObjectURL(url);
       toast("Image downloaded.");
@@ -436,6 +651,24 @@ export default function FlyerBuilder() {
   return (
     <div className={styles.wrap}>
       <aside className={styles.panel} aria-label="Flyer settings">
+        <div className={styles.step}>Design</div>
+        <div className={styles.seg} role="group" aria-label="Flyer design">
+          <button
+            type="button"
+            aria-pressed={design === "classic"}
+            onClick={() => setDesign("classic")}
+          >
+            Classic
+          </button>
+          <button
+            type="button"
+            aria-pressed={design === "uae"}
+            onClick={() => setDesign("uae")}
+          >
+            Eid Al Etihad
+          </button>
+        </div>
+
         <div className={styles.step}>Your details</div>
         <label htmlFor="flyerName">Your name</label>
         <input
@@ -477,7 +710,7 @@ export default function FlyerBuilder() {
           onChange={onPhoto}
         />
         <p className={styles.hint}>
-          A square, chest-up photo works best — it is cropped into a circle.
+          A square, chest-up photo works best — it fills the photo block in the bottom-left corner.
         </p>
 
         <div className={styles.step}>Download</div>
