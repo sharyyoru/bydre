@@ -8,6 +8,7 @@ import {
   type UaeNationalLang,
   type UaeNationalState,
 } from "@/lib/uae-national-email";
+import FlyerBuilder from "./FlyerBuilder";
 import styles from "./uaenational.module.css";
 
 const STORAGE_KEY = "dre-oh-agent";
@@ -31,6 +32,7 @@ const INITIAL: UaeNationalState = {
 };
 
 export default function UaeNationalBuilder() {
+  const [tab, setTab] = useState<"email" | "flyer">("email");
   const [state, setState] = useState<UaeNationalState>(INITIAL);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const emailRef = useRef<HTMLDivElement>(null);
@@ -150,8 +152,27 @@ export default function UaeNationalBuilder() {
             confirmed
           </p>
         </div>
+        <nav className={styles.topnav} aria-label="Builder">
+          <button
+            type="button"
+            aria-pressed={tab === "email"}
+            onClick={() => setTab("email")}
+          >
+            RSVP Email
+          </button>
+          <button
+            type="button"
+            aria-pressed={tab === "flyer"}
+            onClick={() => setTab("flyer")}
+          >
+            Invite Image
+          </button>
+        </nav>
       </header>
 
+      {tab === "flyer" ? (
+        <FlyerBuilder />
+      ) : (
       <div className={styles.wrap}>
         <aside className={styles.panel} aria-label="Email settings">
           <div className={styles.step}>1 · Language</div>
@@ -405,6 +426,7 @@ export default function UaeNationalBuilder() {
           </div>
         </main>
       </div>
+      )}
       <div
         className={`${styles.toast} ${toastMsg ? styles.show : ""}`}
         role="status"

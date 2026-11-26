@@ -283,3 +283,60 @@
   margin: 0 auto;
   max-width: 600px;
 }
+
+.topnav {
+  display: flex;
+  gap: 4px;
+  background: #EEF2F4;
+  border-radius: 10px;
+  padding: 4px;
+}
+.topnav button {
+  border: 0;
+  background: transparent;
+  padding: 9px 16px;
+  border-radius: 7px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.topnav button[aria-pressed="true"] {
+  background: #fff;
+  color: var(--navy);
+  box-shadow: 0 1px 3px rgba(21, 44, 58, 0.15);
+}
+.fileBtn {
+  display: block;
+  text-align: center;
+  padding: 10px 12px;
+  border: 1px dashed #6AA9C1;
+  border-radius: 9px;
+  background: #F3F9FB;
+  color: var(--navy);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  margin: 6px 0;
+}
+.fileBtn:hover {
+  background: #E7F2F6;
+}
+.fileInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+.flyerCanvas {
+  display: block;
+  width: 100%;
+  max-width: 720px;
+  height: auto;
+  margin: 0 auto;
+  border-radius: 8px;
+  box-shadow: 0 4px 18px rgba(21, 44, 58, 0.12);
+}
