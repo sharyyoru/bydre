@@ -129,8 +129,10 @@ function drawFlyer(
   ctx.fillStyle = "#FFFFFF";
   ctx.fillRect(0, 0, W, H);
 
+  const M = 72; // outer margin
+
   // Hero image — top portion, covered.
-  const heroH = 500;
+  const heroH = 480;
   if (banner) drawCover(ctx, banner, 0, 0, W, heroH);
   else {
     const g = ctx.createLinearGradient(0, 0, W, heroH);
@@ -142,126 +144,139 @@ function drawFlyer(
 
   // Left-to-right white veil so the headline stays legible over the photo.
   const veil = ctx.createLinearGradient(0, 0, W, 0);
-  veil.addColorStop(0, "rgba(255,255,255,0.95)");
-  veil.addColorStop(0.55, "rgba(255,255,255,0.72)");
-  veil.addColorStop(1, "rgba(255,255,255,0)");
+  veil.addColorStop(0, "rgba(255,255,255,0.96)");
+  veil.addColorStop(0.5, "rgba(255,255,255,0.8)");
+  veil.addColorStop(0.85, "rgba(255,255,255,0)");
   ctx.fillStyle = veil;
   ctx.fillRect(0, 0, W, heroH);
 
   // Fade hero into the white content area.
-  const fade = ctx.createLinearGradient(0, heroH - 140, 0, heroH + 30);
+  const fade = ctx.createLinearGradient(0, heroH - 140, 0, heroH + 40);
   fade.addColorStop(0, "rgba(255,255,255,0)");
   fade.addColorStop(1, "rgba(255,255,255,1)");
   ctx.fillStyle = fade;
-  ctx.fillRect(0, heroH - 140, W, 170);
+  ctx.fillRect(0, heroH - 140, W, 180);
 
   ctx.textBaseline = "alphabetic";
+  ctx.textAlign = "left";
 
   // Logo
   if (logo) {
-    const lh = 72;
+    const lh = 62;
     const lw = (logo.width / logo.height) * lh;
-    ctx.drawImage(logo, 60, 42, lw, lh);
+    ctx.drawImage(logo, M, 46, lw, lh);
   } else {
     ctx.fillStyle = NAVY;
-    ctx.font = "700 50px Inter, Arial, sans-serif";
-    ctx.textAlign = "left";
-    ctx.fillText("dre", 60, 98);
+    ctx.font = "700 46px Inter, Arial, sans-serif";
+    ctx.fillText("dre", M, 96);
   }
 
   // Headline stack
   ctx.fillStyle = NAVY;
-  ctx.textAlign = "left";
-  ctx.font = "400 112px 'Great Vibes', 'Segoe Script', cursive";
-  ctx.fillText("Welcome", 60, 204);
+  ctx.font = "400 108px 'Great Vibes', 'Segoe Script', cursive";
+  ctx.fillText("Welcome", M, 208);
 
-  ctx.font = "700 40px Inter, Arial, sans-serif";
-  ctx.fillText("to the DRE Homes", 66, 270);
+  ctx.font = "600 36px Inter, Arial, sans-serif";
+  ctx.fillText("to the DRE Homes", M + 6, 266);
 
-  ctx.font = "800 100px Inter, Arial, sans-serif";
-  ctx.fillText("Open House", 60, 374);
+  ctx.font = "800 92px Inter, Arial, sans-serif";
+  ctx.fillText("Open House", M, 362);
 
-  ctx.font = "400 38px Inter, Arial, sans-serif";
+  ctx.font = "400 35px Inter, Arial, sans-serif";
   ctx.fillStyle = INK;
-  ctx.fillText("Explore Residential & Commercial Properties", 64, 432);
-  ctx.fillText("Starting from", 64, 480);
+  ctx.fillText("Explore Residential & Commercial Properties", M, 424);
+  ctx.fillText("Starting from", M, 470);
 
   // Price pill (gold)
-  const pillY = 504,
-    pillW = 540,
+  const pillY = 496,
+    pillW = 520,
     pillH = 88;
-  const pillG = ctx.createLinearGradient(60, pillY, 60, pillY + pillH);
+  const pillG = ctx.createLinearGradient(M, pillY, M, pillY + pillH);
   pillG.addColorStop(0, GOLD);
   pillG.addColorStop(1, GOLD_DARK);
   ctx.fillStyle = pillG;
-  rr(ctx, 60, pillY, pillW, pillH, pillH / 2);
+  rr(ctx, M, pillY, pillW, pillH, pillH / 2);
   ctx.fill();
   ctx.fillStyle = NAVY;
-  ctx.font = "800 54px Inter, Arial, sans-serif";
-  ctx.fillText("AED 550,000", 60 + 40, pillY + 62);
+  ctx.font = "800 50px Inter, Arial, sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText("AED 550,000", M + pillW / 2, pillY + 62);
+  ctx.textAlign = "left";
 
-  // Event details (below hero, on white)
-  let y = 664;
+  // Event details — two clear columns on row 1, address on row 2.
+  const dY = 666;
+  const iconS = 38;
+  // Column 1: date
+  drawIcon(ctx, ICONS.calendar, M, dY - 33, iconS, NAVY);
   ctx.fillStyle = NAVY;
-  drawIcon(ctx, ICONS.calendar, 64, y - 32, 40, NAVY);
-  ctx.font = "700 38px Inter, Arial, sans-serif";
-  ctx.fillText("Wednesday, 2 December 2026", 124, y);
+  ctx.font = "700 36px Inter, Arial, sans-serif";
+  ctx.fillText("Wednesday, 2 December 2026", M + 58, dY);
+  // Column 2: time (fixed x so it can't collide with the date)
+  drawIcon(ctx, ICONS.clock, 730, dY - 33, iconS, NAVY);
+  ctx.fillText("10 AM onwards", 788, dY);
 
-  drawIcon(ctx, ICONS.clock, 660, y - 32, 40, NAVY);
-  ctx.font = "700 38px Inter, Arial, sans-serif";
-  ctx.fillText("10 AM onwards", 720, y);
-
-  y += 62;
-  drawIcon(ctx, ICONS.pin, 64, y - 30, 40, NAVY);
-  ctx.font = "600 32px Inter, Arial, sans-serif";
+  // Address
+  const aY = dY + 64;
+  drawIcon(ctx, ICONS.pin, M, aY - 31, iconS, NAVY);
+  ctx.font = "600 31px Inter, Arial, sans-serif";
   ctx.fillStyle = INK;
-  ctx.fillText("DRE, Office 401, Park Heights Square 2,", 124, y);
-  ctx.fillText("Dubai Hills Estate, Dubai.", 124, y + 42);
+  ctx.fillText("DRE, Office 401, Park Heights Square 2,", M + 58, aY);
+  ctx.fillText("Dubai Hills Estate, Dubai.", M + 58, aY + 42);
 
   // Gold divider
-  y += 78;
-  const dg = ctx.createLinearGradient(64, 0, W - 64, 0);
+  const divY = aY + 82;
+  const dg = ctx.createLinearGradient(M, 0, W - M, 0);
   dg.addColorStop(0, GOLD);
   dg.addColorStop(1, "rgba(224,169,62,0)");
   ctx.fillStyle = dg;
-  ctx.fillRect(64, y, W - 128, 3);
+  ctx.fillRect(M, divY, W - M * 2, 3);
 
-  // Deals line
-  y += 60;
+  // Deals heading
+  const dealsY = divY + 66;
   ctx.fillStyle = NAVY;
-  ctx.font = "800 44px Inter, Arial, sans-serif";
-  ctx.fillText("Discover Exclusive Deals", 64, y);
+  ctx.font = "800 42px Inter, Arial, sans-serif";
+  ctx.fillText("Discover Exclusive Deals", M, dealsY);
 
-  y += 56;
+  // Perks row — measured so items never run into the margin.
+  const perksY = dealsY + 58;
   const perks = [
     "Special Discounts",
     "Flexible Payment Plans",
     "Cashback Offers",
   ];
-  let px = 64;
-  ctx.font = "600 28px Inter, Arial, sans-serif";
+  const pFont = "600 27px Inter, Arial, sans-serif";
+  ctx.font = pFont;
+  const widths = perks.map((p) => ctx.measureText(p).width);
+  const iconGap = 44,
+    sepGap = 52;
+  const total =
+    widths.reduce((a, b) => a + b, 0) +
+    perks.length * iconGap +
+    (perks.length - 1) * sepGap;
+  let px = Math.max(M, (W - total) / 2);
   perks.forEach((perk, i) => {
-    drawIcon(ctx, ICONS.check, px, y - 26, 34, GOLD_DARK);
+    drawIcon(ctx, ICONS.check, px, perksY - 25, 32, GOLD_DARK);
     ctx.fillStyle = NAVY;
-    ctx.fillText(perk, px + 44, y);
-    px += ctx.measureText(perk).width + 96;
+    ctx.font = pFont;
+    ctx.fillText(perk, px + iconGap, perksY);
+    px += iconGap + widths[i] + sepGap;
     if (i < perks.length - 1) {
       ctx.fillStyle = "#C9D5DB";
-      ctx.fillRect(px - 48, y - 30, 2, 36);
+      ctx.fillRect(px - sepGap / 2 - 1, perksY - 27, 2, 34);
     }
   });
 
   // Bottom navy band with gold top edge
-  const bandY = 950;
+  const bandY = 962;
   ctx.fillStyle = NAVY;
   ctx.fillRect(0, bandY, W, H - bandY);
   ctx.fillStyle = GOLD;
   ctx.fillRect(0, bandY, W, 4);
 
   // Agent photo circle
-  const cx = 130,
-    cy = bandY + 66,
-    r = 56;
+  const cx = 124,
+    cy = bandY + 59,
+    r = 50;
   ctx.save();
   ctx.beginPath();
   ctx.arc(cx, cy, r, 0, Math.PI * 2);
@@ -273,10 +288,10 @@ function drawFlyer(
     ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
     ctx.fillStyle = "#B8C6CF";
     ctx.beginPath();
-    ctx.arc(cx, cy - 12, 20, 0, Math.PI * 2);
+    ctx.arc(cx, cy - 11, 18, 0, Math.PI * 2);
     ctx.fill();
     ctx.beginPath();
-    ctx.arc(cx, cy + 44, 38, Math.PI, Math.PI * 2);
+    ctx.arc(cx, cy + 40, 34, Math.PI, Math.PI * 2);
     ctx.fill();
   }
   ctx.restore();
@@ -286,28 +301,27 @@ function drawFlyer(
   ctx.arc(cx, cy, r + 2, 0, Math.PI * 2);
   ctx.stroke();
 
-  // Agent details
+  // Agent details (left column) — vertically centred in the band.
   ctx.fillStyle = "#FFFFFF";
-  ctx.textAlign = "left";
-  ctx.font = "700 40px Inter, Arial, sans-serif";
-  ctx.fillText(name || "Your Name", 228, bandY + 62);
+  ctx.font = "700 38px Inter, Arial, sans-serif";
+  ctx.fillText(name || "Your Name", 222, bandY + 56);
   ctx.fillStyle = "#B8C6CF";
-  ctx.font = "400 30px Inter, Arial, sans-serif";
-  ctx.fillText(title || "Real Estate Consultant", 228, bandY + 104);
+  ctx.font = "400 27px Inter, Arial, sans-serif";
+  ctx.fillText(title || "Real Estate Consultant", 222, bandY + 96);
 
-  // Phone + tagline (right)
+  // Phone + tagline (right column)
   ctx.textAlign = "right";
   if (phone) {
     ctx.fillStyle = "#FFFFFF";
-    ctx.font = "700 36px Inter, Arial, sans-serif";
+    ctx.font = "700 34px Inter, Arial, sans-serif";
     const tw = ctx.measureText(phone).width;
-    drawIcon(ctx, ICONS.phone, W - 56 - tw - 52, bandY + 30, 36, GOLD);
-    ctx.fillText(phone, W - 56, bandY + 62);
+    drawIcon(ctx, ICONS.phone, W - M - tw - 50, bandY + 24, 34, GOLD);
+    ctx.fillText(phone, W - M, bandY + 56);
   }
   ctx.fillStyle = "#B8C6CF";
-  ctx.font = "italic 400 26px Inter, Arial, sans-serif";
-  ctx.fillText("Meet our expert property advisors", W - 56, bandY + 100);
-  ctx.fillText("and find your ideal investment in Dubai!", W - 56, bandY + 126);
+  ctx.font = "italic 400 24px Inter, Arial, sans-serif";
+  ctx.fillText("Meet our expert property advisors", W - M, bandY + 88);
+  ctx.fillText("and find your ideal investment in Dubai!", W - M, bandY + 112);
   ctx.textAlign = "left";
 }
 
