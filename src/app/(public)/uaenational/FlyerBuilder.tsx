@@ -238,30 +238,31 @@ function drawFlyer(
   ctx.fillStyle = dg;
   ctx.fillRect(M, divY, W - M * 2, 3);
 
-  // Deals heading
+  // Deals heading — shifted right to clear the large photo block.
+  const dealsX = 268;
   const dealsY = divY + 60;
   ctx.fillStyle = NAVY;
   ctx.font = "800 42px Inter, Arial, sans-serif";
-  ctx.fillText("Discover Exclusive Deals", M, dealsY);
+  ctx.fillText("Discover Exclusive Deals", dealsX, dealsY);
 
-  // Perks row — items distributed with perfectly equal gaps between
-  // the outer margins; separators sit centred inside each gap.
+  // Perks row — items distributed with equal gaps across the space
+  // remaining to the right of the photo block.
   const perksY = dealsY + 54;
   const perks = [
     "Special Discounts",
     "Flexible Payment Plans",
     "Cashback Offers",
   ];
-  const pFont = "600 27px Inter, Arial, sans-serif";
+  const pFont = "600 24px Inter, Arial, sans-serif";
   ctx.font = pFont;
-  const iconGap = 42;
+  const iconGap = 38;
   const itemW = perks.map((p) => iconGap + ctx.measureText(p).width);
   const itemsTotal = itemW.reduce((a, b) => a + b, 0);
-  const gap = (W - M * 2 - itemsTotal) / (perks.length - 1);
-  let px = M;
+  const gap = (W - M - dealsX - itemsTotal) / (perks.length - 1);
+  let px = dealsX;
   const edges: number[] = [];
   perks.forEach((perk, i) => {
-    drawIcon(ctx, ICONS.check, px, perksY - 25, 32, GOLD_DARK);
+    drawIcon(ctx, ICONS.check, px, perksY - 23, 30, GOLD_DARK);
     ctx.fillStyle = NAVY;
     ctx.font = pFont;
     ctx.fillText(perk, px + iconGap, perksY);
@@ -272,7 +273,7 @@ function drawFlyer(
   ctx.fillStyle = "#C9D5DB";
   for (let i = 0; i < perks.length - 1; i++) {
     const mid = edges[i] + gap / 2;
-    ctx.fillRect(mid - 1, perksY - 27, 2, 34);
+    ctx.fillRect(mid - 1, perksY - 25, 2, 32);
   }
 
   // Bottom navy band with gold top edge
@@ -282,41 +283,42 @@ function drawFlyer(
   ctx.fillStyle = GOLD;
   ctx.fillRect(0, bandY, W, 4);
 
-  // Agent photo circle
-  const cx = 140,
-    cy = bandY + 71,
-    r = 62;
+  // Large agent photo block — bottom-left corner, popping above the band.
+  const pX = 0,
+    pY = 828,
+    pW = 212,
+    pH = H - pY;
   ctx.save();
   ctx.beginPath();
-  ctx.arc(cx, cy, r, 0, Math.PI * 2);
-  ctx.closePath();
+  ctx.rect(pX, pY, pW, pH);
   ctx.clip();
-  if (photo) drawCover(ctx, photo, cx - r, cy - r, r * 2, r * 2);
+  if (photo) drawCover(ctx, photo, pX, pY, pW, pH);
   else {
     ctx.fillStyle = "#28495C";
-    ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
+    ctx.fillRect(pX, pY, pW, pH);
+    const pcx = pX + pW / 2,
+      pcy = pY + pH / 2;
     ctx.fillStyle = "#B8C6CF";
     ctx.beginPath();
-    ctx.arc(cx, cy - 14, 22, 0, Math.PI * 2);
+    ctx.arc(pcx, pcy - 18, 30, 0, Math.PI * 2);
     ctx.fill();
     ctx.beginPath();
-    ctx.arc(cx, cy + 50, 44, Math.PI, Math.PI * 2);
+    ctx.arc(pcx, pcy + 72, 62, Math.PI, Math.PI * 2);
     ctx.fill();
   }
   ctx.restore();
-  ctx.strokeStyle = GOLD;
-  ctx.lineWidth = 4;
-  ctx.beginPath();
-  ctx.arc(cx, cy, r + 2, 0, Math.PI * 2);
-  ctx.stroke();
+  // Gold accents on the photo block edges.
+  ctx.fillStyle = GOLD;
+  ctx.fillRect(pX, pY, pW, 4);
+  ctx.fillRect(pX + pW - 4, pY, 4, pH);
 
-  // Agent details (left column) — vertically centred in the band.
+  // Agent details (right of photo) — vertically centred in the band.
   ctx.fillStyle = "#FFFFFF";
   ctx.font = "700 38px Inter, Arial, sans-serif";
-  ctx.fillText(name || "Your Name", 240, bandY + 62);
+  ctx.fillText(name || "Your Name", dealsX, bandY + 62);
   ctx.fillStyle = "#B8C6CF";
   ctx.font = "400 27px Inter, Arial, sans-serif";
-  ctx.fillText(title || "Real Estate Consultant", 240, bandY + 102);
+  ctx.fillText(title || "Real Estate Consultant", dealsX, bandY + 102);
 
   // Phone (right column, vertically centred)
   ctx.textAlign = "right";
