@@ -132,7 +132,7 @@ function drawFlyer(
   const M = 72; // outer margin
 
   // Hero image — top portion, covered.
-  const heroH = 500;
+  const heroH = 470;
   if (banner) drawCover(ctx, banner, 0, 0, W, heroH);
   else {
     const g = ctx.createLinearGradient(0, 0, W, heroH);
@@ -181,21 +181,21 @@ function drawFlyer(
   // Headline stack
   ctx.fillStyle = NAVY;
   ctx.font = "400 108px 'Great Vibes', 'Segoe Script', cursive";
-  ctx.fillText("Welcome", M, 220);
+  ctx.fillText("Welcome", M, 196);
 
   ctx.font = "600 36px Inter, Arial, sans-serif";
-  ctx.fillText("to the DRE Homes", M + 6, 284);
+  ctx.fillText("to the DRE Homes", M + 6, 264);
 
   ctx.font = "800 92px Inter, Arial, sans-serif";
-  ctx.fillText("Open House", M, 384);
+  ctx.fillText("Open House", M, 360);
 
   ctx.font = "400 35px Inter, Arial, sans-serif";
   ctx.fillStyle = INK;
-  ctx.fillText("Explore Residential & Commercial Properties", M, 442);
-  ctx.fillText("Starting from", M, 488);
+  ctx.fillText("Explore Residential & Commercial Properties", M, 418);
+  ctx.fillText("Starting from", M, 464);
 
   // Price pill (gold)
-  const pillY = 514,
+  const pillY = 488,
     pillW = 520,
     pillH = 88;
   const pillG = ctx.createLinearGradient(M, pillY, M, pillY + pillH);
@@ -211,7 +211,7 @@ function drawFlyer(
   ctx.textAlign = "left";
 
   // Event details — two clear columns on row 1, address on row 2.
-  const dY = 688;
+  const dY = 650;
   const iconS = 38;
   // Column 1: date
   drawIcon(ctx, ICONS.calendar, M, dY - 33, iconS, NAVY);
@@ -223,7 +223,7 @@ function drawFlyer(
   ctx.fillText("10 AM onwards", 758, dY);
 
   // Address
-  const aY = dY + 64;
+  const aY = dY + 58;
   drawIcon(ctx, ICONS.pin, M, aY - 31, iconS, NAVY);
   ctx.font = "600 31px Inter, Arial, sans-serif";
   ctx.fillStyle = INK;
@@ -231,7 +231,7 @@ function drawFlyer(
   ctx.fillText("Dubai Hills Estate, Dubai.", M + 58, aY + 42);
 
   // Gold divider
-  const divY = aY + 82;
+  const divY = aY + 88;
   const dg = ctx.createLinearGradient(M, 0, W - M, 0);
   dg.addColorStop(0, GOLD);
   dg.addColorStop(1, "rgba(224,169,62,0)");
@@ -239,13 +239,13 @@ function drawFlyer(
   ctx.fillRect(M, divY, W - M * 2, 3);
 
   // Deals heading
-  const dealsY = divY + 66;
+  const dealsY = divY + 60;
   ctx.fillStyle = NAVY;
   ctx.font = "800 42px Inter, Arial, sans-serif";
   ctx.fillText("Discover Exclusive Deals", M, dealsY);
 
   // Perks row — measured so items never run into the margin.
-  const perksY = dealsY + 58;
+  const perksY = dealsY + 54;
   const perks = [
     "Special Discounts",
     "Flexible Payment Plans",
@@ -274,7 +274,7 @@ function drawFlyer(
   });
 
   // Bottom navy band with gold top edge
-  const bandY = 968;
+  const bandY = 950;
   ctx.fillStyle = NAVY;
   ctx.fillRect(0, bandY, W, H - bandY);
   ctx.fillStyle = GOLD;
@@ -282,8 +282,8 @@ function drawFlyer(
 
   // Agent photo circle
   const cx = 124,
-    cy = bandY + 56,
-    r = 48;
+    cy = bandY + 65,
+    r = 50;
   ctx.save();
   ctx.beginPath();
   ctx.arc(cx, cy, r, 0, Math.PI * 2);
@@ -311,10 +311,10 @@ function drawFlyer(
   // Agent details (left column) — vertically centred in the band.
   ctx.fillStyle = "#FFFFFF";
   ctx.font = "700 38px Inter, Arial, sans-serif";
-  ctx.fillText(name || "Your Name", 222, bandY + 52);
+  ctx.fillText(name || "Your Name", 222, bandY + 58);
   ctx.fillStyle = "#B8C6CF";
   ctx.font = "400 27px Inter, Arial, sans-serif";
-  ctx.fillText(title || "Real Estate Consultant", 222, bandY + 90);
+  ctx.fillText(title || "Real Estate Consultant", 222, bandY + 96);
 
   // Phone (right column, vertically centred)
   ctx.textAlign = "right";
@@ -322,8 +322,8 @@ function drawFlyer(
     ctx.fillStyle = "#FFFFFF";
     ctx.font = "700 36px Inter, Arial, sans-serif";
     const tw = ctx.measureText(phone).width;
-    drawIcon(ctx, ICONS.phone, W - M - tw - 52, bandY + 42, 36, GOLD);
-    ctx.fillText(phone, W - M, bandY + 74);
+    drawIcon(ctx, ICONS.phone, W - M - tw - 52, bandY + 50, 36, GOLD);
+    ctx.fillText(phone, W - M, bandY + 82);
   }
   ctx.textAlign = "left";
 }
