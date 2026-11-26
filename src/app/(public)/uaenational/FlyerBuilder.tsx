@@ -244,7 +244,8 @@ function drawFlyer(
   ctx.font = "800 42px Inter, Arial, sans-serif";
   ctx.fillText("Discover Exclusive Deals", M, dealsY);
 
-  // Perks row — measured so items never run into the margin.
+  // Perks row — items distributed with perfectly equal gaps between
+  // the outer margins; separators sit centred inside each gap.
   const perksY = dealsY + 54;
   const perks = [
     "Special Discounts",
@@ -253,37 +254,38 @@ function drawFlyer(
   ];
   const pFont = "600 27px Inter, Arial, sans-serif";
   ctx.font = pFont;
-  const widths = perks.map((p) => ctx.measureText(p).width);
-  const iconGap = 44,
-    sepGap = 52;
-  const total =
-    widths.reduce((a, b) => a + b, 0) +
-    perks.length * iconGap +
-    (perks.length - 1) * sepGap;
-  let px = Math.max(M, (W - total) / 2);
+  const iconGap = 42;
+  const itemW = perks.map((p) => iconGap + ctx.measureText(p).width);
+  const itemsTotal = itemW.reduce((a, b) => a + b, 0);
+  const gap = (W - M * 2 - itemsTotal) / (perks.length - 1);
+  let px = M;
+  const edges: number[] = [];
   perks.forEach((perk, i) => {
     drawIcon(ctx, ICONS.check, px, perksY - 25, 32, GOLD_DARK);
     ctx.fillStyle = NAVY;
     ctx.font = pFont;
     ctx.fillText(perk, px + iconGap, perksY);
-    px += iconGap + widths[i] + sepGap;
-    if (i < perks.length - 1) {
-      ctx.fillStyle = "#C9D5DB";
-      ctx.fillRect(px - sepGap / 2 - 1, perksY - 27, 2, 34);
-    }
+    px += itemW[i];
+    edges.push(px);
+    px += gap;
   });
+  ctx.fillStyle = "#C9D5DB";
+  for (let i = 0; i < perks.length - 1; i++) {
+    const mid = edges[i] + gap / 2;
+    ctx.fillRect(mid - 1, perksY - 27, 2, 34);
+  }
 
   // Bottom navy band with gold top edge
-  const bandY = 950;
+  const bandY = 938;
   ctx.fillStyle = NAVY;
   ctx.fillRect(0, bandY, W, H - bandY);
   ctx.fillStyle = GOLD;
   ctx.fillRect(0, bandY, W, 4);
 
   // Agent photo circle
-  const cx = 124,
-    cy = bandY + 65,
-    r = 50;
+  const cx = 140,
+    cy = bandY + 71,
+    r = 62;
   ctx.save();
   ctx.beginPath();
   ctx.arc(cx, cy, r, 0, Math.PI * 2);
@@ -295,10 +297,10 @@ function drawFlyer(
     ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
     ctx.fillStyle = "#B8C6CF";
     ctx.beginPath();
-    ctx.arc(cx, cy - 11, 18, 0, Math.PI * 2);
+    ctx.arc(cx, cy - 14, 22, 0, Math.PI * 2);
     ctx.fill();
     ctx.beginPath();
-    ctx.arc(cx, cy + 40, 34, Math.PI, Math.PI * 2);
+    ctx.arc(cx, cy + 50, 44, Math.PI, Math.PI * 2);
     ctx.fill();
   }
   ctx.restore();
@@ -311,10 +313,10 @@ function drawFlyer(
   // Agent details (left column) — vertically centred in the band.
   ctx.fillStyle = "#FFFFFF";
   ctx.font = "700 38px Inter, Arial, sans-serif";
-  ctx.fillText(name || "Your Name", 222, bandY + 58);
+  ctx.fillText(name || "Your Name", 240, bandY + 62);
   ctx.fillStyle = "#B8C6CF";
   ctx.font = "400 27px Inter, Arial, sans-serif";
-  ctx.fillText(title || "Real Estate Consultant", 222, bandY + 96);
+  ctx.fillText(title || "Real Estate Consultant", 240, bandY + 102);
 
   // Phone (right column, vertically centred)
   ctx.textAlign = "right";
